@@ -1,0 +1,156 @@
+import { motion } from 'framer-motion';
+import { Flame, Sparkles, Trophy, Zap } from 'lucide-react';
+import { useScreel } from '../context/ScreelContext';
+import type { GameId, TabId } from '../types';
+
+export function HomeScreen({
+  onNavigate,
+  onPlay,
+}: {
+  onNavigate: (tab: TabId) => void;
+  onPlay: (game: GameId) => void;
+}) {
+  const { state, remaining } = useScreel();
+  const usedPct = Math.min(100, Math.round((state.minutesUsed / Math.max(1, state.minutesBank)) * 100));
+
+  return (
+    <div className="screen">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="eyebrow">Tonight&apos;s table</div>
+        <h1 className="display xl">
+          screel
+        </h1>
+        <p className="lede">
+          Your minutes are chips. Bet them. Win more day. Lose them back to focus.
+        </p>
+      </motion.div>
+
+      <motion.div
+        className="hero-panel"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+      >
+        <div className="bank-row">
+          <div>
+            <div className="bank-value">{remaining}</div>
+            <span className="bank-unit">minutes left today</span>
+          </div>
+          <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
+            <span className={`pill ${state.connected ? 'live' : 'warn'}`}>
+              {state.connected ? 'Screen Time linked' : 'Not linked'}
+            </span>
+            <span className="pill gold">
+              <Flame size={14} /> {state.streak} day streak
+            </span>
+          </div>
+        </div>
+        <div className="meter">
+          <div className="meter-track">
+            <div className="meter-fill" style={{ width: `${usedPct}%` }} />
+          </div>
+          <div className="meter-meta">
+            <span>{state.minutesUsed}m used</span>
+            <span>Bank {state.minutesBank}m</span>
+          </div>
+        </div>
+      </motion.div>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Quick wager</h2>
+          <button type="button" className="linkish" onClick={() => onNavigate('play')}>
+            See all
+          </button>
+        </div>
+        <div className="grid-2">
+          <button type="button" className="game-card bj" onClick={() => onPlay('blackjack')}>
+            <span className="badge">2:1 BJ</span>
+            <h3>Blackjack</h3>
+            <p>Beat the dealer. Double down on your day.</p>
+          </button>
+          <button type="button" className="game-card rl" onClick={() => onPlay('roulette')}>
+            <span className="badge">×35</span>
+            <h3>Roulette</h3>
+            <p>Spin the clock. Red, black, or all-in number.</p>
+          </button>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Pulse</h2>
+        </div>
+        <div className="grid-2">
+          <div className="stat-tile">
+            <div className="label">Level</div>
+            <div className="value">{state.level}</div>
+          </div>
+          <div className="stat-tile">
+            <div className="label">XP</div>
+            <div className="value">{state.xp}</div>
+          </div>
+          <div className="stat-tile">
+            <div className="label">Biggest win</div>
+            <div className="value">+{state.biggestWin}m</div>
+          </div>
+          <div className="stat-tile">
+            <div className="label">Hands played</div>
+            <div className="value">{state.gamesPlayed}</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>
+            <span className="spark"><Sparkles size={16} style={{ verticalAlign: -2 }} /></span> Daily heat
+          </h2>
+          <button type="button" className="linkish" onClick={() => onNavigate('bank')}>
+            Bank
+          </button>
+        </div>
+        {state.challenges.map((c) => {
+          const ready = c.progress >= c.target && !c.claimed;
+          return (
+            <div className="challenge" key={c.id}>
+              <div className="challenge-top">
+                <div>
+                  <h3>{c.title}</h3>
+                  <p>{c.description}</p>
+                </div>
+                <span className="pill gold">+{c.reward}m</span>
+              </div>
+              <div className="meter-track">
+                <div
+                  className="meter-fill"
+                  style={{ width: `${Math.min(100, (c.progress / c.target) * 100)}%` }}
+                />
+              </div>
+              <div className="meter-meta">
+                <span>
+                  {c.progress}/{c.target}
+                </span>
+                {c.claimed ? (
+                  <span>
+                    <Trophy size={12} /> Claimed
+                  </span>
+                ) : ready ? (
+                  <span style={{ color: 'var(--lime)' }}>Ready to claim</span>
+                ) : (
+                  <span>In progress</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="section">
+        <button type="button" className="btn btn-primary btn-block" onClick={() => onNavigate('play')}>
+          <Zap size={18} /> Enter the floor
+        </button>
+      </section>
+    </div>
+  );
+}
