@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { LoadingScreen } from './components/LoadingScreen';
+import { ScreelUIProvider } from './components/ScreelUI';
 import { TabBar } from './components/TabBar';
 import { ScreelProvider } from './context/ScreelContext';
 import { BankScreen } from './screens/BankScreen';
@@ -53,7 +54,9 @@ function ScreelApp() {
 export default function App() {
   return (
     <ScreelProvider>
-      <ScreelApp />
+      <ScreelUIProvider>
+        <ScreelApp />
+      </ScreelUIProvider>
     </ScreelProvider>
   );
 }

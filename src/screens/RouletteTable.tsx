@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { ChipTray, StackChip } from '../components/Chips';
+import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 import {
   CHIP_VALUES,
@@ -112,6 +113,7 @@ function WheelGraphic({
 
 export function RouletteTable({ onBack }: { onBack: () => void }) {
   const { remaining, settleRound, state } = useScreel();
+  const { confirm, toast } = useScreelUI();
   const [chip, setChip] = useState(5);
   const [bets, setBets] = useState<Bets>({});
   const [frozenBets, setFrozenBets] = useState<Bets>({});
@@ -142,7 +144,13 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
 
   const place = (spot: SpotId) => {
     if (locked) return;
-    if (totalBet + chip > remaining) return;
+    if (totalBet + chip > remaining) {
+      toast(`Only ${Math.max(0, remaining - totalBet)}m free on the felt.`, {
+        title: 'Bank limit',
+        tone: 'warn',
+      });
+      return;
+    }
     setUndoStack((u) => [...u, bets]);
     setBets((prev) => ({ ...prev, [spot]: (prev[spot] ?? 0) + chip }));
     setBanner(null);
@@ -201,7 +209,18 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
   const spin = async () => {
     if (locked || totalBet < 1 || totalBet > remaining || spinLock.current) return;
     if (state.riskAlerts && totalBet > remaining * 0.25) {
-      if (!window.confirm(`Total wager is over 25% of your bank (${totalBet}m). Spin anyway?`)) return;
+      const ok = await confirm({
+        title: 'High roller risk',
+        message: `This spin puts over 25% of your bank on the felt (${totalBet}m of ${remaining}m left). Spin anyway?`,
+        confirmLabel: 'Spin anyway',
+        cancelLabel: 'Pull chips',
+        tone: 'warn',
+      });
+      if (!ok) return;
+    }
+    if (totalBet > remaining) {
+      toast('Your table bets exceed what’s left in the bank.', { title: 'Over banked', tone: 'error' });
+      return;
     }
 
     spinLock.current = true;

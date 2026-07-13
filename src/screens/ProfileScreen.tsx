@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
+import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 
 export function ProfileScreen() {
   const { state, updateProfile } = useScreel();
+  const { toast } = useScreelUI();
 
   return (
     <div className="screen">
@@ -15,7 +17,15 @@ export function ProfileScreen() {
       <div className="profile-hero section" style={{ marginTop: 18 }}>
         <div className="avatar">{state.displayName.slice(0, 1).toUpperCase()}</div>
         <div style={{ flex: 1 }}>
-          <div className="label" style={{ fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--mute)' }}>
+          <div
+            className="label"
+            style={{
+              fontSize: '0.72rem',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: 'var(--mute)',
+            }}
+          >
             Display name
           </div>
           <input
@@ -46,7 +56,14 @@ export function ProfileScreen() {
               type="button"
               className={`toggle ${state.soundOn ? 'on' : ''}`}
               aria-pressed={state.soundOn}
-              onClick={() => updateProfile({ soundOn: !state.soundOn })}
+              onClick={() => {
+                const next = !state.soundOn;
+                updateProfile({ soundOn: next });
+                toast(next ? 'Table sounds armed.' : 'Table sounds muted.', {
+                  title: next ? 'Sound on' : 'Sound off',
+                  tone: 'info',
+                });
+              }}
             />
           </div>
           <div className="toggle-row">
@@ -60,7 +77,19 @@ export function ProfileScreen() {
               type="button"
               className={`toggle ${state.riskAlerts ? 'on' : ''}`}
               aria-pressed={state.riskAlerts}
-              onClick={() => updateProfile({ riskAlerts: !state.riskAlerts })}
+              onClick={() => {
+                const next = !state.riskAlerts;
+                updateProfile({ riskAlerts: next });
+                toast(
+                  next
+                    ? 'We’ll warn you before oversized wagers.'
+                    : 'High-roller mode — no 25% warnings.',
+                  {
+                    title: next ? 'Risk alerts on' : 'Risk alerts off',
+                    tone: next ? 'success' : 'warn',
+                  },
+                );
+              }}
             />
           </div>
         </div>

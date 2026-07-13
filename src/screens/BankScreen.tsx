@@ -1,10 +1,51 @@
 import { motion } from 'framer-motion';
 import { Link2, Link2Off, RefreshCw, Shield } from 'lucide-react';
+import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 
 export function BankScreen() {
   const { state, remaining, setBaseLimit, connectScreenTime, disconnectScreenTime, claimChallenge, resetDay } =
     useScreel();
+  const { toast, confirm } = useScreelUI();
+
+  const onConnect = () => {
+    connectScreenTime();
+    toast('Usage sync is live for this demo session.', { title: 'Screen Time linked', tone: 'success' });
+  };
+
+  const onDisconnect = async () => {
+    const ok = await confirm({
+      title: 'Disconnect Screen Time?',
+      message: 'You’ll keep your minute bank, but usage won’t update from the device profile.',
+      confirmLabel: 'Disconnect',
+      cancelLabel: 'Stay linked',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    disconnectScreenTime();
+    toast('Screen Time link removed.', { title: 'Disconnected', tone: 'info' });
+  };
+
+  const onReset = async () => {
+    const ok = await confirm({
+      title: 'Reset the day?',
+      message: `Restores your bank to the ${state.baseLimit}m ceiling, clears used minutes, and refreshes daily challenges. Streak stays.`,
+      confirmLabel: 'Reset day',
+      cancelLabel: 'Keep going',
+      tone: 'warn',
+    });
+    if (!ok) return;
+    resetDay();
+    toast(`Bank restored to ${state.baseLimit}m. Streak continues.`, {
+      title: 'New day dealt',
+      tone: 'success',
+    });
+  };
+
+  const onClaim = (id: string, reward: number, title: string) => {
+    claimChallenge(id);
+    toast(`+${reward}m dropped into your bank.`, { title: `${title} claimed`, tone: 'success' });
+  };
 
   return (
     <div className="screen">
@@ -48,11 +89,11 @@ export function BankScreen() {
           </div>
           <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
             {state.connected ? (
-              <button type="button" className="btn btn-secondary btn-block" onClick={disconnectScreenTime}>
+              <button type="button" className="btn btn-secondary btn-block" onClick={onDisconnect}>
                 <Link2Off size={16} /> Disconnect
               </button>
             ) : (
-              <button type="button" className="btn btn-primary btn-block" onClick={connectScreenTime}>
+              <button type="button" className="btn btn-primary btn-block" onClick={onConnect}>
                 <Link2 size={16} /> Connect Screen Time
               </button>
             )}
@@ -82,7 +123,7 @@ export function BankScreen() {
             Wins push the bank above this. Losses carve it down. Reset Day restores the ceiling.
           </p>
         </div>
-        <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 12 }} onClick={resetDay}>
+        <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 12 }} onClick={onReset}>
           <RefreshCw size={16} /> Reset day · keep streak
         </button>
       </section>
@@ -106,7 +147,7 @@ export function BankScreen() {
                   type="button"
                   className="btn btn-sm btn-gold"
                   disabled={!ready}
-                  onClick={() => claimChallenge(c.id)}
+                  onClick={() => onClaim(c.id, c.reward, c.title)}
                 >
                   {c.claimed ? 'Claimed' : 'Claim'}
                 </button>

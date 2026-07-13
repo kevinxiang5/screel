@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { ChipTray, StackChip } from '../components/Chips';
 import { useScreel } from '../context/ScreelContext';
+import { useScreelUI } from '../components/ScreelUI';
 import {
   canSplit,
   createShoe,
@@ -67,6 +68,7 @@ function CardView({ card, flipping = false }: { card: Card; flipping?: boolean }
 
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const { remaining, settleRound, state } = useScreel();
+  const { toast, confirm } = useScreelUI();
   const [phase, setPhase] = useState<Phase>('betting');
   const [chip, setChip] = useState(5);
   const [bet, setBet] = useState(0);
@@ -125,7 +127,14 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const deal = async () => {
     if (phase !== 'betting' || bet < 1 || bet > remaining || busy) return;
     if (state.riskAlerts && bet > remaining * 0.25) {
-      if (!window.confirm(`Wager is over 25% of your bank (${bet}m). Deal anyway?`)) return;
+      const ok = await confirm({
+        title: 'High roller risk',
+        message: `This wager is over 25% of your bank (${bet}m of ${remaining}m left). Deal anyway?`,
+        confirmLabel: 'Deal anyway',
+        cancelLabel: 'Pull back',
+        tone: 'warn',
+      });
+      if (!ok) return;
     }
 
     const mainBet = bet;
@@ -201,7 +210,10 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     const main = hands[0]?.bet ?? lastBet;
     const cost = yes ? Math.floor(main / 2) : 0;
     if (yes && main + cost > remaining) {
-      window.alert('Not enough minutes for insurance.');
+      toast('Not enough minutes left to cover insurance on this hand.', {
+        title: 'Can’t insure',
+        tone: 'error',
+      });
       return;
     }
     setInsuranceBet(cost);
@@ -273,7 +285,10 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     if (current.cards.length !== 2) return;
     const totalCommitted = hands.reduce((s, h) => s + h.bet, 0) + insuranceBet + current.bet;
     if (totalCommitted > remaining) {
-      window.alert('Not enough minutes to double.');
+      toast('You need matching minutes free to double this hand.', {
+        title: 'Can’t double',
+        tone: 'warn',
+      });
       return;
     }
 
@@ -294,7 +309,10 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     if (!canSplit(current.cards) || hands.length >= 2) return;
     const totalCommitted = hands.reduce((s, h) => s + h.bet, 0) + insuranceBet + current.bet;
     if (totalCommitted > remaining) {
-      window.alert('Not enough minutes to split.');
+      toast('Splitting needs another bet equal to your current hand.', {
+        title: 'Can’t split',
+        tone: 'warn',
+      });
       return;
     }
 

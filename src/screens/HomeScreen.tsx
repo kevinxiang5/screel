@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Flame, Sparkles, Trophy, Zap } from 'lucide-react';
+import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 import type { GameId, TabId } from '../types';
 
@@ -10,7 +11,8 @@ export function HomeScreen({
   onNavigate: (tab: TabId) => void;
   onPlay: (game: GameId) => void;
 }) {
-  const { state, remaining } = useScreel();
+  const { state, remaining, claimChallenge } = useScreel();
+  const { toast } = useScreelUI();
   const usedPct = Math.min(100, Math.round((state.minutesUsed / Math.max(1, state.minutesBank)) * 100));
 
   return (
@@ -119,7 +121,23 @@ export function HomeScreen({
                   <h3>{c.title}</h3>
                   <p>{c.description}</p>
                 </div>
-                <span className="pill gold">+{c.reward}m</span>
+                {ready ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-gold"
+                    onClick={() => {
+                      claimChallenge(c.id);
+                      toast(`+${c.reward}m landed in your bank.`, {
+                        title: `${c.title} claimed`,
+                        tone: 'success',
+                      });
+                    }}
+                  >
+                    Claim +{c.reward}m
+                  </button>
+                ) : (
+                  <span className="pill gold">+{c.reward}m</span>
+                )}
               </div>
               <div className="meter-track">
                 <div
