@@ -28,14 +28,14 @@ export function GamesScreen({
       </motion.div>
 
       <div className="section" style={{ display: 'grid', gap: 14 }}>
-        <button type="button" className="game-card bj" style={{ minHeight: 200 }} onClick={() => onSelect('blackjack')}>
+        <button type="button" className="game-card featured bj" onClick={() => onSelect('blackjack')}>
           <span className="badge">Classic</span>
-          <h3 style={{ fontSize: '2rem' }}>Blackjack</h3>
+          <h3>Blackjack</h3>
           <p>Hit 21. Blackjack pays 3:2. Push keeps your minutes.</p>
         </button>
-        <button type="button" className="game-card rl" style={{ minHeight: 200 }} onClick={() => onSelect('roulette')}>
+        <button type="button" className="game-card featured rl" onClick={() => onSelect('roulette')}>
           <span className="badge">High risk</span>
-          <h3 style={{ fontSize: '2rem' }}>Roulette</h3>
+          <h3>Roulette</h3>
           <p>Even-money colors, dozen bets, or a wild single number.</p>
         </button>
       </div>

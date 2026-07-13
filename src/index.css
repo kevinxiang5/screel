@@ -472,6 +472,11 @@ button {
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
+.game-card > * {
+  position: relative;
+  z-index: 1;
+}
+
 .game-card:active {
   transform: scale(0.98);
 }
@@ -488,23 +493,83 @@ button {
     linear-gradient(160deg, #2a1a18, #0e0908);
 }
 
+.game-card::after {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.14;
+  line-height: 1;
+}
+
+.game-card.bj::after {
+  content: '♠';
+  right: -6%;
+  bottom: -8%;
+  font-size: clamp(6.5rem, 28vw, 9rem);
+  color: var(--gold);
+  transform: rotate(-12deg);
+}
+
+.game-card.rl::after {
+  content: '';
+  right: -12%;
+  top: 8%;
+  width: clamp(120px, 42vw, 170px);
+  height: clamp(120px, 42vw, 170px);
+  border-radius: 50%;
+  opacity: 0.2;
+  background:
+    radial-gradient(circle at center, transparent 28%, rgba(246, 243, 234, 0.15) 29% 32%, transparent 33%),
+    conic-gradient(
+      #c81e1e 0deg 30deg,
+      #1a1a1a 30deg 60deg,
+      #c81e1e 60deg 90deg,
+      #1a1a1a 90deg 120deg,
+      #c81e1e 120deg 150deg,
+      #1a1a1a 150deg 180deg,
+      #c81e1e 180deg 210deg,
+      #1a1a1a 210deg 240deg,
+      #c81e1e 240deg 270deg,
+      #1a1a1a 270deg 300deg,
+      #c81e1e 300deg 330deg,
+      #1a1a1a 330deg 360deg
+    );
+  box-shadow: inset 0 0 0 6px rgba(240, 201, 77, 0.35);
+}
+
 .game-card h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: clamp(1.05rem, 4.2vw, 1.4rem);
   font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.game-card.featured {
+  min-height: 200px;
+}
+
+.game-card.featured h3 {
+  font-size: clamp(1.55rem, 7vw, 2.1rem);
+  overflow-wrap: normal;
 }
 
 .game-card p {
   margin: 6px 0 0;
-  font-size: 0.82rem;
+  font-size: clamp(0.72rem, 2.8vw, 0.82rem);
   color: rgba(246, 243, 234, 0.7);
+  line-height: 1.35;
 }
 
 .game-card .badge {
   position: absolute;
   top: 14px;
   right: 14px;
+  z-index: 2;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -513,6 +578,8 @@ button {
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--line);
+  max-width: calc(100% - 28px);
+  white-space: nowrap;
 }
 
 .challenge {
@@ -1261,11 +1328,14 @@ button {
 
 .bj-rail {
   text-align: center;
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
+  font-size: clamp(0.58rem, 2.4vw, 0.68rem);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(240, 201, 77, 0.75);
   margin-bottom: 12px;
+  line-height: 1.35;
+  padding: 0 4px;
+  white-space: normal;
 }
 
 .bj-seat {
