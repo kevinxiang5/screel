@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Screel — Legal</title>
+    <style>
+      :root {
+        --ink: #14120f;
+        --muted: #5c564c;
+        --line: #e4dfd4;
+        --panel: #f7f4ee;
+        --accent: #0f6b4c;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse 80% 50% at 10% -10%, #d8efe4 0%, transparent 55%),
+          radial-gradient(ellipse 60% 40% at 100% 0%, #efe6d4 0%, transparent 50%),
+          #faf8f3;
+      }
+      main {
+        max-width: 28rem;
+        margin: 0 auto;
+        padding: 4rem 1.25rem 3rem;
+      }
+      .brand {
+        font-size: 2.25rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.35rem;
+      }
+      .lede {
+        color: var(--muted);
+        margin: 0 0 2rem;
+        line-height: 1.45;
+        font-size: 1.05rem;
+      }
+      nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      a {
+        display: block;
+        padding: 0.95rem 1.1rem;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        color: var(--ink);
+        text-decoration: none;
+        font-family: system-ui, sans-serif;
+        font-size: 0.95rem;
+        transition: border-color 0.15s ease, transform 0.15s ease;
+      }
+      a:hover {
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+      a span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.8rem;
+        margin-top: 0.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 class="brand">Screel</h1>
+      <p class="lede">Legal documents for the Screel app (simulated gameplay with minutes — no real money).</p>
+      <nav>
+        <a href="privacy.html">Privacy Policy <span>What we store and how we handle data</span></a>
+        <a href="terms.html">Terms of Use <span>Eligibility, no-cash rules, disclaimers</span></a>
+      </nav>
+    </main>
+  </body>
+</html>

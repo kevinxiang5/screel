@@ -23,7 +23,8 @@
 
 ## URLs
 
-- [ ] Privacy Policy URL → host `privacy.html` (e.g. GitHub Pages / your domain)
+- [ ] Privacy Policy URL → https://kevinxiang5.github.io/screel/privacy.html (see `GITHUB_PAGES.md`)
+- [ ] Terms of Use (support / EULA if asked) → https://kevinxiang5.github.io/screel/terms.html
 - [ ] Support URL / marketing URL
 - [ ] Terms linked in-app (You → Terms) and preferably public `terms.html`
 
