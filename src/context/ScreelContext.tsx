@@ -36,6 +36,7 @@ const defaultChallenges = (): DailyChallenge[] => [
 const defaultState = (): ScreelState => ({
   displayName: 'High Roller',
   connected: false,
+  ageVerified: false,
   baseLimit: 60,
   minutesBank: 60,
   minutesUsed: 18,
@@ -77,8 +78,9 @@ interface ScreelContextValue {
     detail: string;
   }) => void;
   claimChallenge: (id: string) => void;
-  updateProfile: (patch: Partial<Pick<ScreelState, 'displayName' | 'soundOn' | 'riskAlerts'>>) => void;
+  updateProfile: (patch: Partial<Pick<ScreelState, 'displayName' | 'soundOn' | 'riskAlerts' | 'ageVerified'>>) => void;
   resetDay: () => void;
+  verifyAge: () => void;
 }
 
 const ScreelContext = createContext<ScreelContextValue | null>(null);
@@ -170,6 +172,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         });
       },
       updateProfile: (patch) => setState((s) => ({ ...s, ...patch })),
+      verifyAge: () => setState((s) => ({ ...s, ageVerified: true })),
       resetDay: () =>
         setState((s) => ({
           ...s,

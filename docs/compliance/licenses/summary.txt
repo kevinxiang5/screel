@@ -1,0 +1,12 @@
+﻿鈹溾攢 MIT: 57
+鈹溾攢 ISC: 21
+鈹溾攢 Apache-2.0: 4
+鈹溾攢 BSD-3-Clause: 2
+鈹溾攢 MPL-2.0: 2
+鈹溾攢 BSD-2-Clause: 1
+鈹溾攢 UNLICENSED: 1
+鈹溾攢 CC-BY-3.0: 1
+鈹溾攢 CC0-1.0: 1
+鈹溾攢 (MIT AND CC-BY-3.0): 1
+鈹斺攢 0BSD: 1
+

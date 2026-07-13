@@ -1276,7 +1276,7 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-/* —— Blackjack (Stake-like) —— */
+/* —— Blackjack table —— */
 .bj-screen,
 .rl-screen {
   padding-bottom: 16px;
@@ -2013,6 +2013,84 @@ button {
 
 .rl-screen {
   position: relative;
+}
+
+.disclosure-box {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(240, 201, 77, 0.08);
+  border: 1px solid rgba(240, 201, 77, 0.28);
+}
+
+.disclosure-box p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--mute);
+}
+
+.disclosure-box strong {
+  color: var(--gold);
+}
+
+.age-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(200, 255, 46, 0.12), transparent 40%),
+    #040705;
+}
+
+.age-gate-card {
+  width: min(400px, 100%);
+  padding: 24px 20px;
+  border-radius: 24px;
+  background: linear-gradient(165deg, #12261b, #070d0a);
+  border: 1px solid rgba(200, 255, 46, 0.22);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.age-gate-fine {
+  margin: 14px 0 0;
+  font-size: 0.72rem;
+  color: var(--mute);
+  line-height: 1.4;
+  text-align: center;
+}
+
+.legal-prose {
+  margin-top: 18px;
+  padding-bottom: 40px;
+}
+
+.legal-prose h3 {
+  margin: 22px 0 8px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.legal-prose p,
+.legal-prose li {
+  color: var(--mute);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.legal-prose ul {
+  padding-left: 1.2rem;
+}
+
+.legal-prose a {
+  color: var(--lime);
+}
+
+.legal-links {
+  display: grid;
+  gap: 10px;
 }
 
 /* —— Custom modal + toasts —— */

@@ -3,27 +3,47 @@ import { Link2, Link2Off, RefreshCw, Shield } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 
+import { ScreelScreenTime } from '../native/ScreelScreenTime';
+
 export function BankScreen() {
   const { state, remaining, setBaseLimit, connectScreenTime, disconnectScreenTime, claimChallenge, resetDay } =
     useScreel();
   const { toast, confirm } = useScreelUI();
 
-  const onConnect = () => {
+  const onConnect = async () => {
+    const native = await ScreelScreenTime.isNativeAvailable();
+    if (native.available) {
+      const auth = await ScreelScreenTime.requestAuthorization();
+      if (auth.status !== 'approved') {
+        toast('Screen Time authorization was not granted.', { title: 'Permission needed', tone: 'warn' });
+        return;
+      }
+      const usage = await ScreelScreenTime.getTodayUsageMinutes();
+      connectScreenTime();
+      toast(`Linked via system APIs · ~${usage.minutes}m tracked today.`, {
+        title: 'Usage linked',
+        tone: 'success',
+      });
+      return;
+    }
     connectScreenTime();
-    toast('Usage sync is live for this demo session.', { title: 'Screen Time linked', tone: 'success' });
+    toast('Simulated usage linked for this device session. Not Apple Screen Time yet.', {
+      title: 'Usage simulated',
+      tone: 'success',
+    });
   };
 
   const onDisconnect = async () => {
     const ok = await confirm({
-      title: 'Disconnect Screen Time?',
-      message: 'You’ll keep your minute bank, but usage won’t update from the device profile.',
+      title: 'Disconnect simulated usage?',
+      message: 'You’ll keep your minute bank. This demo link does not control system Screen Time.',
       confirmLabel: 'Disconnect',
       cancelLabel: 'Stay linked',
       tone: 'danger',
     });
     if (!ok) return;
     disconnectScreenTime();
-    toast('Screen Time link removed.', { title: 'Disconnected', tone: 'info' });
+    toast('Simulated usage link removed.', { title: 'Disconnected', tone: 'info' });
   };
 
   const onReset = async () => {
@@ -53,9 +73,17 @@ export function BankScreen() {
         <div className="eyebrow">Minute vault</div>
         <h1 className="display lg">Your bank</h1>
         <p className="lede">
-          Link Screen Time, set a daily ceiling, and cash challenge rewards into more playable minutes.
+          Set a daily ceiling and claim challenges. Minutes are fictional chips — no cash value.
         </p>
       </motion.div>
+
+      <div className="disclosure-box" style={{ marginTop: 14 }}>
+        <p>
+          <strong>Demo usage link.</strong> Connect simulates minutes used on-device. Real Apple Screen Time /
+          Family Controls blocking ships only after native iOS entitlement approval — this build does not
+          modify system Settings.
+        </p>
+      </div>
 
       <div className="hero-panel" style={{ marginTop: 18 }}>
         <div className="bank-row">
@@ -78,23 +106,23 @@ export function BankScreen() {
             <Shield size={22} color="var(--lime)" />
             <div>
               <h3 className="display md" style={{ fontSize: '1.1rem' }}>
-                Screen Time link
+                Usage link (simulated)
               </h3>
               <p className="lede" style={{ marginTop: 6 }}>
                 {state.connected
-                  ? 'Pulling live usage from your device profile (demo sync). Used minutes update your remaining bank.'
-                  : 'Connect to import today’s usage. On a real device this hooks into Screen Time / Digital Wellbeing APIs.'}
+                  ? 'Demo sync is on — used minutes are simulated locally so the bank stays honest in-app.'
+                  : 'Connect to simulate today’s usage against your ceiling. Not a live Screen Time API call.'}
               </p>
             </div>
           </div>
           <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
             {state.connected ? (
               <button type="button" className="btn btn-secondary btn-block" onClick={onDisconnect}>
-                <Link2Off size={16} /> Disconnect
+                <Link2Off size={16} /> Disconnect simulation
               </button>
             ) : (
               <button type="button" className="btn btn-primary btn-block" onClick={onConnect}>
-                <Link2 size={16} /> Connect Screen Time
+                <Link2 size={16} /> Simulate usage link
               </button>
             )}
           </div>

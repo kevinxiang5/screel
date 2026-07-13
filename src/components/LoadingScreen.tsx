@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STATUS = [
-  'Syncing Screen Time…',
+  'Shuffling the shoe…',
   'Seeding the felt…',
   'Counting your minutes…',
   'Warming the wheel…',
@@ -47,7 +47,7 @@ export function LoadingScreen({ onDone }: { onDone: () => void }) {
         >
           screel
         </motion.h1>
-        <p className="loading-sub">Gamble your screen time</p>
+        <p className="loading-sub">Play with your minutes</p>
         <div className="loading-bar">
           <span />
         </div>

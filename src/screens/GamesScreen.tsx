@@ -24,7 +24,7 @@ export function GamesScreen({
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">The floor</div>
         <h1 className="display lg">Pick your poison</h1>
-        <p className="lede">Every chip is a minute of your day. Play sharp.</p>
+        <p className="lede">Every chip is a minute of simulated play. No real money.</p>
       </motion.div>
 
       <div className="section" style={{ display: 'grid', gap: 14 }}>

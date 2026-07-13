@@ -23,7 +23,8 @@ export function HomeScreen({
           screel
         </h1>
         <p className="lede">
-          Your minutes are chips. Bet them. Win more day. Lose them back to focus.
+          Your minutes are chips for simulated play. Win more day. Lose them back to focus.
+          No real money.
         </p>
       </motion.div>
 
@@ -40,7 +41,7 @@ export function HomeScreen({
           </div>
           <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
             <span className={`pill ${state.connected ? 'live' : 'warn'}`}>
-              {state.connected ? 'Screen Time linked' : 'Not linked'}
+              {state.connected ? 'Usage linked (sim)' : 'Not linked'}
             </span>
             <span className="pill gold">
               <Flame size={14} /> {state.streak} day streak
@@ -67,7 +68,7 @@ export function HomeScreen({
         </div>
         <div className="grid-2">
           <button type="button" className="game-card bj" onClick={() => onPlay('blackjack')}>
-            <span className="badge">2:1 BJ</span>
+            <span className="badge">3:2 BJ</span>
             <h3>Blackjack</h3>
             <p>Beat the dealer. Double down on your day.</p>
           </button>

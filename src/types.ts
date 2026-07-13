@@ -27,6 +27,7 @@ export interface DailyChallenge {
 export interface ScreelState {
   displayName: string;
   connected: boolean;
+  ageVerified: boolean;
   baseLimit: number;
   minutesBank: number;
   minutesUsed: number;
