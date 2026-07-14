@@ -1,42 +1,61 @@
-# ScreelScreenTime native bridge (stub)
+# Screel Screen Time (Family Controls) — live bridge
 
-## Purpose
+## What ships in the repo
 
-Replace the **simulated** `connectScreenTime()` in `ScreelContext` with real Apple APIs after Family Controls distribution is approved.
+| Piece | Path |
+| --- | --- |
+| Capacitor plugin | `ios/App/App/ScreelScreenTime/ScreelScreenTimePlugin.swift` |
+| Shared App Group store | `ios/App/App/ScreelScreenTime/ScreelScreenTimeShared.swift` |
+| App picker UI | `ios/App/App/ScreelScreenTime/FamilyActivityPickerHost.swift` |
+| Device Activity Monitor | `ios/App/ScreelDeviceActivityMonitor/` |
+| JS contract | `src/native/ScreelScreenTime.ts` |
+| Bank connect flow | `src/screens/BankScreen.tsx` |
 
-## Bundle IDs (proposed)
+### Runtime flow (physical iPhone)
+
+1. User taps **Connect Screen Time**
+2. `AuthorizationCenter.requestAuthorization(for: .individual)`
+3. `FamilyActivityPicker` → save selection to App Group `group.com.screel.app`
+4. `DeviceActivityCenter.startMonitoring` with up to 20 minute checkpoints for the bank budget
+5. Extension updates `minutesUsed` and applies `ManagedSettingsStore` shields when budget is spent
+6. JS polls usage every ~20s and syncs shields when `remaining === 0`
+
+Web / Simulator: `isNativeAvailable() === false` → honest **simulated** fallback.
+
+## Bundle IDs (request Family Controls for each)
 
 | Target | Bundle ID |
-|---|---|
+| --- | --- |
 | App | `com.screel.app` |
-| DeviceActivityMonitor extension | `com.screel.app.DeviceActivityMonitor` |
-| (Optional) DeviceActivityReport | `com.screel.app.DeviceActivityReport` |
+| DeviceActivityMonitor | `com.screel.app.DeviceActivityMonitor` |
 
-File a **Family Controls** distribution request for **each** bundle ID:
-https://developer.apple.com/contact/request/family-controls-distribution
+Form: https://developer.apple.com/contact/request/family-controls-distribution  
 
-## Swift plugin outline
+**Development** builds can use Family Controls with your team; **TestFlight / App Store** need Apple’s distribution approval for both IDs.
 
-Implement Capacitor plugin `ScreelScreenTime` using:
+## One-time Xcode / Developer Portal setup (on your Mac)
 
-- `FamilyControls` — `AuthorizationCenter.shared.requestAuthorization(for: .individual)` (or `.child` if parental product)
-- `DeviceActivity` — schedule / thresholds for daily usage
-- `ManagedSettings` — `ManagedSettingsStore` shields when remaining minutes = 0
+1. [developer.apple.com](https://developer.apple.com/account) → Identifiers  
+   - App ID `com.screel.app` — enable **Family Controls** + **App Groups** (`group.com.screel.app`)  
+   - App ID `com.screel.app.DeviceActivityMonitor` — same  
+2. Open `ios/App/App.xcodeproj` (via `npm run open:ios`)  
+3. Signing: your Team on **App** and **ScreelDeviceActivityMonitor**  
+4. Confirm entitlements files are attached (already set in the project)  
+5. Run on a **physical iPhone** (not Simulator)  
+6. Before shipping: submit the Family Controls distribution request; wait for approval  
 
-Do **not** claim the app edits Apple Settings UI. User-facing copy: “Screel enforces your limit via system Screen Time APIs.”
+## Honest product claims
 
-## Web / current behavior
+Allowed once linked:
 
-`src/native/ScreelScreenTime.ts` registers a web stub that returns `unavailable`. Bank screen remains honest about simulation until `isNativeAvailable()` is true.
+- “Screel uses Apple Screen Time APIs (Family Controls) to track apps you select and shield them when your minute bank is empty.”
 
-## Wire-up after native lands
+Not allowed:
 
-1. Cap sync / open Xcode
-2. Add entitlement `com.apple.developer.family-controls` to app + extensions
-3. Call `ScreelScreenTime.requestAuthorization()` from Bank
-4. Poll or observe usage → update `minutesUsed`
-5. On `remaining === 0`, `applyShieldWhenBroke({ broke: true })`
+- Claiming Screel edits Apple Settings  
+- Claiming it tracks **all** device Screen Time without a user selection  
+- Shipping blocking without distribution entitlement approval  
 
 ## Gate
 
-No App Store binary that offers **blocking** until Apple approves distribution entitlements and counsel signs marketing copy.
+Do not Submit for Review with blocking enabled until Apple approves distribution entitlements for both bundle IDs.

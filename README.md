@@ -6,7 +6,7 @@ Play with your **minute bank**. Set a daily ceiling, then play **Blackjack** or 
 
 ## Compliance note
 
-This repository includes App Store / legal hardening docs under [`docs/compliance/`](docs/compliance/). Screen Time–style usage linking in the web build is **simulated** until a native iOS build with Apple Family Controls ships.
+This repository includes App Store / legal hardening docs under [`docs/compliance/`](docs/compliance/). On a physical iPhone, Bank → Connect uses Apple Family Controls / Device Activity / Managed Settings; web and Simulator stay simulated. See [`docs/compliance/FAMILY_CONTROLS.md`](docs/compliance/FAMILY_CONTROLS.md).
 
 ## Run
 
@@ -23,7 +23,7 @@ Open the local URL Vite prints (usually `http://localhost:5173`).
 - **Age gate** (18+ pending counsel confirmation)
 - **Loading screen** → Home with bank, challenges, quick play
 - **Play** — Blackjack + Roulette (minute wagers)
-- **Bank** — simulated usage link, daily ceiling, claims, reset day
+- **Bank** — Screen Time link (native) or simulated fallback, daily ceiling, claims, reset day
 - **Stats** — net minutes, win rate, history
 - **You** — profile, toggles, Privacy / Terms / Odds / Responsible play
 

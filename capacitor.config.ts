@@ -8,7 +8,8 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
   },
   ios: {
-    contentInset: 'automatic',
+    // Web CSS owns notch/home-indicator insets via env(safe-area-inset-*).
+    contentInset: 'never',
   },
 };
 

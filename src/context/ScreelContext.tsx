@@ -1,5 +1,7 @@
+import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { DailyChallenge, HistoryEntry, RoundResult, ScreelState } from '../types';
+import { ScreelScreenTime } from '../native/ScreelScreenTime';
+import type { DailyChallenge, HistoryEntry, RoundResult, ScreelState, UsageSource } from '../types';
 
 const STORAGE_KEY = 'screel-v1';
 
@@ -36,6 +38,7 @@ const defaultChallenges = (): DailyChallenge[] => [
 const defaultState = (): ScreelState => ({
   displayName: 'High Roller',
   connected: false,
+  usageSource: 'none',
   ageVerified: false,
   baseLimit: 60,
   minutesBank: 60,
@@ -58,7 +61,12 @@ function loadState(): ScreelState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
     const parsed = JSON.parse(raw) as ScreelState;
-    return { ...defaultState(), ...parsed, challenges: parsed.challenges?.length ? parsed.challenges : defaultChallenges() };
+    return {
+      ...defaultState(),
+      ...parsed,
+      usageSource: parsed.usageSource ?? (parsed.connected ? 'simulated' : 'none'),
+      challenges: parsed.challenges?.length ? parsed.challenges : defaultChallenges(),
+    };
   } catch {
     return defaultState();
   }
@@ -68,8 +76,9 @@ interface ScreelContextValue {
   state: ScreelState;
   remaining: number;
   setBaseLimit: (n: number) => void;
-  connectScreenTime: () => void;
+  connectScreenTime: (opts?: { source?: UsageSource; minutesUsed?: number }) => void;
   disconnectScreenTime: () => void;
+  syncUsageMinutes: (minutes: number) => void;
   settleRound: (payload: {
     game: 'blackjack' | 'roulette';
     wager: number;
@@ -94,6 +103,43 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
 
   const remaining = Math.max(0, state.minutesBank - state.minutesUsed);
 
+  // Pull usage from DeviceActivity App Group + apply ManagedSettings shields when broke.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
+
+    let cancelled = false;
+
+    const sync = async () => {
+      try {
+        const usage = await ScreelScreenTime.getTodayUsageMinutes();
+        if (cancelled) return;
+        let bank = 0;
+        setState((s) => {
+          bank = s.minutesBank;
+          return s.minutesUsed === usage.minutes ? s : { ...s, minutesUsed: usage.minutes };
+        });
+        await ScreelScreenTime.applyShieldWhenBroke({ broke: bank - usage.minutes <= 0 });
+      } catch {
+        /* ignore transient native errors */
+      }
+    };
+
+    void sync();
+    const id = window.setInterval(() => void sync(), 20_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [state.connected, state.usageSource, state.minutesBank]);
+
+  // Restart DeviceActivity budget when the bank ceiling changes while linked.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
+    void ScreelScreenTime.startMonitoring({ budgetMinutes: state.minutesBank }).catch(() => {
+      /* picker / auth may be incomplete */
+    });
+  }, [state.minutesBank, state.connected, state.usageSource]);
+
   const value = useMemo<ScreelContextValue>(() => {
     return {
       state,
@@ -109,14 +155,24 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         });
       },
-      connectScreenTime: () => {
+      connectScreenTime: (opts) => {
+        const source = opts?.source ?? 'simulated';
         setState((s) => ({
           ...s,
           connected: true,
-          minutesUsed: Math.min(s.minutesBank - 5, Math.max(s.minutesUsed, 12 + Math.floor(Math.random() * 20))),
+          usageSource: source,
+          minutesUsed:
+            typeof opts?.minutesUsed === 'number'
+              ? Math.max(0, Math.round(opts.minutesUsed))
+              : source === 'simulated'
+                ? Math.min(s.minutesBank - 5, Math.max(s.minutesUsed, 12 + Math.floor(Math.random() * 20)))
+                : s.minutesUsed,
         }));
       },
-      disconnectScreenTime: () => setState((s) => ({ ...s, connected: false })),
+      disconnectScreenTime: () =>
+        setState((s) => ({ ...s, connected: false, usageSource: 'none' })),
+      syncUsageMinutes: (minutes) =>
+        setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
       settleRound: ({ game, wager, payout, result, detail }) => {
         setState((s) => {
           const net = payout - wager;

@@ -19,7 +19,7 @@ Fail closed: any unchecked **required** item blocks App Review submit.
 - [x] Dependency license inventory under `licenses/`
 - [x] BJ home badge shows 3:2 (matches math)
 - [x] Odds & house rules in-app
-- [x] Screen Time / usage copy matches capability (simulated)
+- [x] Screen Time / usage copy matches capability (native on device; simulated on web/simulator)
 - [ ] No third-party logos in App Store screenshots
 
 ## C. Product safety — REQUIRED
@@ -33,7 +33,7 @@ Fail closed: any unchecked **required** item blocks App Review submit.
 
 - [x] Capacitor iOS project `ios/` with `com.screel.app`
 - [ ] Runs on physical iPhone via TestFlight / Xcode
-- [ ] Family Controls approved **if** blocking is enabled in the binary
+- [ ] Family Controls **distribution** approved for `com.screel.app` + `com.screel.app.DeviceActivityMonitor` before App Review
 - [ ] Review notes written (`APP_STORE_CONNECT_CHECKLIST.md`)
 - [ ] Internal TestFlight signed before App Review
 

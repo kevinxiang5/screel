@@ -15,7 +15,37 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		A1000002 /* ScreelScreenTimePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001 /* ScreelScreenTimePlugin.swift */; };
+		A1000004 /* ScreelScreenTimeShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000003 /* ScreelScreenTimeShared.swift */; };
+		A1000006 /* FamilyActivityPickerHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000005 /* FamilyActivityPickerHost.swift */; };
+		A100000B /* ScreelDeviceActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000A /* ScreelDeviceActivityMonitor.swift */; };
+		A100000C /* ScreelScreenTimeShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000003 /* ScreelScreenTimeShared.swift */; };
+		A1000010 /* ScreelDeviceActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1000008 /* ScreelDeviceActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1000015 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1000009;
+			remoteInfo = ScreelDeviceActivityMonitor;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A100000F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1000010 /* ScreelDeviceActivityMonitor.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -28,6 +58,14 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		A1000001 /* ScreelScreenTimePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreelScreenTimePlugin.swift; sourceTree = "<group>"; };
+		A1000003 /* ScreelScreenTimeShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreelScreenTimeShared.swift; sourceTree = "<group>"; };
+		A1000005 /* FamilyActivityPickerHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyActivityPickerHost.swift; sourceTree = "<group>"; };
+		A1000007 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		A1000008 /* ScreelDeviceActivityMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ScreelDeviceActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A100000A /* ScreelDeviceActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreelDeviceActivityMonitor.swift; sourceTree = "<group>"; };
+		A100000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A100000E /* ScreelDeviceActivityMonitor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ScreelDeviceActivityMonitor.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,6 +77,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1000011 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -47,6 +92,7 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				A100001B /* ScreelDeviceActivityMonitor */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -55,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				A1000008 /* ScreelDeviceActivityMonitor.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -62,6 +109,8 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				A100001A /* ScreelScreenTime */,
+				A1000007 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -74,6 +123,26 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		A100001A /* ScreelScreenTime */ = {
+			isa = PBXGroup;
+			children = (
+				A1000001 /* ScreelScreenTimePlugin.swift */,
+				A1000003 /* ScreelScreenTimeShared.swift */,
+				A1000005 /* FamilyActivityPickerHost.swift */,
+			);
+			path = ScreelScreenTime;
+			sourceTree = "<group>";
+		};
+		A100001B /* ScreelDeviceActivityMonitor */ = {
+			isa = PBXGroup;
+			children = (
+				A100000A /* ScreelDeviceActivityMonitor.swift */,
+				A100000D /* Info.plist */,
+				A100000E /* ScreelDeviceActivityMonitor.entitlements */,
+			);
+			path = ScreelDeviceActivityMonitor;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -84,10 +153,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				A100000F /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1000016 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -97,18 +168,39 @@
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A1000009 /* ScreelDeviceActivityMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000019 /* Build configuration list for PBXNativeTarget "ScreelDeviceActivityMonitor" */;
+			buildPhases = (
+				A1000012 /* Sources */,
+				A1000011 /* Frameworks */,
+				A1000013 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ScreelDeviceActivityMonitor;
+			productName = ScreelDeviceActivityMonitor;
+			productReference = A1000008 /* ScreelDeviceActivityMonitor.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		504EC2FC1FED79650016851F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0920;
+				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 0920;
 				TargetAttributes = {
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
+						ProvisioningStyle = Automatic;
+					};
+					A1000009 = {
+						CreatedOnToolsVersion = 16.0;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -130,6 +222,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				A1000009 /* ScreelDeviceActivityMonitor */,
 			);
 		};
 /* End PBXProject section */
@@ -148,6 +241,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1000013 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -156,10 +256,30 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				A1000002 /* ScreelScreenTimePlugin.swift in Sources */,
+				A1000004 /* ScreelScreenTimeShared.swift in Sources */,
+				A1000006 /* FamilyActivityPickerHost.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1000012 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A100000B /* ScreelDeviceActivityMonitor.swift in Sources */,
+				A100000C /* ScreelScreenTimeShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1000016 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1000009 /* ScreelDeviceActivityMonitor */;
+			targetProxy = A1000015 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -230,7 +350,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -281,7 +401,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -295,10 +415,11 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -317,10 +438,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -329,6 +451,56 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.screel.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A1000017 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ScreelDeviceActivityMonitor/ScreelDeviceActivityMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ScreelDeviceActivityMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.screel.app.DeviceActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ScreelDeviceActivityMonitor/ScreelDeviceActivityMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ScreelDeviceActivityMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.screel.app.DeviceActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -351,6 +523,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000019 /* Build configuration list for PBXNativeTarget "ScreelDeviceActivityMonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000017 /* Debug */,
+				A1000018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -1,49 +1,94 @@
 import { motion } from 'framer-motion';
 import { Link2, Link2Off, RefreshCw, Shield } from 'lucide-react';
+import { useState } from 'react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
-
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
 
 export function BankScreen() {
   const { state, remaining, setBaseLimit, connectScreenTime, disconnectScreenTime, claimChallenge, resetDay } =
     useScreel();
   const { toast, confirm } = useScreelUI();
+  const [linking, setLinking] = useState(false);
+  const isNativeLink = state.usageSource === 'screenTime';
 
   const onConnect = async () => {
-    const native = await ScreelScreenTime.isNativeAvailable();
-    if (native.available) {
+    if (linking) return;
+    setLinking(true);
+    toast('Connecting…', { title: 'Usage link', tone: 'info' });
+    try {
+      const native = await ScreelScreenTime.isNativeAvailable();
+      if (!native.available) {
+        connectScreenTime({ source: 'simulated' });
+        toast(
+          native.reason === 'simulator'
+            ? 'Simulator cannot use Family Controls. Linked as a local demo — use a physical iPhone for real Screen Time.'
+            : native.reason === 'timeout'
+              ? 'Native Screen Time plugin did not respond. Linked as a local demo for now — rebuild iOS after pulling latest.'
+              : 'Simulated usage linked. Real Screen Time needs the native iOS build on a physical device.',
+          { title: 'Usage simulated', tone: 'success' },
+        );
+        return;
+      }
+
       const auth = await ScreelScreenTime.requestAuthorization();
       if (auth.status !== 'approved') {
-        toast('Screen Time authorization was not granted.', { title: 'Permission needed', tone: 'warn' });
+        toast(auth.error ?? 'Screen Time authorization was not granted.', {
+          title: 'Permission needed',
+          tone: 'warn',
+        });
+        return;
+      }
+
+      const pick = await ScreelScreenTime.presentAppPicker();
+      if (!pick.selected) {
+        toast('Pick at least one app or category to track.', { title: 'Nothing selected', tone: 'warn' });
+        return;
+      }
+
+      const started = await ScreelScreenTime.startMonitoring({ budgetMinutes: state.minutesBank });
+      if (!started.ok) {
+        toast('Could not start Device Activity monitoring. Check Family Controls entitlements in Xcode.', {
+          title: 'Monitoring failed',
+          tone: 'warn',
+        });
         return;
       }
       const usage = await ScreelScreenTime.getTodayUsageMinutes();
-      connectScreenTime();
-      toast(`Linked via system APIs · ~${usage.minutes}m tracked today.`, {
-        title: 'Usage linked',
+      connectScreenTime({ source: 'screenTime', minutesUsed: usage.minutes });
+      toast(`Tracking ${pick.applicationCount} selection(s) via system Screen Time APIs.`, {
+        title: 'Screen Time linked',
         tone: 'success',
       });
-      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not enable Screen Time.';
+      toast(message, { title: 'Link failed', tone: 'warn' });
+    } finally {
+      setLinking(false);
     }
-    connectScreenTime();
-    toast('Simulated usage linked for this device session. Not Apple Screen Time yet.', {
-      title: 'Usage simulated',
-      tone: 'success',
-    });
   };
 
   const onDisconnect = async () => {
     const ok = await confirm({
-      title: 'Disconnect simulated usage?',
-      message: 'You’ll keep your minute bank. This demo link does not control system Screen Time.',
+      title: isNativeLink ? 'Disconnect Screen Time?' : 'Disconnect simulated usage?',
+      message: isNativeLink
+        ? 'Stops Device Activity monitoring and clears OS shields for the apps you selected. Your minute bank stays.'
+        : 'You’ll keep your minute bank. This demo link does not control system Screen Time.',
       confirmLabel: 'Disconnect',
       cancelLabel: 'Stay linked',
       tone: 'danger',
     });
     if (!ok) return;
+    try {
+      await ScreelScreenTime.stopMonitoring();
+    } catch {
+      /* web / unused */
+    }
     disconnectScreenTime();
-    toast('Simulated usage link removed.', { title: 'Disconnected', tone: 'info' });
+    toast(isNativeLink ? 'Screen Time link removed.' : 'Simulated usage link removed.', {
+      title: 'Disconnected',
+      tone: 'info',
+    });
   };
 
   const onReset = async () => {
@@ -56,6 +101,17 @@ export function BankScreen() {
     });
     if (!ok) return;
     resetDay();
+    if (isNativeLink) {
+      try {
+        await ScreelScreenTime.resetUsageDay();
+        await ScreelScreenTime.startMonitoring({
+          budgetMinutes: state.baseLimit,
+          resetUsed: true,
+        });
+      } catch {
+        /* ignore */
+      }
+    }
     toast(`Bank restored to ${state.baseLimit}m. Streak continues.`, {
       title: 'New day dealt',
       tone: 'success',
@@ -73,15 +129,24 @@ export function BankScreen() {
         <div className="eyebrow">Minute vault</div>
         <h1 className="display lg">Your bank</h1>
         <p className="lede">
-          Set a daily ceiling and claim challenges. Minutes are fictional chips — no cash value.
+          Set a daily ceiling and claim challenges. Minutes are fictional chips for play — no cash value.
         </p>
       </motion.div>
 
       <div className="disclosure-box" style={{ marginTop: 14 }}>
         <p>
-          <strong>Demo usage link.</strong> Connect simulates minutes used on-device. Real Apple Screen Time /
-          Family Controls blocking ships only after native iOS entitlement approval — this build does not
-          modify system Settings.
+          {isNativeLink ? (
+            <>
+              <strong>Apple Screen Time linked.</strong> Screel monitors apps you pick via Family Controls and
+              can shield them when your minute bank hits zero. It does not edit the Settings app UI.
+            </>
+          ) : (
+            <>
+              <strong>Usage link.</strong> On a physical iPhone with Family Controls enabled, Connect asks for
+              Screen Time permission, lets you pick apps, and starts system monitoring. Web / Simulator stay
+              simulated.
+            </>
+          )}
         </p>
       </div>
 
@@ -98,6 +163,12 @@ export function BankScreen() {
             <span className="bank-unit">still free</span>
           </div>
         </div>
+        {state.connected && (
+          <p className="lede" style={{ marginTop: 12, fontSize: '0.82rem' }}>
+            Used today: {state.minutesUsed}m
+            {isNativeLink ? ' · from selected apps' : ' · simulated'}
+          </p>
+        )}
       </div>
 
       <section className="section">
@@ -106,23 +177,30 @@ export function BankScreen() {
             <Shield size={22} color="var(--lime)" />
             <div>
               <h3 className="display md" style={{ fontSize: '1.1rem' }}>
-                Usage link (simulated)
+                {isNativeLink ? 'Screen Time link' : 'Usage link'}
               </h3>
               <p className="lede" style={{ marginTop: 6 }}>
                 {state.connected
-                  ? 'Demo sync is on — used minutes are simulated locally so the bank stays honest in-app.'
-                  : 'Connect to simulate today’s usage against your ceiling. Not a live Screen Time API call.'}
+                  ? isNativeLink
+                    ? 'System APIs are tracking your selected apps against today’s bank.'
+                    : 'Demo sync is on — used minutes are simulated locally.'
+                  : 'Connect to authorize Screen Time, pick apps, and start monitoring (iPhone).'}
               </p>
             </div>
           </div>
           <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
             {state.connected ? (
               <button type="button" className="btn btn-secondary btn-block" onClick={onDisconnect}>
-                <Link2Off size={16} /> Disconnect simulation
+                <Link2Off size={16} /> Disconnect
               </button>
             ) : (
-              <button type="button" className="btn btn-primary btn-block" onClick={onConnect}>
-                <Link2 size={16} /> Simulate usage link
+              <button
+                type="button"
+                className="btn btn-primary btn-block"
+                onClick={() => void onConnect()}
+                disabled={linking}
+              >
+                <Link2 size={16} /> {linking ? 'Connecting…' : 'Connect Screen Time'}
               </button>
             )}
           </div>
