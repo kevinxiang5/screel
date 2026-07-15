@@ -23,8 +23,8 @@ export function BankScreen() {
         toast(
           native.reason === 'simulator'
             ? 'Simulator cannot use Family Controls. Linked as a local demo — use a physical iPhone for real Screen Time.'
-            : native.reason === 'timeout'
-              ? 'Native Screen Time plugin did not respond. Linked as a local demo for now — rebuild iOS after pulling latest.'
+            : native.reason === 'timeout' || native.reason === 'unimplemented'
+              ? 'Native Screen Time plugin still not hooked up. Pull latest, run npm run build:ios, Clean Build Folder, delete the app, Run again.'
               : 'Simulated usage linked. Real Screen Time needs the native iOS build on a physical device.',
           { title: 'Usage simulated', tone: 'success' },
         );
@@ -129,22 +129,28 @@ export function BankScreen() {
         <div className="eyebrow">Minute vault</div>
         <h1 className="display lg">Your bank</h1>
         <p className="lede">
-          Set a daily ceiling and claim challenges. Minutes are fictional chips for play — no cash value.
+          Your bank is the minutes you can spend. Casino wins/losses change the bank. Screen Time eats into the
+          same pile when linked.
         </p>
       </motion.div>
 
       <div className="disclosure-box" style={{ marginTop: 14 }}>
         <p>
+          <strong>How the bank works.</strong> <em>Minutes in bank</em> = chips you own today (starts from Daily
+          ceiling). <em>Used</em> = minutes already spent on the apps you selected (or a demo number if simulated).{' '}
+          <em>Still free</em> = bank − used. Play blackjack/roulette to win/lose bank chips. When still free hits
+          0 with Screen Time linked, Screel can shield those apps.
+        </p>
+        <p style={{ marginTop: 10 }}>
           {isNativeLink ? (
             <>
-              <strong>Apple Screen Time linked.</strong> Screel monitors apps you pick via Family Controls and
-              can shield them when your minute bank hits zero. It does not edit the Settings app UI.
+              <strong>Screen Time is linked.</strong> Turn on Screen Time in iOS Settings if prompted. Screel does
+              not edit the Settings app UI — it uses Apple’s Family Controls APIs on apps you pick.
             </>
           ) : (
             <>
-              <strong>Usage link.</strong> On a physical iPhone with Family Controls enabled, Connect asks for
-              Screen Time permission, lets you pick apps, and starts system monitoring. Web / Simulator stay
-              simulated.
+              <strong>To link for real:</strong> iOS Settings → Screen Time → On, then Connect here. You’ll approve
+              Screel and pick which apps count toward used minutes.
             </>
           )}
         </p>

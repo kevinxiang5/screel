@@ -76,9 +76,14 @@ const nativePlugin = registerPlugin<ScreelScreenTimePlugin>('ScreelScreenTime', 
 });
 
 /** Capacitor can hang forever if the native plugin isn't linked — never await bare. */
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  onTimeout: T,
+  onError: T,
+): Promise<T> {
   return new Promise((resolve) => {
-    const timer = window.setTimeout(() => resolve(fallback), ms);
+    const timer = window.setTimeout(() => resolve(onTimeout), ms);
     promise
       .then((value) => {
         window.clearTimeout(timer);
@@ -86,7 +91,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
       })
       .catch(() => {
         window.clearTimeout(timer);
-        resolve(fallback);
+        resolve(onError);
       });
   });
 }
@@ -94,59 +99,63 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 export const ScreelScreenTime: ScreelScreenTimePlugin = {
   isNativeAvailable() {
     if (!Capacitor.isNativePlatform()) return webImpl.isNativeAvailable();
-    return withTimeout(nativePlugin.isNativeAvailable(), 2500, {
-      available: false,
-      reason: 'timeout',
-    });
+    return withTimeout(
+      nativePlugin.isNativeAvailable(),
+      2500,
+      { available: false, reason: 'timeout' },
+      { available: false, reason: 'unimplemented' },
+    );
   },
   requestAuthorization() {
     if (!Capacitor.isNativePlatform()) return webImpl.requestAuthorization();
+    const fail = { status: 'unavailable' as const, error: 'Authorization unavailable' };
     return withTimeout(nativePlugin.requestAuthorization(), 60_000, {
       status: 'unavailable',
       error: 'Authorization timed out',
-    });
+    }, fail);
   },
   presentAppPicker() {
     if (!Capacitor.isNativePlatform()) return webImpl.presentAppPicker();
-    return withTimeout(nativePlugin.presentAppPicker(), 120_000, {
-      selected: false,
-      applicationCount: 0,
-    });
+    const empty = { selected: false, applicationCount: 0 };
+    return withTimeout(nativePlugin.presentAppPicker(), 120_000, empty, empty);
   },
   startMonitoring(options) {
     if (!Capacitor.isNativePlatform()) return webImpl.startMonitoring(options);
-    return withTimeout(nativePlugin.startMonitoring(options), 8000, { ok: false });
+    return withTimeout(nativePlugin.startMonitoring(options), 8000, { ok: false }, { ok: false });
   },
   stopMonitoring() {
     if (!Capacitor.isNativePlatform()) return webImpl.stopMonitoring();
-    return withTimeout(nativePlugin.stopMonitoring(), 5000, undefined as unknown as void);
+    return withTimeout(
+      nativePlugin.stopMonitoring(),
+      5000,
+      undefined as unknown as void,
+      undefined as unknown as void,
+    );
   },
   resetUsageDay() {
     if (!Capacitor.isNativePlatform()) return webImpl.resetUsageDay();
-    return withTimeout(nativePlugin.resetUsageDay(), 5000, { minutes: 0 });
+    return withTimeout(nativePlugin.resetUsageDay(), 5000, { minutes: 0 }, { minutes: 0 });
   },
   getTodayUsageMinutes() {
     if (!Capacitor.isNativePlatform()) return webImpl.getTodayUsageMinutes();
-    return withTimeout(nativePlugin.getTodayUsageMinutes(), 5000, {
-      minutes: 0,
-      budgetMinutes: 0,
-      linked: false,
-      hasSelection: false,
-    });
+    const empty = { minutes: 0, budgetMinutes: 0, linked: false, hasSelection: false };
+    return withTimeout(nativePlugin.getTodayUsageMinutes(), 5000, empty, empty);
   },
   applyShieldWhenBroke(options) {
     if (!Capacitor.isNativePlatform()) return webImpl.applyShieldWhenBroke(options);
-    return withTimeout(nativePlugin.applyShieldWhenBroke(options), 5000, { broke: options.broke });
+    const result = { broke: options.broke };
+    return withTimeout(nativePlugin.applyShieldWhenBroke(options), 5000, result, result);
   },
   getLinkStatus() {
     if (!Capacitor.isNativePlatform()) return webImpl.getLinkStatus();
-    return withTimeout(nativePlugin.getLinkStatus(), 5000, {
+    const empty = {
       authorized: false,
-      status: 'unavailable',
+      status: 'unavailable' as const,
       hasSelection: false,
       linked: false,
       minutesUsed: 0,
       budgetMinutes: 0,
-    });
+    };
+    return withTimeout(nativePlugin.getLinkStatus(), 5000, empty, empty);
   },
 };
