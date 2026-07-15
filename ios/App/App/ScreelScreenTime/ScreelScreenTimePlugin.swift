@@ -7,11 +7,8 @@ import ManagedSettings
 /**
  Real Screen Time bridge via Family Controls / DeviceActivity / ManagedSettings.
 
- Requires:
- - Family Controls capability on app + monitor extension
- - App Group `group.com.screel.app`
- - Physical iPhone (simulator does not run these APIs reliably)
- - Distribution entitlement from Apple before App Store / TestFlight release
+ Screel minutes are a fresh budget from link / daily reset — they do NOT import
+ historical totals from Settings → Screen Time.
  */
 @objc(ScreelScreenTimePlugin)
 public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
@@ -79,6 +76,13 @@ public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
   @objc func startMonitoring(_ call: CAPPluginCall) {
     let budget = call.getInt("budgetMinutes") ?? ScreelScreenTimeShared.budgetMinutes
     let resetUsed = call.getBool("resetUsed") ?? false
+    if let hour = call.getInt("resetHour") {
+      ScreelScreenTimeShared.resetHour = hour
+    }
+    if let minute = call.getInt("resetMinute") {
+      ScreelScreenTimeShared.resetMinute = minute
+    }
+
     guard let selection = ScreelScreenTimeShared.loadSelection(), ScreelScreenTimeShared.hasSelection() else {
       call.reject("Pick apps to track first")
       return
@@ -88,27 +92,37 @@ public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
       return
     }
 
-    ScreelScreenTimeShared.budgetMinutes = budget
+    ScreelScreenTimeShared.budgetMinutes = max(1, budget)
     if resetUsed {
-      ScreelScreenTimeShared.defaults.set(ScreelScreenTimeShared.todayStamp(), forKey: ScreelScreenTimeShared.dayKey)
-      ScreelScreenTimeShared.defaults.set(0, forKey: ScreelScreenTimeShared.minutesUsedKey)
-      ScreelScreenTimeShared.applyShield(broke: false)
+      ScreelScreenTimeShared.forceNewPeriod(clearShields: true)
     } else {
-      ScreelScreenTimeShared.ensureDayBucket()
+      ScreelScreenTimeShared.ensurePeriodBucket()
     }
     ScreelScreenTimeShared.isLinked = true
 
-    let schedule = DeviceActivitySchedule(
-      intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
-      intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
-      repeats: true
+    let schedule = ScreelScreenTimeShared.dailySchedule(
+      resetHour: ScreelScreenTimeShared.resetHour,
+      resetMinute: ScreelScreenTimeShared.resetMinute
     )
-    let events = ScreelScreenTimeShared.checkpointEvents(selection: selection, budgetMinutes: budget)
+    let events = ScreelScreenTimeShared.checkpointEvents(
+      selection: selection,
+      budgetMinutes: ScreelScreenTimeShared.budgetMinutes
+    )
 
     do {
       center.stopMonitoring([.screelDaily])
       try center.startMonitoring(.screelDaily, during: schedule, events: events)
-      call.resolve(["ok": true, "budgetMinutes": budget, "eventCount": events.count])
+      // Always keep apps unlocked at the start of a fresh budget.
+      if resetUsed || ScreelScreenTimeShared.minutesUsed < ScreelScreenTimeShared.budgetMinutes {
+        ScreelScreenTimeShared.applyShield(broke: false)
+      }
+      call.resolve([
+        "ok": true,
+        "budgetMinutes": ScreelScreenTimeShared.budgetMinutes,
+        "eventCount": events.count,
+        "resetHour": ScreelScreenTimeShared.resetHour,
+        "resetMinute": ScreelScreenTimeShared.resetMinute,
+      ])
     } catch {
       call.reject("Could not start monitoring: \(error.localizedDescription)")
     }
@@ -122,7 +136,7 @@ public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
   }
 
   @objc func getTodayUsageMinutes(_ call: CAPPluginCall) {
-    ScreelScreenTimeShared.ensureDayBucket()
+    ScreelScreenTimeShared.ensurePeriodBucket()
     call.resolve([
       "minutes": ScreelScreenTimeShared.minutesUsed,
       "budgetMinutes": ScreelScreenTimeShared.budgetMinutes,
@@ -138,14 +152,12 @@ public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
   }
 
   @objc func resetUsageDay(_ call: CAPPluginCall) {
-    ScreelScreenTimeShared.defaults.set(ScreelScreenTimeShared.todayStamp(), forKey: ScreelScreenTimeShared.dayKey)
-    ScreelScreenTimeShared.defaults.set(0, forKey: ScreelScreenTimeShared.minutesUsedKey)
-    ScreelScreenTimeShared.applyShield(broke: false)
+    ScreelScreenTimeShared.forceNewPeriod(clearShields: true)
     call.resolve(["minutes": 0])
   }
 
   @objc func getLinkStatus(_ call: CAPPluginCall) {
-    ScreelScreenTimeShared.ensureDayBucket()
+    ScreelScreenTimeShared.ensurePeriodBucket()
     call.resolve([
       "authorized": AuthorizationCenter.shared.authorizationStatus == .approved,
       "status": Self.mapStatus(AuthorizationCenter.shared.authorizationStatus),
@@ -153,6 +165,8 @@ public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
       "linked": ScreelScreenTimeShared.isLinked,
       "minutesUsed": ScreelScreenTimeShared.minutesUsed,
       "budgetMinutes": ScreelScreenTimeShared.budgetMinutes,
+      "resetHour": ScreelScreenTimeShared.resetHour,
+      "resetMinute": ScreelScreenTimeShared.resetMinute,
     ])
   }
 

@@ -33,7 +33,7 @@ private struct PickerRoot: View {
   var body: some View {
     NavigationView {
       FamilyActivityPicker(selection: $selection)
-        .navigationTitle("Apps to track")
+        .navigationTitle("Apps to limit")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {
@@ -42,6 +42,14 @@ private struct PickerRoot: View {
           ToolbarItem(placement: .confirmationAction) {
             Button("Save") { onFinish(selection) }
           }
+        }
+        .safeAreaInset(edge: .bottom) {
+          Text("Tip: pick only apps you want Screel to count — selecting everything will lock almost the whole phone.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(.ultraThinMaterial)
         }
     }
   }

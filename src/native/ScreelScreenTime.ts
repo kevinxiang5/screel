@@ -10,7 +10,12 @@ export interface ScreelScreenTimePlugin {
   isNativeAvailable(): Promise<{ available: boolean; reason?: string }>;
   requestAuthorization(): Promise<{ status: AuthStatus; error?: string }>;
   presentAppPicker(): Promise<{ selected: boolean; applicationCount: number }>;
-  startMonitoring(options: { budgetMinutes: number; resetUsed?: boolean }): Promise<{
+  startMonitoring(options: {
+    budgetMinutes: number;
+    resetUsed?: boolean;
+    resetHour?: number;
+    resetMinute?: number;
+  }): Promise<{
     ok: boolean;
     budgetMinutes?: number;
     eventCount?: number;
@@ -75,13 +80,7 @@ const nativePlugin = registerPlugin<ScreelScreenTimePlugin>('ScreelScreenTime', 
   web: () => webImpl,
 });
 
-/** Capacitor can hang forever if the native plugin isn't linked — never await bare. */
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  onTimeout: T,
-  onError: T,
-): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number, onTimeout: T, onError: T): Promise<T> {
   return new Promise((resolve) => {
     const timer = window.setTimeout(() => resolve(onTimeout), ms);
     promise
@@ -109,10 +108,12 @@ export const ScreelScreenTime: ScreelScreenTimePlugin = {
   requestAuthorization() {
     if (!Capacitor.isNativePlatform()) return webImpl.requestAuthorization();
     const fail = { status: 'unavailable' as const, error: 'Authorization unavailable' };
-    return withTimeout(nativePlugin.requestAuthorization(), 60_000, {
-      status: 'unavailable',
-      error: 'Authorization timed out',
-    }, fail);
+    return withTimeout(
+      nativePlugin.requestAuthorization(),
+      60_000,
+      { status: 'unavailable', error: 'Authorization timed out' },
+      fail,
+    );
   },
   presentAppPicker() {
     if (!Capacitor.isNativePlatform()) return webImpl.presentAppPicker();

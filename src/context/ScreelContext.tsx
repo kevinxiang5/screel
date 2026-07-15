@@ -2,8 +2,14 @@ import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
 import type { DailyChallenge, HistoryEntry, RoundResult, ScreelState, UsageSource } from '../types';
+import {
+  ALLOWANCE_MAX,
+  ALLOWANCE_MIN,
+  detectTimeZone,
+  periodId,
+} from '../utils/dayPeriod';
 
-const STORAGE_KEY = 'screel-v1';
+const STORAGE_KEY = 'screel-v2';
 
 const defaultChallenges = (): DailyChallenge[] => [
   {
@@ -35,40 +41,66 @@ const defaultChallenges = (): DailyChallenge[] => [
   },
 ];
 
-const defaultState = (): ScreelState => ({
-  displayName: 'High Roller',
-  connected: false,
-  usageSource: 'none',
-  ageVerified: false,
-  baseLimit: 60,
-  minutesBank: 60,
-  minutesUsed: 18,
-  streak: 3,
-  xp: 240,
-  level: 4,
-  totalWon: 0,
-  totalLost: 0,
-  biggestWin: 0,
-  gamesPlayed: 0,
-  history: [],
-  challenges: defaultChallenges(),
-  soundOn: true,
-  riskAlerts: true,
-});
+function clampAllowance(n: number): number {
+  return Math.max(ALLOWANCE_MIN, Math.min(ALLOWANCE_MAX, Math.round(n)));
+}
+
+const defaultState = (): ScreelState => {
+  const timeZone = detectTimeZone();
+  const resetHour = 4;
+  const resetMinute = 0;
+  return {
+    displayName: 'High Roller',
+    connected: false,
+    usageSource: 'none',
+    ageVerified: false,
+    baseLimit: 240,
+    minutesBank: 240,
+    minutesUsed: 0,
+    resetHour,
+    resetMinute,
+    timeZone,
+    activePeriodId: periodId(new Date(), resetHour, resetMinute, timeZone),
+    streak: 0,
+    xp: 0,
+    level: 1,
+    totalWon: 0,
+    totalLost: 0,
+    biggestWin: 0,
+    gamesPlayed: 0,
+    history: [],
+    challenges: defaultChallenges(),
+    soundOn: true,
+    riskAlerts: true,
+  };
+};
 
 function loadState(): ScreelState {
+  const base = defaultState();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    const parsed = JSON.parse(raw) as ScreelState;
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('screel-v1');
+    if (!raw) return base;
+    const parsed = JSON.parse(raw) as Partial<ScreelState>;
+    const timeZone = parsed.timeZone || detectTimeZone();
+    const resetHour = typeof parsed.resetHour === 'number' ? parsed.resetHour : 4;
+    const resetMinute = typeof parsed.resetMinute === 'number' ? parsed.resetMinute : 0;
+    const baseLimit = clampAllowance(parsed.baseLimit ?? 240);
     return {
-      ...defaultState(),
+      ...base,
       ...parsed,
+      baseLimit,
+      minutesBank: typeof parsed.minutesBank === 'number' ? Math.max(0, parsed.minutesBank) : baseLimit,
+      minutesUsed: typeof parsed.minutesUsed === 'number' ? Math.max(0, parsed.minutesUsed) : 0,
+      resetHour: Math.max(0, Math.min(23, resetHour)),
+      resetMinute: Math.max(0, Math.min(59, resetMinute)),
+      timeZone,
+      activePeriodId:
+        parsed.activePeriodId || periodId(new Date(), resetHour, resetMinute, timeZone),
       usageSource: parsed.usageSource ?? (parsed.connected ? 'simulated' : 'none'),
       challenges: parsed.challenges?.length ? parsed.challenges : defaultChallenges(),
     };
   } catch {
-    return defaultState();
+    return base;
   }
 }
 
@@ -76,6 +108,7 @@ interface ScreelContextValue {
   state: ScreelState;
   remaining: number;
   setBaseLimit: (n: number) => void;
+  setResetTime: (hour: number, minute: number) => void;
   connectScreenTime: (opts?: { source?: UsageSource; minutesUsed?: number }) => void;
   disconnectScreenTime: () => void;
   syncUsageMinutes: (minutes: number) => void;
@@ -94,6 +127,16 @@ interface ScreelContextValue {
 
 const ScreelContext = createContext<ScreelContextValue | null>(null);
 
+async function restartNativeMonitor(state: ScreelState, resetUsed: boolean) {
+  if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
+  await ScreelScreenTime.startMonitoring({
+    budgetMinutes: Math.max(1, state.minutesBank),
+    resetUsed,
+    resetHour: state.resetHour,
+    resetMinute: state.resetMinute,
+  });
+}
+
 export function ScreelProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ScreelState>(() => loadState());
 
@@ -101,9 +144,55 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  // Auto-roll allowance when the local reset time is crossed.
+  useEffect(() => {
+    const tick = () => {
+      setState((s) => {
+        const tz = s.timeZone || detectTimeZone();
+        const nextId = periodId(new Date(), s.resetHour, s.resetMinute, tz);
+        if (nextId === s.activePeriodId) return s.timeZone === tz ? s : { ...s, timeZone: tz };
+        return {
+          ...s,
+          timeZone: tz,
+          activePeriodId: nextId,
+          minutesBank: s.baseLimit,
+          minutesUsed: 0,
+          challenges: defaultChallenges(),
+          streak: s.streak + 1,
+        };
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 30_000);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
+  // After auto-reset, restart native monitoring with a clean used counter.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
+    if (state.minutesUsed !== 0) return;
+    void (async () => {
+      try {
+        await ScreelScreenTime.resetUsageDay();
+        await restartNativeMonitor(state, true);
+        await ScreelScreenTime.applyShieldWhenBroke({ broke: false });
+      } catch {
+        /* ignore */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on period
+  }, [state.activePeriodId]);
+
   const remaining = Math.max(0, state.minutesBank - state.minutesUsed);
 
-  // Pull usage from DeviceActivity App Group + apply ManagedSettings shields when broke.
+  // Sync DeviceActivity usage → never trust "already used today" from Settings.
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
 
@@ -114,31 +203,32 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         const usage = await ScreelScreenTime.getTodayUsageMinutes();
         if (cancelled) return;
         let bank = 0;
+        let used = usage.minutes;
         setState((s) => {
           bank = s.minutesBank;
-          return s.minutesUsed === usage.minutes ? s : { ...s, minutesUsed: usage.minutes };
+          used = Math.min(usage.minutes, s.minutesBank + 1_000);
+          return s.minutesUsed === used ? s : { ...s, minutesUsed: used };
         });
-        await ScreelScreenTime.applyShieldWhenBroke({ broke: bank - usage.minutes <= 0 });
+        // Only shield when Screel's tracked used minutes exhaust the bank.
+        await ScreelScreenTime.applyShieldWhenBroke({ broke: bank - used <= 0 && used > 0 });
       } catch {
-        /* ignore transient native errors */
+        /* ignore */
       }
     };
 
     void sync();
-    const id = window.setInterval(() => void sync(), 20_000);
+    const id = window.setInterval(() => void sync(), 15_000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [state.connected, state.usageSource, state.minutesBank]);
+  }, [state.connected, state.usageSource, state.minutesBank, state.activePeriodId]);
 
-  // Restart DeviceActivity budget when the bank ceiling changes while linked.
+  // Keep DeviceActivity budget aligned with bank / reset clock.
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
-    void ScreelScreenTime.startMonitoring({ budgetMinutes: state.minutesBank }).catch(() => {
-      /* picker / auth may be incomplete */
-    });
-  }, [state.minutesBank, state.connected, state.usageSource]);
+    void restartNativeMonitor(state, false).catch(() => undefined);
+  }, [state.minutesBank, state.resetHour, state.resetMinute, state.connected, state.usageSource]);
 
   const value = useMemo<ScreelContextValue>(() => {
     return {
@@ -146,7 +236,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
       remaining,
       setBaseLimit: (n) => {
         setState((s) => {
-          const next = Math.max(15, Math.min(240, Math.round(n)));
+          const next = clampAllowance(n);
           const delta = next - s.baseLimit;
           return {
             ...s,
@@ -155,19 +245,40 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         });
       },
+      setResetTime: (hour, minute) => {
+        setState((s) => {
+          const resetHour = Math.max(0, Math.min(23, Math.round(hour)));
+          const resetMinute = Math.max(0, Math.min(59, Math.round(minute)));
+          const timeZone = detectTimeZone();
+          return {
+            ...s,
+            resetHour,
+            resetMinute,
+            timeZone,
+            // Keep current period id; next rollover check will migrate cleanly.
+            activePeriodId: periodId(new Date(), resetHour, resetMinute, timeZone),
+          };
+        });
+      },
       connectScreenTime: (opts) => {
         const source = opts?.source ?? 'simulated';
-        setState((s) => ({
-          ...s,
-          connected: true,
-          usageSource: source,
-          minutesUsed:
+        setState((s) => {
+          const timeZone = detectTimeZone();
+          const used =
             typeof opts?.minutesUsed === 'number'
               ? Math.max(0, Math.round(opts.minutesUsed))
               : source === 'simulated'
-                ? Math.min(s.minutesBank - 5, Math.max(s.minutesUsed, 12 + Math.floor(Math.random() * 20)))
-                : s.minutesUsed,
-        }));
+                ? 0
+                : 0;
+          return {
+            ...s,
+            connected: true,
+            usageSource: source,
+            minutesUsed: used,
+            timeZone,
+            activePeriodId: periodId(new Date(), s.resetHour, s.resetMinute, timeZone),
+          };
+        });
       },
       disconnectScreenTime: () =>
         setState((s) => ({ ...s, connected: false, usageSource: 'none' })),
@@ -230,13 +341,18 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
       updateProfile: (patch) => setState((s) => ({ ...s, ...patch })),
       verifyAge: () => setState((s) => ({ ...s, ageVerified: true })),
       resetDay: () =>
-        setState((s) => ({
-          ...s,
-          minutesBank: s.baseLimit,
-          minutesUsed: 0,
-          challenges: defaultChallenges(),
-          streak: s.streak + 1,
-        })),
+        setState((s) => {
+          const timeZone = detectTimeZone();
+          return {
+            ...s,
+            minutesBank: s.baseLimit,
+            minutesUsed: 0,
+            challenges: defaultChallenges(),
+            streak: s.streak + 1,
+            timeZone,
+            activePeriodId: periodId(new Date(), s.resetHour, s.resetMinute, timeZone),
+          };
+        }),
     };
   }, [state, remaining]);
 

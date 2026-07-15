@@ -15,24 +15,59 @@ enum ScreelScreenTimeShared {
   static let budgetKey = "screel.budgetMinutes"
   static let dayKey = "screel.dayStamp"
   static let linkedKey = "screel.linked"
+  static let resetHourKey = "screel.resetHour"
+  static let resetMinuteKey = "screel.resetMinute"
 
   static var defaults: UserDefaults {
     UserDefaults(suiteName: appGroupId) ?? .standard
   }
 
-  static func todayStamp() -> String {
-    let f = DateFormatter()
-    f.calendar = Calendar.current
-    f.locale = Locale(identifier: "en_US_POSIX")
-    f.dateFormat = "yyyy-MM-dd"
-    return f.string(from: Date())
+  static var resetHour: Int {
+    get {
+      if defaults.object(forKey: resetHourKey) == nil { return 4 }
+      return max(0, min(23, defaults.integer(forKey: resetHourKey)))
+    }
+    set { defaults.set(max(0, min(23, newValue)), forKey: resetHourKey) }
   }
 
-  static func ensureDayBucket() {
-    let today = todayStamp()
-    if defaults.string(forKey: dayKey) != today {
-      defaults.set(today, forKey: dayKey)
+  static var resetMinute: Int {
+    get {
+      if defaults.object(forKey: resetMinuteKey) == nil { return 0 }
+      return max(0, min(59, defaults.integer(forKey: resetMinuteKey)))
+    }
+    set { defaults.set(max(0, min(59, newValue)), forKey: resetMinuteKey) }
+  }
+
+  /// Period id based on the user-configured reset clock (not midnight).
+  static func periodStamp(now: Date = Date()) -> String {
+    var cal = Calendar.current
+    cal.timeZone = .current
+    let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+    let minsNow = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+    let resetMins = resetHour * 60 + resetMinute
+    var day = cal.startOfDay(for: now)
+    if minsNow < resetMins {
+      day = cal.date(byAdding: .day, value: -1, to: day) ?? day
+    }
+    let y = cal.component(.year, from: day)
+    let m = cal.component(.month, from: day)
+    let d = cal.component(.day, from: day)
+    return String(format: "%04d-%02d-%02d@%02d:%02d", y, m, d, resetHour, resetMinute)
+  }
+
+  static func ensurePeriodBucket() {
+    let stamp = periodStamp()
+    if defaults.string(forKey: dayKey) != stamp {
+      defaults.set(stamp, forKey: dayKey)
       defaults.set(0, forKey: minutesUsedKey)
+    }
+  }
+
+  static func forceNewPeriod(clearShields: Bool = true) {
+    defaults.set(periodStamp(), forKey: dayKey)
+    defaults.set(0, forKey: minutesUsedKey)
+    if clearShields {
+      applyShield(broke: false)
     }
   }
 
@@ -55,11 +90,11 @@ enum ScreelScreenTimeShared {
 
   static var minutesUsed: Int {
     get {
-      ensureDayBucket()
+      ensurePeriodBucket()
       return defaults.integer(forKey: minutesUsedKey)
     }
     set {
-      ensureDayBucket()
+      ensurePeriodBucket()
       defaults.set(max(0, newValue), forKey: minutesUsedKey)
     }
   }
@@ -74,7 +109,7 @@ enum ScreelScreenTimeShared {
     set { defaults.set(newValue, forKey: linkedKey) }
   }
 
-  /// Build up to 20 threshold events spanning 1…budget minutes for selected tokens.
+  /// Up to 20 checkpoints across the Screel budget (counts only AFTER monitoring starts).
   static func checkpointEvents(
     selection: FamilyActivitySelection,
     budgetMinutes: Int
@@ -112,5 +147,20 @@ enum ScreelScreenTimeShared {
       ? nil
       : .specific(selection.categoryTokens)
     store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
+  }
+
+  /// Schedule from reset clock → one minute before next reset (repeats daily in device local TZ).
+  static func dailySchedule(resetHour: Int, resetMinute: Int) -> DeviceActivitySchedule {
+    var endHour = resetHour
+    var endMinute = resetMinute - 1
+    if endMinute < 0 {
+      endMinute = 59
+      endHour = (resetHour + 23) % 24
+    }
+    return DeviceActivitySchedule(
+      intervalStart: DateComponents(hour: resetHour, minute: resetMinute, second: 0),
+      intervalEnd: DateComponents(hour: endHour, minute: endMinute, second: 59),
+      repeats: true
+    )
   }
 }
