@@ -228,7 +228,8 @@ button {
   position: absolute;
   left: 14px;
   right: 14px;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  /* Sit a bit lower toward the home indicator */
+  bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   z-index: 20;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -2124,7 +2125,7 @@ button {
 .screel-toasts {
   position: fixed;
   left: 50%;
-  bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   z-index: 80;
   width: min(420px, calc(100% - 28px));
   transform: translateX(-50%);
