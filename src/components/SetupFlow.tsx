@@ -131,20 +131,20 @@ export function SetupFlow() {
               </div>
             </div>
 
-            <div className="limit-control wager-box setup-stable" style={{ marginTop: 14 }}>
-              <label>
+            <div className="wager-box reset-time-box setup-stable" style={{ marginTop: 14 }}>
+              <div className="reset-time-head">
                 <span>Daily reset time</span>
-                <strong>{resetLabel}</strong>
-              </label>
-              <input
-                type="time"
-                className="time-input"
-                value={toTimeInputValue(state.resetHour, state.resetMinute)}
-                onChange={(e) => onResetTimeChange(e.target.value)}
-              />
-              <p className="lede" style={{ marginTop: 8, fontSize: '0.8rem' }}>
-                Timezone: {state.timeZone}
-              </p>
+                <strong className="tabular">{resetLabel}</strong>
+              </div>
+              <div className="reset-time-field">
+                <input
+                  type="time"
+                  className="time-input"
+                  value={toTimeInputValue(state.resetHour, state.resetMinute)}
+                  onChange={(e) => onResetTimeChange(e.target.value)}
+                />
+              </div>
+              <p className="lede reset-time-hint">Timezone: {state.timeZone}</p>
             </div>
 
             <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 1fr' }}>

@@ -249,18 +249,20 @@ export function BankScreen() {
         <div className="section-head">
           <h2>Daily reset time</h2>
         </div>
-        <div className="limit-control wager-box">
-          <label>
+        <div className="wager-box reset-time-box">
+          <div className="reset-time-head">
             <span>When your allowance restarts</span>
-            <strong>{resetLabel}</strong>
-          </label>
-          <input
-            type="time"
-            className="time-input"
-            value={toTimeInputValue(state.resetHour, state.resetMinute)}
-            onChange={(e) => onResetTimeChange(e.target.value)}
-          />
-          <p className="lede" style={{ marginTop: 10, fontSize: '0.82rem' }}>
+            <strong className="tabular">{resetLabel}</strong>
+          </div>
+          <div className="reset-time-field">
+            <input
+              type="time"
+              className="time-input"
+              value={toTimeInputValue(state.resetHour, state.resetMinute)}
+              onChange={(e) => onResetTimeChange(e.target.value)}
+            />
+          </div>
+          <p className="lede reset-time-hint">
             Uses this phone’s timezone. At that time Screel restores your ceiling and unlocks apps.
           </p>
         </div>
