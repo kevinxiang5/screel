@@ -13,10 +13,12 @@
 
 ## Fonts
 
-| Font | Source | License |
-|---|---|---|
-| Syne | Google Fonts CDN | SIL Open Font License (OFL) |
-| Outfit | Google Fonts CDN | OFL |
+| Font | Theme | Source | License |
+|---|---|---|---|
+| Syne, Outfit | Felt (default) | Google Fonts CDN | SIL OFL |
+| Playfair Display, Lora | Editorial | Google Fonts CDN | SIL OFL |
+| Fraunces, Nunito | Soft | Google Fonts CDN | SIL OFL |
+| DM Sans | Clean | Google Fonts CDN | SIL OFL |
 
 Privacy: CDN requests go to Google — disclosed in Privacy Policy. Prefer self-host for production iOS binary later.
 
