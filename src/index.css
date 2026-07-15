@@ -19,6 +19,27 @@
   color-scheme: dark;
 }
 
+html[data-font='felt'],
+html:not([data-font]) {
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+}
+
+html[data-font='editorial'] {
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Lora', Georgia, serif;
+}
+
+html[data-font='soft'] {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+}
+
+html[data-font='clean'] {
+  --font-display: 'DM Sans', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
 *,
 *::before,
 *::after {
@@ -2235,6 +2256,127 @@ button {
 
 .screel-modal-actions .btn {
   padding: 12px 10px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.bank-hero-stable .bank-value,
+.bank-hero-stable .display.md {
+  min-height: 2.5rem;
+  line-height: 1.1;
+}
+
+.bank-meta {
+  margin-top: 12px;
+  min-height: 3.2rem;
+}
+
+.bank-meta p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--mute);
+  line-height: 1.4;
+}
+
+.allowance-stable {
+  min-height: 11.5rem;
+}
+
+.allowance-readout {
+  min-width: 5.5rem;
+  text-align: right;
+  display: inline-block;
+}
+
+.allowance-hint {
+  margin-top: 10px;
+  margin-bottom: 0;
+  font-size: 0.82rem;
+  min-height: 2.4rem;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  min-height: 2.5rem;
+  align-content: flex-start;
+}
+
+.time-input {
+  margin-top: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--snow);
+  font: inherit;
+}
+
+.connect-card-priority {
+  border-color: rgba(200, 255, 46, 0.35);
+  box-shadow: 0 0 0 1px rgba(200, 255, 46, 0.08);
+}
+
+.setup-card {
+  max-height: min(86vh, 720px);
+  overflow-y: auto;
+}
+
+.setup-stable {
+  min-height: 0;
+}
+
+.font-theme-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.font-theme-card {
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(8, 16, 12, 0.55);
+  color: var(--snow);
+  display: grid;
+  gap: 4px;
+}
+
+.font-theme-card strong {
+  font-size: 1.05rem;
+}
+
+.font-theme-card span {
+  font-size: 0.78rem;
+  color: var(--mute);
+}
+
+.font-theme-card.active {
+  border-color: rgba(200, 255, 46, 0.55);
+  background: rgba(200, 255, 46, 0.08);
+}
+
+.font-theme-card[data-font-preview='felt'] strong {
+  font-family: 'Syne', system-ui, sans-serif;
+}
+
+.font-theme-card[data-font-preview='editorial'] strong {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-theme-card[data-font-preview='soft'] strong {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-theme-card[data-font-preview='clean'] strong {
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
 

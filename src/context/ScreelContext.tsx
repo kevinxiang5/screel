@@ -1,7 +1,14 @@
 import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
-import type { DailyChallenge, HistoryEntry, RoundResult, ScreelState, UsageSource } from '../types';
+import type {
+  DailyChallenge,
+  FontTheme,
+  HistoryEntry,
+  RoundResult,
+  ScreelState,
+  UsageSource,
+} from '../types';
 import {
   ALLOWANCE_MAX,
   ALLOWANCE_MIN,
@@ -54,6 +61,9 @@ const defaultState = (): ScreelState => {
     connected: false,
     usageSource: 'none',
     ageVerified: false,
+    ageBlocked: false,
+    setupComplete: false,
+    fontTheme: 'felt',
     baseLimit: 240,
     minutesBank: 240,
     minutesUsed: 0,
@@ -97,6 +107,13 @@ function loadState(): ScreelState {
       activePeriodId:
         parsed.activePeriodId || periodId(new Date(), resetHour, resetMinute, timeZone),
       usageSource: parsed.usageSource ?? (parsed.connected ? 'simulated' : 'none'),
+      ageBlocked: Boolean(parsed.ageBlocked),
+      // Fresh installs always see setup. Older installs that never linked Screen Time see it once.
+      setupComplete:
+        typeof parsed.setupComplete === 'boolean'
+          ? parsed.setupComplete
+          : Boolean(parsed.ageVerified && parsed.connected),
+      fontTheme: (parsed.fontTheme as FontTheme) || 'felt',
       challenges: parsed.challenges?.length ? parsed.challenges : defaultChallenges(),
     };
   } catch {
@@ -120,9 +137,16 @@ interface ScreelContextValue {
     detail: string;
   }) => void;
   claimChallenge: (id: string) => void;
-  updateProfile: (patch: Partial<Pick<ScreelState, 'displayName' | 'soundOn' | 'riskAlerts' | 'ageVerified'>>) => void;
+  updateProfile: (
+    patch: Partial<
+      Pick<ScreelState, 'displayName' | 'soundOn' | 'riskAlerts' | 'ageVerified' | 'fontTheme' | 'setupComplete'>
+    >,
+  ) => void;
   resetDay: () => void;
   verifyAge: () => void;
+  blockUnderage: () => void;
+  completeSetup: () => void;
+  setFontTheme: (theme: FontTheme) => void;
 }
 
 const ScreelContext = createContext<ScreelContextValue | null>(null);
@@ -143,6 +167,10 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
+
+  useEffect(() => {
+    document.documentElement.dataset.font = state.fontTheme;
+  }, [state.fontTheme]);
 
   // Auto-roll allowance when the local reset time is crossed.
   useEffect(() => {
@@ -209,15 +237,15 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           used = Math.min(usage.minutes, s.minutesBank + 1_000);
           return s.minutesUsed === used ? s : { ...s, minutesUsed: used };
         });
-        // Only shield when Screel's tracked used minutes exhaust the bank.
-        await ScreelScreenTime.applyShieldWhenBroke({ broke: bank - used <= 0 && used > 0 });
+        // Shield as soon as the Screel pile is empty (usage or casino).
+        await ScreelScreenTime.applyShieldWhenBroke({ broke: bank - used <= 0 });
       } catch {
         /* ignore */
       }
     };
 
     void sync();
-    const id = window.setInterval(() => void sync(), 15_000);
+    const id = window.setInterval(() => void sync(), 5_000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
@@ -285,8 +313,11 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
       syncUsageMinutes: (minutes) =>
         setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
       settleRound: ({ game, wager, payout, result, detail }) => {
+        let shouldShield = false;
+        let shouldClear = false;
         setState((s) => {
           const net = payout - wager;
+          const nextBank = Math.max(0, s.minutesBank + net);
           const entry: HistoryEntry = {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             game,
@@ -310,10 +341,13 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           });
 
           const xpGain = result === 'blackjack' ? 40 : result === 'win' ? 25 : result === 'push' ? 8 : 5;
+          const broke = nextBank - s.minutesUsed <= 0;
+          shouldShield = s.usageSource === 'screenTime' && s.connected && broke;
+          shouldClear = s.usageSource === 'screenTime' && s.connected && !broke;
 
           return {
             ...s,
-            minutesBank: Math.max(0, s.minutesBank + net),
+            minutesBank: nextBank,
             totalWon: s.totalWon + Math.max(0, net),
             totalLost: s.totalLost + Math.max(0, -net),
             biggestWin: Math.max(s.biggestWin, Math.max(0, net)),
@@ -324,6 +358,8 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             challenges,
           };
         });
+        if (shouldShield) void ScreelScreenTime.applyShieldWhenBroke({ broke: true });
+        else if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
       },
       claimChallenge: (id) => {
         setState((s) => {
@@ -339,7 +375,18 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         });
       },
       updateProfile: (patch) => setState((s) => ({ ...s, ...patch })),
-      verifyAge: () => setState((s) => ({ ...s, ageVerified: true })),
+      verifyAge: () => setState((s) => ({ ...s, ageVerified: true, ageBlocked: false })),
+      blockUnderage: () =>
+        setState((s) => ({
+          ...s,
+          ageVerified: false,
+          ageBlocked: true,
+          setupComplete: false,
+          connected: false,
+          usageSource: 'none',
+        })),
+      completeSetup: () => setState((s) => ({ ...s, setupComplete: true })),
+      setFontTheme: (theme) => setState((s) => ({ ...s, fontTheme: theme })),
       resetDay: () =>
         setState((s) => {
           const timeZone = detectTimeZone();

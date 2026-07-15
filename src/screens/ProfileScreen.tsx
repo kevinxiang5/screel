@@ -2,9 +2,17 @@ import { motion } from 'framer-motion';
 import { useScreelUI } from '../components/ScreelUI';
 import type { LegalDoc } from '../components/LegalDocView';
 import { useScreel } from '../context/ScreelContext';
+import type { FontTheme } from '../types';
+
+const FONT_OPTIONS: { id: FontTheme; label: string; blurb: string }[] = [
+  { id: 'felt', label: 'Felt', blurb: 'Bold Syne headlines (default)' },
+  { id: 'editorial', label: 'Editorial', blurb: 'Serif luxury — Playfair + Lora' },
+  { id: 'soft', label: 'Soft', blurb: 'Round & friendly Fraunces + Nunito' },
+  { id: 'clean', label: 'Clean', blurb: 'Sharp geometric DM Sans' },
+];
 
 export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) => void }) {
-  const { state, updateProfile } = useScreel();
+  const { state, updateProfile, setFontTheme } = useScreel();
   const { toast } = useScreelUI();
 
   return (
@@ -47,6 +55,32 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
           </p>
         </div>
       </div>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>App typeface</h2>
+        </div>
+        <p className="lede" style={{ marginTop: 0, fontSize: '0.85rem' }}>
+          Hate the flat look? Switch the whole app’s fonts.
+        </p>
+        <div className="font-theme-grid">
+          {FONT_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              className={`font-theme-card ${state.fontTheme === opt.id ? 'active' : ''}`}
+              data-font-preview={opt.id}
+              onClick={() => {
+                setFontTheme(opt.id);
+                toast(`${opt.label} typeface applied.`, { title: 'Fonts updated', tone: 'success' });
+              }}
+            >
+              <strong>{opt.label}</strong>
+              <span>{opt.blurb}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="section">
         <div className="section-head">
@@ -132,8 +166,8 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
           <p>Pick how many minutes you get today — your starting chip stack.</p>
         </div>
         <div className="challenge">
-          <h3>2. Track usage (sim today)</h3>
-          <p>Simulate spend against the bank. Real system enforcement comes later via approved iOS APIs.</p>
+          <h3>2. Connect Screen Time</h3>
+          <p>Authorize Family Controls, pick apps to limit, and spend from a fresh Screel budget.</p>
         </div>
         <div className="challenge">
           <h3>3. Play the rest</h3>

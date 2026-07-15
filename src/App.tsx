@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { AgeGate } from './components/AgeGate';
+import { AgeBlocked, AgeGate } from './components/AgeGate';
 import { LegalDocView, type LegalDoc } from './components/LegalDocView';
 import { LoadingScreen } from './components/LoadingScreen';
 import { ScreelUIProvider } from './components/ScreelUI';
+import { SetupFlow } from './components/SetupFlow';
 import { TabBar } from './components/TabBar';
 import { ScreelProvider, useScreel } from './context/ScreelContext';
 import { BankScreen } from './screens/BankScreen';
@@ -37,8 +38,10 @@ function ScreelApp() {
   return (
     <>
       <AnimatePresence>{!ready && <LoadingScreen onDone={finishLoading} />}</AnimatePresence>
-      {ready && !state.ageVerified && <AgeGate />}
-      {ready && state.ageVerified && (
+      {ready && state.ageBlocked && <AgeBlocked />}
+      {ready && !state.ageBlocked && !state.ageVerified && <AgeGate />}
+      {ready && !state.ageBlocked && state.ageVerified && !state.setupComplete && <SetupFlow />}
+      {ready && !state.ageBlocked && state.ageVerified && state.setupComplete && (
         <div className="app-shell">
           {legalDoc ? (
             <LegalDocView doc={legalDoc} onBack={() => setLegalDoc(null)} />

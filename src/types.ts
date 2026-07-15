@@ -27,12 +27,20 @@ export interface DailyChallenge {
 /** How usage minutes are sourced when Bank is linked. */
 export type UsageSource = 'none' | 'simulated' | 'screenTime';
 
+/** Global typeface pairs for the whole app. */
+export type FontTheme = 'felt' | 'editorial' | 'soft' | 'clean';
+
 export interface ScreelState {
   displayName: string;
   connected: boolean;
   /** `screenTime` = Apple Family Controls; `simulated` = local demo (web / fallback). */
   usageSource: UsageSource;
   ageVerified: boolean;
+  /** User said they are under 18 — locked out. */
+  ageBlocked: boolean;
+  /** Finished post-age setup (allowance / reset / connect prompt). */
+  setupComplete: boolean;
+  fontTheme: FontTheme;
   /** Daily Screel allowance in minutes (30–960). */
   baseLimit: number;
   minutesBank: number;

@@ -3,6 +3,7 @@ import { Link2, Link2Off, RefreshCw, Shield } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
+import { connectScreenTimeFlow } from '../native/connectScreenTimeFlow';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
 import {
   ALLOWANCE_MAX,
@@ -51,55 +52,21 @@ export function BankScreen() {
     setLinking(true);
     toast('Connecting…', { title: 'Usage link', tone: 'info' });
     try {
-      const native = await ScreelScreenTime.isNativeAvailable();
-      if (!native.available) {
-        connectScreenTime({ source: 'simulated', minutesUsed: 0 });
-        toast('Demo link on — used minutes start at 0 for this session.', {
-          title: 'Usage simulated',
-          tone: 'success',
-        });
-        return;
-      }
-
-      const auth = await ScreelScreenTime.requestAuthorization();
-      if (auth.status !== 'approved') {
-        toast(auth.error ?? 'Screen Time authorization was not granted.', {
-          title: 'Permission needed',
-          tone: 'warn',
-        });
-        return;
-      }
-
-      const pick = await ScreelScreenTime.presentAppPicker();
-      if (!pick.selected) {
-        toast('Pick the apps you want Screel to limit — avoid selecting every category.', {
-          title: 'Nothing selected',
-          tone: 'warn',
-        });
-        return;
-      }
-
-      // Fresh Screel clock: clear shields + used, then monitor this budget only.
-      await ScreelScreenTime.resetUsageDay();
-      await ScreelScreenTime.applyShieldWhenBroke({ broke: false });
-      const started = await ScreelScreenTime.startMonitoring({
-        budgetMinutes: Math.max(1, state.minutesBank),
-        resetUsed: true,
+      const result = await connectScreenTimeFlow({
+        budgetMinutes: state.minutesBank,
         resetHour: state.resetHour,
         resetMinute: state.resetMinute,
       });
-      if (!started.ok) {
-        toast('Could not start monitoring. Check Family Controls entitlements in Xcode.', {
-          title: 'Monitoring failed',
-          tone: 'warn',
-        });
+      if (!result.ok) {
+        toast(result.message, { title: result.title, tone: result.tone ?? 'warn' });
         return;
       }
-
-      connectScreenTime({ source: 'screenTime', minutesUsed: 0 });
+      connectScreenTime({ source: result.mode, minutesUsed: 0 });
       toast(
-        `Fresh ${formatMinutes(state.minutesBank)} bank. Tracking ${pick.applicationCount} selection(s). Resets daily at ${resetLabel}.`,
-        { title: 'Screen Time linked', tone: 'success' },
+        result.mode === 'screenTime'
+          ? `Fresh ${formatMinutes(state.minutesBank)} bank. Tracking ${result.applicationCount ?? 0} selection(s). Resets at ${resetLabel}.`
+          : 'Demo link on — used minutes start at 0 for this session.',
+        { title: result.mode === 'screenTime' ? 'Screen Time linked' : 'Usage simulated', tone: 'success' },
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not enable Screen Time.';
@@ -177,111 +144,13 @@ export function BankScreen() {
         <div className="eyebrow">Minute vault</div>
         <h1 className="display lg">Your bank</h1>
         <p className="lede">
-          One pile of minutes for play and for the apps you choose to limit. Screel does not copy your phone’s
-          all-day Screen Time total — it starts a fresh budget when you link or hit your daily reset.
+          One pile of minutes for play and for the apps you choose to limit. Fresh Screel budget — not your
+          Settings Screen Time total.
         </p>
       </motion.div>
 
-      <div className="disclosure-box" style={{ marginTop: 14 }}>
-        <p>
-          <strong>Easy version.</strong> Set how many minutes you want today + when the day restarts. Connect → pick{' '}
-          <em>only</em> apps that should count. Used climbs from 0. When still free hits 0, those apps lock until
-          reset.
-        </p>
-      </div>
-
-      <div className="hero-panel" style={{ marginTop: 18 }}>
-        <div className="bank-row">
-          <div>
-            <div className="bank-value">{formatMinutes(state.minutesBank)}</div>
-            <span className="bank-unit">in bank</span>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="display md" style={{ color: 'var(--lime)' }}>
-              {formatMinutes(remaining)}
-            </div>
-            <span className="bank-unit">still free</span>
-          </div>
-        </div>
-        <p className="lede" style={{ marginTop: 12, fontSize: '0.82rem' }}>
-          Used this period: {formatMinutes(state.minutesUsed)}
-          {state.connected ? (isNativeLink ? ' · selected apps' : ' · simulated') : ''}
-          <br />
-          Auto-resets daily at <strong>{resetLabel}</strong> · {state.timeZone}
-        </p>
-      </div>
-
-      <section className="section">
-        <div className="section-head">
-          <h2>Daily allowance</h2>
-          <span className="pill gold">{formatMinutes(state.baseLimit)}</span>
-        </div>
-        <div className="limit-control wager-box">
-          <label>
-            <span>How much Screen Time you want</span>
-            <strong>{formatMinutes(state.baseLimit)}</strong>
-          </label>
-          <input
-            type="range"
-            min={ALLOWANCE_MIN}
-            max={ALLOWANCE_MAX}
-            step={15}
-            value={state.baseLimit}
-            onChange={(e) => setBaseLimit(Number(e.target.value))}
-          />
-          <div className="preset-row" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-            {ALLOWANCE_PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`btn btn-sm ${state.baseLimit === p ? 'btn-gold' : 'btn-secondary'}`}
-                onClick={() => setBaseLimit(p)}
-              >
-                {formatMinutes(p)}
-              </button>
-            ))}
-          </div>
-          <p className="lede" style={{ marginTop: 10, fontSize: '0.82rem' }}>
-            30 minutes to 16 hours. Casino wins/losses still nudge the bank.
-          </p>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head">
-          <h2>Daily reset time</h2>
-        </div>
-        <div className="limit-control wager-box">
-          <label>
-            <span>When your allowance restarts</span>
-            <strong>{resetLabel}</strong>
-          </label>
-          <input
-            type="time"
-            value={toTimeInputValue(state.resetHour, state.resetMinute)}
-            onChange={(e) => onResetTimeChange(e.target.value)}
-            style={{
-              marginTop: 10,
-              width: '100%',
-              padding: '12px 14px',
-              borderRadius: 12,
-              border: '1px solid var(--line)',
-              background: 'rgba(0,0,0,0.25)',
-              color: 'var(--snow)',
-            }}
-          />
-          <p className="lede" style={{ marginTop: 10, fontSize: '0.82rem' }}>
-            Uses this phone’s timezone (<strong>{state.timeZone}</strong>). At that time Screel restores your
-            ceiling, clears used minutes, and unlocks apps.
-          </p>
-        </div>
-        <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 12 }} onClick={onReset}>
-          <RefreshCw size={16} /> Reset this period now
-        </button>
-      </section>
-
-      <section className="section">
-        <div className="connect-card">
+      <section className="section" style={{ marginTop: 14 }}>
+        <div className="connect-card connect-card-priority">
           <div style={{ display: 'flex', gap: 12, alignItems: 'start' }}>
             <Shield size={22} color="var(--lime)" />
             <div>
@@ -291,9 +160,9 @@ export function BankScreen() {
               <p className="lede" style={{ marginTop: 6 }}>
                 {state.connected
                   ? isNativeLink
-                    ? `Budget matches your bank (${formatMinutes(state.minutesBank)}). Only apps you picked count.`
-                    : 'Demo sync — used minutes are local only.'
-                  : 'Turn Screen Time on in Settings, then connect. Pick only apps you want limited.'}
+                    ? `Budget ${formatMinutes(state.minutesBank)} · resets ${resetLabel}`
+                    : 'Demo sync — reconnect anytime for real limits.'
+                  : 'Most important step: authorize, pick apps, start your fresh bank.'}
               </p>
             </div>
           </div>
@@ -314,6 +183,90 @@ export function BankScreen() {
             )}
           </div>
         </div>
+      </section>
+
+      <div className="hero-panel bank-hero-stable" style={{ marginTop: 18 }}>
+        <div className="bank-row">
+          <div>
+            <div className="bank-value tabular">{formatMinutes(state.minutesBank)}</div>
+            <span className="bank-unit">in bank</span>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div className="display md tabular" style={{ color: 'var(--lime)' }}>
+              {formatMinutes(remaining)}
+            </div>
+            <span className="bank-unit">still free</span>
+          </div>
+        </div>
+        <div className="bank-meta">
+          <p>
+            Used this period: <strong className="tabular">{formatMinutes(state.minutesUsed)}</strong>
+            {state.connected ? (isNativeLink ? ' · selected apps' : ' · simulated') : ' · not linked yet'}
+          </p>
+          <p>
+            Auto-resets daily at <strong>{resetLabel}</strong> · {state.timeZone}
+          </p>
+        </div>
+      </div>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Daily allowance</h2>
+          <span className="pill gold tabular">{formatMinutes(state.baseLimit)}</span>
+        </div>
+        <div className="limit-control wager-box allowance-stable">
+          <label>
+            <span>How much Screen Time you want</span>
+            <strong className="tabular allowance-readout">{formatMinutes(state.baseLimit)}</strong>
+          </label>
+          <input
+            type="range"
+            min={ALLOWANCE_MIN}
+            max={ALLOWANCE_MAX}
+            step={15}
+            value={state.baseLimit}
+            onChange={(e) => setBaseLimit(Number(e.target.value))}
+          />
+          <div className="preset-row">
+            {ALLOWANCE_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`btn btn-sm ${state.baseLimit === p ? 'btn-gold' : 'btn-secondary'}`}
+                onClick={() => setBaseLimit(p)}
+              >
+                {formatMinutes(p)}
+              </button>
+            ))}
+          </div>
+          <p className="lede allowance-hint">
+            30 minutes to 16 hours. Casino wins/losses still nudge the bank.
+          </p>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Daily reset time</h2>
+        </div>
+        <div className="limit-control wager-box">
+          <label>
+            <span>When your allowance restarts</span>
+            <strong>{resetLabel}</strong>
+          </label>
+          <input
+            type="time"
+            className="time-input"
+            value={toTimeInputValue(state.resetHour, state.resetMinute)}
+            onChange={(e) => onResetTimeChange(e.target.value)}
+          />
+          <p className="lede" style={{ marginTop: 10, fontSize: '0.82rem' }}>
+            Uses this phone’s timezone. At that time Screel restores your ceiling and unlocks apps.
+          </p>
+        </div>
+        <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 12 }} onClick={onReset}>
+          <RefreshCw size={16} /> Reset this period now
+        </button>
       </section>
 
       <section className="section">
