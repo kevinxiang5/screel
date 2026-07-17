@@ -199,7 +199,7 @@ export function HomeScreen({
 
       <section className="section">
         <button type="button" className="btn btn-primary btn-block" onClick={() => onNavigate('play')}>
-          <Zap size={18} /> Play minigames
+          <Zap size={18} /> Play challenges
         </button>
       </section>
     </div>

@@ -104,8 +104,8 @@ function OddsBody() {
       <ul>
         <li>Safe tiles / Timing run / Higher-lower — grow a pot, bank anytime</li>
         <li>Color spin — match your color; bank or double again</li>
-        <li>Blackjack — win, then bank or let it ride</li>
-        <li>Match three — bank a match or one double-or-nothing</li>
+        <li>Twenty-one — win, then bank or go again to double</li>
+        <li>Match three — bank a match or one double-up respin</li>
         <li>Roll under — set your own target; harder = bigger pot</li>
         <li>Math sprint — ten answers in 30s for a fixed skill bonus</li>
       </ul>

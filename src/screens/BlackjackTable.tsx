@@ -167,7 +167,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       setPot(amount);
       potRef.current = amount;
       setBanner({
-        text: result === 'blackjack' ? `Blackjack! Pot ${amount}m` : `You win · pot ${amount}m`,
+        text: result === 'blackjack' ? `Natural 21! Pot ${amount}m` : `You win · pot ${amount}m`,
         kind: 'win',
       });
       setPhase('ride');
@@ -198,7 +198,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       text:
         commitRef.current > 0
           ? `Miss · ${Math.abs(applied)}m gone`
-          : 'Dealer wins — pot wiped. Bank unchanged.',
+          : 'House hand wins — pot wiped. Bank unchanged.',
       kind: 'lose',
     });
     setPhase('result');
@@ -250,7 +250,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
 
       <div className="bj-table">
         <div className="bj-hand">
-          <span className="hand-label">Dealer · {dealer.length ? handLabel(dealer) : '—'}</span>
+          <span className="hand-label">House · {dealer.length ? handLabel(dealer) : '—'}</span>
           <div className="bj-cards">
             {dealer.map((c) => (
               <CardView key={c.id} card={c} />
@@ -280,7 +280,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <p className="rl-hint">Win to grow the pot. Bank it — or let it ride for double-or-nothing.</p>
+        <p className="rl-hint">Win to grow the pot. Bank it — or go again to double.</p>
         <div className="bj-actions wrap">
           {phase === 'ready' || phase === 'result' ? (
             <button
@@ -289,7 +289,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
               onClick={() => void beginRound()}
               disabled={busy}
             >
-              {phase === 'result' ? 'Play again' : 'Deal'}
+              {phase === 'result' ? 'Play again' : 'Start'}
             </button>
           ) : phase === 'ride' ? (
             <>
@@ -297,16 +297,16 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
                 Bank it ({Math.round(pot)}m)
               </button>
               <button type="button" className="btn btn-primary" onClick={letItRide}>
-                Let it ride (×2)
+                Go again (×2)
               </button>
             </>
           ) : (
             <>
               <button type="button" className="btn btn-secondary" onClick={() => void hit()} disabled={busy}>
-                Hit
+                Draw
               </button>
               <button type="button" className="btn btn-primary" onClick={() => void stand()} disabled={busy}>
-                Stand
+                Hold
               </button>
             </>
           )}

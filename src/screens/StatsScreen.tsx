@@ -5,7 +5,7 @@ import { GAME_EARN_DAILY_CAP } from '../types';
 import { useScreel } from '../context/ScreelContext';
 
 const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
-  blackjack: { label: 'Blackjack', icon: Spade },
+  blackjack: { label: 'Twenty-one', icon: Spade },
   roulette: { label: 'Color spin', icon: Target },
   mines: { label: 'Safe tiles', icon: Bomb },
   crash: { label: 'Timing run', icon: Rocket },

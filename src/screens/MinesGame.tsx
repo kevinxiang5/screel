@@ -101,7 +101,7 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       )}
 
       <p className="lede" style={{ marginTop: 0 }}>
-        Reveal safe tiles to grow the pot. Bank it anytime — or hit a mine and the pot is gone.
+        Reveal safe tiles to grow the pot. Bank it anytime — or hit a hazard and the pot is gone.
       </p>
 
       <div className={`mines-grid ${stage === 'done' ? 'over' : ''}`}>

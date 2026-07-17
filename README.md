@@ -22,7 +22,7 @@ Open the local URL Vite prints (usually `http://localhost:5173`).
 
 - **Personalized setup** — name, goal, distractions, suggested budget, Screen Time connect
 - **Home** — remaining minutes, streak, daily goals, quick play
-- **Play** — Math Sprint (skill) plus press-your-luck challenges (Safe tiles, Timing run, Color spin, Blackjack, and more)
+- **Play** — Math Sprint (skill) plus press-your-luck challenges (Safe tiles, Timing run, Color spin, Twenty-one, and more)
 - **Bank** — Screen Time link (native) or simulated fallback, daily ceiling, optional PIN, claims
 - **Stats** — kept / missed minutes, keep rate, history
 - **You** — profile, toggles, Privacy / Terms / How challenges work

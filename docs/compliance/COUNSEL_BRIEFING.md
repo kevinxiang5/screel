@@ -1,5 +1,7 @@
 # Screel — Counsel Briefing Packet
 
+> **Superseded for App Store submission (2026-07):** product is now positioned as a **screen-time helper with focus challenges** for an **Individual** account. Use [`APP_STORE_CONNECT_CHECKLIST.md`](./APP_STORE_CONNECT_CHECKLIST.md) for age ratings (**Simulated Gambling = None**), listing copy, and review notes. The sections below retain an earlier casino-adjacent framing for counsel history only — **do not paste them into App Store Connect.**
+
 **Prepared for:** outside counsel (App Store / IP / US gambling–consumer)  
 **Product:** Screel  
 **Repo:** https://github.com/kevinxiang5/screel  

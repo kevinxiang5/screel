@@ -51,8 +51,8 @@ export function GamesScreen({
         </button>
         <button type="button" className="game-card featured bj" onClick={() => onSelect('blackjack')}>
           <span className="badge">pot</span>
-          <h3>Blackjack</h3>
-          <p>Beat the dealer. Bank the pot — or let it ride.</p>
+          <h3>Twenty-one</h3>
+          <p>Beat the house hand. Bank the pot — or go again for double.</p>
         </button>
         <button type="button" className="game-card featured rl" onClick={() => onSelect('roulette')}>
           <span className="badge">pot</span>
@@ -74,7 +74,7 @@ export function GamesScreen({
           <button type="button" className="game-card slots" onClick={() => onSelect('slots')}>
             <span className="badge">match</span>
             <h3>Match three</h3>
-            <p>Any pair earns a pot. One double-or-nothing.</p>
+            <p>Any pair grows the pot. One double-up respin.</p>
           </button>
           <button type="button" className="game-card hilo" onClick={() => onSelect('hilo')}>
             <span className="badge">chain</span>

@@ -149,7 +149,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
         <p className="rl-hint">Correct calls grow the pot. Bank anytime — a miss wipes it.</p>
         {stage === 'ready' || stage === 'done' ? (
           <button type="button" className="btn btn-primary btn-block" onClick={start}>
-            {stage === 'done' ? 'New run' : 'Deal'}
+            {stage === 'done' ? 'New run' : 'Start'}
           </button>
         ) : (
           <>

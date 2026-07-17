@@ -17,7 +17,7 @@ const SYMBOLS: SlotSymbol[] = [
   { glyph: '\u{1F514}', weight: 20 },
   { glyph: '\u2B50', weight: 13 },
   { glyph: '\u{1F48E}', weight: 8 },
-  { glyph: '7', weight: 3 },
+  { glyph: '\u{1F514}', weight: 3 },
 ];
 
 const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
@@ -101,7 +101,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
               });
               setStage('done');
             } else {
-              setBanner({ text: 'Match! Bank it or one double-or-nothing respin.', kind: 'win' });
+              setBanner({ text: 'Match! Bank it or one double-up respin.', kind: 'win' });
               setStage('choice');
             }
           } else {
@@ -169,7 +169,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </div>
-        <p className="slots-paytable">Any pair or triple grows the pot. Then bank — or one double-or-nothing.</p>
+        <p className="slots-paytable">Any pair or triple grows the pot. Then bank — or one double-up respin.</p>
       </div>
 
       <AnimatePresence>
@@ -196,7 +196,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
               Bank it ({Math.round(pot)}m)
             </button>
             <button type="button" className="btn btn-primary" onClick={() => spin(true)}>
-              Double or nothing
+              Double up
             </button>
           </div>
         )}
