@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bomb, Calculator, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
+import { Bomb, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
 import type { GameKind } from '../types';
 import { GAME_EARN_DAILY_CAP } from '../types';
 import { useScreel } from '../context/ScreelContext';
@@ -12,7 +12,6 @@ const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
   slots: { label: 'Match three', icon: Cherry },
   hilo: { label: 'Higher / lower', icon: Layers },
   dice: { label: 'Roll under', icon: Dices },
-  math: { label: 'Math sprint', icon: Calculator },
 };
 
 export function StatsScreen() {

@@ -1,11 +1,9 @@
 import { motion } from 'framer-motion';
 import type { GameId } from '../types';
-import { GAME_REWARDS } from '../types';
 import { BlackjackTable } from './BlackjackTable';
 import { CrashGame } from './CrashGame';
 import { DiceGame } from './DiceGame';
 import { HiLoGame } from './HiLoGame';
-import { MathSprint } from './MathSprint';
 import { MinesGame } from './MinesGame';
 import { RouletteTable } from './RouletteTable';
 import { SlotsGame } from './SlotsGame';
@@ -29,7 +27,6 @@ export function GamesScreen({
   if (activeGame === 'slots') return <SlotsGame onBack={onBack} />;
   if (activeGame === 'hilo') return <HiLoGame onBack={onBack} />;
   if (activeGame === 'dice') return <DiceGame onBack={onBack} />;
-  if (activeGame === 'math') return <MathSprint onBack={onBack} />;
 
   return (
     <div className="screen">
@@ -44,11 +41,6 @@ export function GamesScreen({
       </motion.div>
 
       <div className="section" style={{ display: 'grid', gap: 14 }}>
-        <button type="button" className="game-card featured math" onClick={() => onSelect('math')}>
-          <span className="badge">+{GAME_REWARDS.math}m</span>
-          <h3>Math sprint</h3>
-          <p>Ten quick answers in 30 seconds. Pure skill bonus.</p>
-        </button>
         <button type="button" className="game-card featured bj" onClick={() => onSelect('blackjack')}>
           <span className="badge">pot</span>
           <h3>Twenty-one</h3>

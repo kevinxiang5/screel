@@ -97,7 +97,6 @@ function OddsBody() {
         <p>
           Challenges build a bonus pot you can bank anytime. Pushing further can wipe the unbanked pot. An
           optional commit can miss minutes from today’s allowance — intentional focus friction, not currency.
-          Math Sprint is a pure skill challenge: miss takes nothing.
         </p>
       </div>
       <h3>How keeping works</h3>
@@ -107,7 +106,6 @@ function OddsBody() {
         <li>Twenty-one — win, then bank or go again to double</li>
         <li>Match three — bank a match or one double-up respin</li>
         <li>Roll under — set your own target; harder = bigger pot</li>
-        <li>Math sprint — ten answers in 30s for a fixed skill bonus</li>
       </ul>
       <p>
         Daily keep from challenges is capped (45m by default). Commit defaults to 0m. Outcomes use the device

@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Flame, Sparkles, Trophy, Zap } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
-import { GAME_EARN_DAILY_CAP, GAME_REWARDS, type GameId, type TabId } from '../types';
+import { GAME_EARN_DAILY_CAP, type GameId, type TabId } from '../types';
 
 const GOAL_LINES: Record<string, string> = {
   scroll: 'Less scrolling, more living. Your budget keeps the feed in check.',
@@ -90,10 +90,10 @@ export function HomeScreen({
           </button>
         </div>
         <div className="grid-2">
-          <button type="button" className="game-card math" onClick={() => onPlay('math')}>
-            <span className="badge">+{GAME_REWARDS.math}m</span>
-            <h3>Math sprint</h3>
-            <p>Skill challenge — ten answers, thirty seconds.</p>
+          <button type="button" className="game-card bj" onClick={() => onPlay('blackjack')}>
+            <span className="badge">pot</span>
+            <h3>Twenty-one</h3>
+            <p>Beat the house. Bank or double.</p>
           </button>
           <button type="button" className="game-card mines" onClick={() => onPlay('mines')}>
             <span className="badge">ladder</span>
