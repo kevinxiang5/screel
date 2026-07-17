@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Outfit:wght@500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; }
+  .shot {
+    width: 1284px;
+    height: 2778px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0a1410 0%, #050806 45%, #030504 100%);
+    font-family: Outfit, system-ui, sans-serif;
+    color: #f6f3ea;
+  }
+  .brand {
+    position: absolute;
+    top: 72px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: Syne, sans-serif;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .brand i { color: #c8ff2e; font-style: normal; }
+  .copy {
+    position: absolute;
+    top: 140px;
+    left: 64px;
+    right: 64px;
+    text-align: center;
+  }
+  .copy h1 {
+    font-family: Syne, sans-serif;
+    font-weight: 800;
+    font-size: 72px;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    margin-bottom: 18px;
+  }
+  .copy p {
+    font-size: 30px;
+    line-height: 1.35;
+    color: rgba(246,243,234,0.7);
+  }
+  .stage {
+    position: absolute;
+    left: 0; right: 0;
+    top: 420px;
+    bottom: 48px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .phone {
+    width: 1040px;
+    max-height: 100%;
+    border-radius: 68px;
+    padding: 16px;
+    background: #1a1a1a;
+    box-shadow: 0 40px 100px rgba(0,0,0,.6);
+    transform: rotate(-3.5deg);
+  }
+  .phone.right { transform: rotate(3.5deg); }
+  .phone img {
+    display: block;
+    width: 100%;
+    border-radius: 52px;
+  }
+  .dual .stage { gap: 24px; align-items: center; padding: 0 40px; }
+  .dual .phone { width: 540px; transform: rotate(-6deg) translateY(30px); }
+  .dual .phone.right { transform: rotate(6deg) translateY(-10px); }
+</style>
+</head>
+<body>
+<section class="shot" id="s1">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Play with your minutes.</h1><p>Simulated chips. No real money.</p></div>
+  <div class="stage"><div class="phone"><img src="../screenshots/raw/home.png"/></div></div>
+</section>
+<section class="shot" id="s2">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Pick your poison.</h1><p>Every chip is a minute.</p></div>
+  <div class="stage"><div class="phone right"><img src="../screenshots/raw/play.png"/></div></div>
+</section>
+<section class="shot" id="s3">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>One pile. Your rules.</h1><p>Set a limit. Play the rest.</p></div>
+  <div class="stage"><div class="phone"><img src="../screenshots/raw/bank.png"/></div></div>
+</section>
+<section class="shot" id="s4">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Know the run.</h1><p>Every minute on the felt.</p></div>
+  <div class="stage"><div class="phone right"><img src="../screenshots/raw/stats.png"/></div></div>
+</section>
+<section class="shot dual" id="s5">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Tonight’s table.</h1><p>From your bank to the floor.</p></div>
+  <div class="stage">
+    <div class="phone"><img src="../screenshots/raw/home.png"/></div>
+    <div class="phone right"><img src="../screenshots/raw/play.png"/></div>
+  </div>
+</section>
+<section class="shot dual" id="s6">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Bank it. Track it.</h1><p>Limits meet the ledger.</p></div>
+  <div class="stage">
+    <div class="phone"><img src="../screenshots/raw/bank.png"/></div>
+    <div class="phone right"><img src="../screenshots/raw/stats.png"/></div>
+  </div>
+</section>
+</body>
+</html>
