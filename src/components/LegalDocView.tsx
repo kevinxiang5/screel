@@ -6,8 +6,8 @@ export type LegalDoc = 'privacy' | 'terms' | 'odds' | 'responsible';
 const TITLES: Record<LegalDoc, string> = {
   privacy: 'Privacy Policy',
   terms: 'Terms of Use',
-  odds: 'Odds & house rules',
-  responsible: 'Responsible play',
+  odds: 'How earning works',
+  responsible: 'Healthy habits',
 };
 
 export function LegalDocView({ doc, onBack }: { doc: LegalDoc; onBack: () => void }) {
@@ -67,19 +67,18 @@ function TermsBody() {
       </p>
       <h3>Eligibility</h3>
       <p>You must be at least {AGE_FLOOR} years old and able to form a binding contract where you live.</p>
-      <h3>No real-money gambling</h3>
+      <h3>No real money</h3>
       <p>
-        Screel offers <strong>simulated</strong> blackjack and roulette. The only in-app currency is{' '}
-        <strong>minutes</strong> for digital-wellbeing gameplay. Minutes have no cash value, cannot be
-        withdrawn, sold, or redeemed for money or prizes of monetary value.
+        Screel is a screen-time helper. The only in-app unit is <strong>minutes</strong> of daily allowance.
+        Minutes have no cash value and cannot be withdrawn, sold, or redeemed for money or prizes.
       </p>
       <h3>Not medical advice</h3>
       <p>
-        Screel is entertainment / self-management tooling, not a medical device, therapy, or clinical Screen
-        Time product endorsement by Apple.
+        Screel is self-management tooling, not a medical device, therapy, or clinical product endorsement by
+        Apple.
       </p>
       <h3>Acceptable use</h3>
-      <p>Do not reverse engineer for harm, misrepresent affiliation with Apple or casinos, or use the app unlawfully.</p>
+      <p>Do not reverse engineer for harm, misrepresent affiliation with Apple, or use the app unlawfully.</p>
       <h3>Disclaimer</h3>
       <p>App provided “as is.” Liability limited to the maximum extent permitted by law.</p>
       <h3>Apple not a sponsor</h3>
@@ -92,25 +91,22 @@ function OddsBody() {
   return (
     <>
       <div className="disclosure-box">
-        <p>No real money. Payouts adjust your minute bank only.</p>
+        <p>
+          Minigames never wager your bank. A successful challenge adds a fixed reward (capped per day). A miss
+          awards nothing and takes nothing.
+        </p>
       </div>
-      <h3>Blackjack</h3>
+      <h3>Fixed rewards (examples)</h3>
       <ul>
-        <li>Blackjack (two-card 21, not from split) pays <strong>3:2</strong></li>
-        <li>Winning hands pay <strong>1:1</strong></li>
-        <li>Insurance pays <strong>2:1</strong> if the dealer has blackjack</li>
-        <li>Push returns your stake</li>
-        <li>Dealer stands on all 17s (including soft 17)</li>
-        <li>Six-deck shoe; hit / stand / double / split available per house rules in-app</li>
+        <li>Blackjack — beat the dealer: <strong>+5m</strong></li>
+        <li>Color spin — match your color: <strong>+4m</strong></li>
+        <li>Safe tiles — five clear tiles: <strong>+6m</strong></li>
+        <li>Timing run — claim at ×1.5+: <strong>+5m</strong></li>
+        <li>Match three — any pair: <strong>+3m</strong></li>
+        <li>Higher / lower — three in a row: <strong>+5m</strong></li>
+        <li>Roll under 50: <strong>+4m</strong></li>
       </ul>
-      <h3>Roulette (European single-zero)</h3>
-      <ul>
-        <li>Straight-up number: <strong>35:1</strong> profit (+ stake returned)</li>
-        <li>Dozen or column: <strong>2:1</strong></li>
-        <li>Red / black, odd / even, 1–18 / 19–36: <strong>1:1</strong></li>
-        <li>Zero loses even-money and dozen/column bets</li>
-      </ul>
-      <p>Random outcomes use the device’s local random number generator for entertainment simulation.</p>
+      <p>Daily earn from minigames is capped (30m by default). Outcomes use the device RNG for challenge play.</p>
     </>
   );
 }
@@ -119,16 +115,10 @@ function ResponsibleBody() {
   return (
     <>
       <p>
-        Screel is meant to make limits playful — not to encourage compulsive play. Set a daily ceiling you can
-        live with. Use risk alerts. Take breaks.
+        Screel is meant to make screen limits a little more intentional. Set a daily ceiling you can live with.
+        Take breaks from both apps and challenges.
       </p>
-      <p>
-        If gambling-like play is a problem for you, visit{' '}
-        <a href="https://www.ncpgambling.org/" target="_blank" rel="noreferrer">
-          ncpgambling.org
-        </a>{' '}
-        or local support resources. Screel is not therapy or a crisis service.
-      </p>
+      <p>Screel is not therapy or a crisis service. If you need help with habits or wellbeing, talk to a professional.</p>
     </>
   );
 }

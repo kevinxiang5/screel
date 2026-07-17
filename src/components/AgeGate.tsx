@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useScreel } from '../context/ScreelContext';
 
-/** Age floor pending counsel confirmation — default 18 for US simulated-gambling safety. */
+/** Age floor for Screel’s screen-time helper (habit tool + minigames). */
 export const AGE_FLOOR = 18;
 
 export function AgeGate() {
@@ -17,13 +17,14 @@ export function AgeGate() {
         <div className="eyebrow">Age check</div>
         <h1 className="display lg">Are you {AGE_FLOOR}+?</h1>
         <p className="lede">
-          Screel includes <strong>simulated gambling</strong> (blackjack &amp; roulette) using fictional
-          minute chips. No real money. Not for anyone under {AGE_FLOOR}.
+          Screel is a <strong>screen-time helper</strong> with optional minigames that can earn extra
+          minutes for your daily allowance. No real money. Not for anyone under {AGE_FLOOR}.
         </p>
         <div className="disclosure-box">
           <p>
-            No real-money gambling. Minutes cannot be cashed out, sold, or redeemed for prizes of monetary
-            value. Practice here does not imply success at real-money gambling.
+            You set a daily minute budget and can link Apple Screen Time for apps you choose. Minigames
+            never take minutes from your bank when you lose — they only add a fixed reward when you win,
+            up to a daily cap.
           </p>
         </div>
         <div className="bj-actions" style={{ marginTop: 20, gridTemplateColumns: '1fr 1fr' }}>
@@ -43,7 +44,6 @@ export function AgeGate() {
   );
 }
 
-/** Hard lock if the user said they are under 18. */
 export function AgeBlocked() {
   return (
     <div className="age-gate">
@@ -55,8 +55,8 @@ export function AgeBlocked() {
         <div className="eyebrow">Screel</div>
         <h1 className="display lg">Come back when you’re {AGE_FLOOR}</h1>
         <p className="lede">
-          This app includes simulated gambling-style play and is only for people {AGE_FLOOR} and older. You’ve
-          been locked out on this device.
+          Screel is a screen-time helper for people {AGE_FLOOR} and older. You’ve been locked out on this
+          device.
         </p>
         <div className="disclosure-box">
           <p>
@@ -64,15 +64,6 @@ export function AgeBlocked() {
             check honestly.
           </p>
         </div>
-        <a
-          className="btn btn-primary btn-block"
-          style={{ marginTop: 18 }}
-          href="https://www.responsibleplay.org/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Responsible play resources
-        </a>
       </motion.div>
     </div>
   );

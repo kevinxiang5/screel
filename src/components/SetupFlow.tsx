@@ -84,8 +84,8 @@ export function SetupFlow() {
           <>
             <h1 className="display lg">Welcome to Screel</h1>
             <p className="lede">
-              Your minutes are chips. Play blackjack &amp; roulette with them — and, if you want, limit how long
-              chosen apps can eat into the same pile.
+              Set a daily minute budget for apps you choose. Optional minigames can earn a little more —
+              losses never take from your bank.
             </p>
             <div className="disclosure-box">
               <p>

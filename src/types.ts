@@ -16,8 +16,8 @@ export type RoundResult = 'win' | 'lose' | 'push' | 'blackjack';
 export interface HistoryEntry {
   id: string;
   game: GameKind;
-  wager: number;
-  payout: number;
+  /** Minutes awarded (0 on a miss). Never deducted from the bank by play. */
+  reward: number;
   result: RoundResult;
   detail: string;
   at: number;
@@ -65,7 +65,9 @@ export interface ScreelState {
   streak: number;
   xp: number;
   level: number;
+  /** Minutes earned from minigames (lifetime). */
   totalWon: number;
+  /** Kept for older installs; always 0 in earn model. */
   totalLost: number;
   biggestWin: number;
   gamesPlayed: number;
@@ -75,6 +77,8 @@ export interface ScreelState {
   riskAlerts: boolean;
   /** Rewarded-ad minute rescues used in the current period (daily cap). */
   adRescuesUsed: number;
+  /** Minutes earned from minigames in the current period. */
+  minutesEarnedToday: number;
   /**
    * Optional SHA-256 hash of a 4-digit bank PIN.
    * When set, allowance / reset time / period reset need unlock first.
@@ -85,3 +89,17 @@ export interface ScreelState {
 /** Rewarded-ad rescue economy. */
 export const AD_RESCUE_MINUTES = 5;
 export const AD_RESCUE_DAILY_CAP = 3;
+
+/** Cap on minutes earned from minigames per day. */
+export const GAME_EARN_DAILY_CAP = 30;
+
+/** Fixed minute rewards per game on a successful challenge. */
+export const GAME_REWARDS: Record<GameKind, number> = {
+  blackjack: 5,
+  roulette: 4,
+  mines: 6,
+  crash: 5,
+  slots: 3,
+  hilo: 5,
+  dice: 4,
+};

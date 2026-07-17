@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Flame, Sparkles, Trophy, Zap } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
-import type { GameId, TabId } from '../types';
+import { GAME_EARN_DAILY_CAP, GAME_REWARDS, type GameId, type TabId } from '../types';
 
 export function HomeScreen({
   onNavigate,
@@ -11,20 +11,18 @@ export function HomeScreen({
   onNavigate: (tab: TabId) => void;
   onPlay: (game: GameId) => void;
 }) {
-  const { state, remaining, claimChallenge } = useScreel();
+  const { state, remaining, earnLeftToday, claimChallenge } = useScreel();
   const { toast } = useScreelUI();
   const usedPct = Math.min(100, Math.round((state.minutesUsed / Math.max(1, state.minutesBank)) * 100));
 
   return (
     <div className="screen">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">Tonight&apos;s table</div>
-        <h1 className="display xl">
-          screel
-        </h1>
+        <div className="eyebrow">Screen time helper</div>
+        <h1 className="display xl">screel</h1>
         <p className="lede">
-          Your minutes are chips for simulated play. Win more day. Lose them back to focus.
-          No real money.
+          Set a daily minute budget for the apps you choose. Play short challenges to earn a little more —
+          never wager what you already have.
         </p>
       </motion.div>
 
@@ -41,7 +39,11 @@ export function HomeScreen({
           </div>
           <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
             <span className={`pill ${state.connected ? 'live' : 'warn'}`}>
-              {state.connected ? 'Usage linked (sim)' : 'Not linked'}
+              {state.connected
+                ? state.usageSource === 'screenTime'
+                  ? 'Screen Time linked'
+                  : 'Usage linked (demo)'
+                : 'Not linked'}
             </span>
             <span className="pill gold">
               <Flame size={14} /> {state.streak} day streak
@@ -54,30 +56,37 @@ export function HomeScreen({
           </div>
           <div className="meter-meta">
             <span>{state.minutesUsed}m used</span>
-            <span>Bank {state.minutesBank}m</span>
+            <span>
+              Earned {state.minutesEarnedToday}/{GAME_EARN_DAILY_CAP}m
+            </span>
           </div>
         </div>
       </motion.div>
 
       <section className="section">
         <div className="section-head">
-          <h2>Quick wager</h2>
+          <h2>Quick play</h2>
           <button type="button" className="linkish" onClick={() => onNavigate('play')}>
             See all
           </button>
         </div>
         <div className="grid-2">
           <button type="button" className="game-card bj" onClick={() => onPlay('blackjack')}>
-            <span className="badge">3:2 BJ</span>
+            <span className="badge">+{GAME_REWARDS.blackjack}m</span>
             <h3>Blackjack</h3>
-            <p>Beat the dealer. Double down on your day.</p>
+            <p>Beat the dealer. Earn minutes on a win.</p>
           </button>
-          <button type="button" className="game-card rl" onClick={() => onPlay('roulette')}>
-            <span className="badge">×35</span>
-            <h3>Roulette</h3>
-            <p>Spin the clock. Red, black, or all-in number.</p>
+          <button type="button" className="game-card mines" onClick={() => onPlay('mines')}>
+            <span className="badge">+{GAME_REWARDS.mines}m</span>
+            <h3>Safe tiles</h3>
+            <p>Five clear tiles. Avoid the mines.</p>
           </button>
         </div>
+        <p className="lede" style={{ marginTop: 10 }}>
+          {earnLeftToday > 0
+            ? `${earnLeftToday}m still earnable from challenges today.`
+            : 'Daily earn cap reached — allowance still runs until reset.'}
+        </p>
       </section>
 
       <section className="section">
@@ -94,11 +103,11 @@ export function HomeScreen({
             <div className="value">{state.xp}</div>
           </div>
           <div className="stat-tile">
-            <div className="label">Biggest win</div>
+            <div className="label">Best earn</div>
             <div className="value">+{state.biggestWin}m</div>
           </div>
           <div className="stat-tile">
-            <div className="label">Hands played</div>
+            <div className="label">Rounds played</div>
             <div className="value">{state.gamesPlayed}</div>
           </div>
         </div>
@@ -107,7 +116,10 @@ export function HomeScreen({
       <section className="section">
         <div className="section-head">
           <h2>
-            <span className="spark"><Sparkles size={16} style={{ verticalAlign: -2 }} /></span> Daily heat
+            <span className="spark">
+              <Sparkles size={16} style={{ verticalAlign: -2 }} />
+            </span>{' '}
+            Daily goals
           </h2>
           <button type="button" className="linkish" onClick={() => onNavigate('bank')}>
             Bank
@@ -128,7 +140,7 @@ export function HomeScreen({
                     className="btn btn-sm btn-gold"
                     onClick={() => {
                       claimChallenge(c.id);
-                      toast(`+${c.reward}m landed in your bank.`, {
+                      toast(`+${c.reward}m added to your allowance.`, {
                         title: `${c.title} claimed`,
                         tone: 'success',
                       });
@@ -167,7 +179,7 @@ export function HomeScreen({
 
       <section className="section">
         <button type="button" className="btn btn-primary btn-block" onClick={() => onNavigate('play')}>
-          <Zap size={18} /> Enter the floor
+          <Zap size={18} /> Play minigames
         </button>
       </section>
     </div>

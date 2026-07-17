@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STATUS = [
-  'Shuffling the shoe…',
-  'Seeding the felt…',
+  'Loading your allowance…',
+  'Warming up challenges…',
   'Counting your minutes…',
-  'Warming the wheel…',
+  'Almost ready…',
 ];
 
 export function LoadingScreen({ onDone }: { onDone: () => void }) {

@@ -18,15 +18,14 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
   return (
     <div className="screen">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">Identity</div>
+        <div className="eyebrow">Profile</div>
         <h1 className="display lg">You</h1>
-        <p className="lede">Tune the house rules. Stay sharp. Stay honest about what Screel is.</p>
+        <p className="lede">Tune Screel. Stay honest about what it is: a screen-time helper with earn challenges.</p>
       </motion.div>
 
       <div className="disclosure-box" style={{ marginTop: 14 }}>
         <p>
-          No real-money gambling. Minutes are fictional chips for digital-wellbeing gameplay and cannot be
-          cashed out.
+          No real money. Minigames award fixed minutes when you succeed and never take minutes when you miss.
         </p>
       </div>
 
@@ -48,7 +47,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
             className="name-input"
             value={state.displayName}
             maxLength={20}
-            onChange={(e) => updateProfile({ displayName: e.target.value || 'High Roller' })}
+            onChange={(e) => updateProfile({ displayName: e.target.value || 'Focus Mode' })}
           />
           <p className="lede" style={{ marginTop: 8, fontSize: '0.8rem' }}>
             Level {state.level} · {state.xp} XP · {state.streak} day streak
@@ -61,7 +60,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
           <h2>App typeface</h2>
         </div>
         <p className="lede" style={{ marginTop: 0, fontSize: '0.85rem' }}>
-          Hate the flat look? Switch the whole app’s fonts.
+          Switch the whole app’s fonts.
         </p>
         <div className="font-theme-grid">
           {FONT_OPTIONS.map((opt) => (
@@ -84,14 +83,14 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
 
       <section className="section">
         <div className="section-head">
-          <h2>House settings</h2>
+          <h2>Settings</h2>
         </div>
         <div className="stat-tile" style={{ paddingTop: 4, paddingBottom: 4 }}>
           <div className="toggle-row">
             <div>
-              <strong>Table sounds</strong>
+              <strong>Sounds</strong>
               <p className="lede" style={{ margin: 0, fontSize: '0.8rem' }}>
-                Soft clicks when chips move (coming soon).
+                Soft UI sounds (coming soon).
               </p>
             </div>
             <button
@@ -101,36 +100,10 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
               onClick={() => {
                 const next = !state.soundOn;
                 updateProfile({ soundOn: next });
-                toast(next ? 'Table sounds armed.' : 'Table sounds muted.', {
+                toast(next ? 'Sounds on.' : 'Sounds muted.', {
                   title: next ? 'Sound on' : 'Sound off',
                   tone: 'info',
                 });
-              }}
-            />
-          </div>
-          <div className="toggle-row">
-            <div>
-              <strong>Risk alerts</strong>
-              <p className="lede" style={{ margin: 0, fontSize: '0.8rem' }}>
-                Nudge when a wager eats over 25% of your bank.
-              </p>
-            </div>
-            <button
-              type="button"
-              className={`toggle ${state.riskAlerts ? 'on' : ''}`}
-              aria-pressed={state.riskAlerts}
-              onClick={() => {
-                const next = !state.riskAlerts;
-                updateProfile({ riskAlerts: next });
-                toast(
-                  next
-                    ? 'We’ll warn you before oversized wagers.'
-                    : 'High-roller mode — no 25% warnings.',
-                  {
-                    title: next ? 'Risk alerts on' : 'Risk alerts off',
-                    tone: next ? 'success' : 'warn',
-                  },
-                );
               }}
             />
           </div>
@@ -143,7 +116,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
         </div>
         <div className="legal-links">
           <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('odds')}>
-            Odds &amp; house rules
+            How earning works
           </button>
           <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('privacy')}>
             Privacy Policy
@@ -152,7 +125,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
             Terms of Use
           </button>
           <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('responsible')}>
-            Responsible play
+            Healthy habits
           </button>
         </div>
       </section>
@@ -163,17 +136,15 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
         </div>
         <div className="challenge">
           <h3>1. Set a ceiling</h3>
-          <p>Pick how many minutes you get today — your starting chip stack.</p>
+          <p>Pick how many minutes you want each day for the apps you limit.</p>
         </div>
         <div className="challenge">
           <h3>2. Connect Screen Time</h3>
-          <p>Authorize Family Controls, pick apps to limit, and spend from a fresh Screel budget.</p>
+          <p>Authorize Family Controls, pick apps, and spend from a fresh Screel budget.</p>
         </div>
         <div className="challenge">
-          <h3>3. Play the rest</h3>
-          <p>
-            Blackjack and roulette can grow or shrink your fictional minute bank. Not real-money gambling.
-          </p>
+          <h3>3. Earn a little more</h3>
+          <p>Optional minigames award fixed minutes when you succeed. Misses never shrink your bank.</p>
         </div>
       </section>
     </div>

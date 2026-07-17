@@ -4,6 +4,8 @@ import { ScreelScreenTime } from '../native/ScreelScreenTime';
 import {
   AD_RESCUE_DAILY_CAP,
   AD_RESCUE_MINUTES,
+  GAME_EARN_DAILY_CAP,
+  GAME_REWARDS,
   type DailyChallenge,
   type FontTheme,
   type GameKind,
@@ -25,8 +27,8 @@ const STORAGE_KEY = 'screel-v2';
 const defaultChallenges = (): DailyChallenge[] => [
   {
     id: 'play-3',
-    title: 'Warm the Felt',
-    description: 'Play 3 rounds today',
+    title: 'Three Rounds',
+    description: 'Play 3 minigames today',
     progress: 0,
     target: 3,
     reward: 8,
@@ -34,20 +36,20 @@ const defaultChallenges = (): DailyChallenge[] => [
   },
   {
     id: 'win-1',
-    title: 'First Blood',
-    description: 'Win a single wager',
+    title: 'First Win',
+    description: 'Complete one challenge successfully',
     progress: 0,
     target: 1,
-    reward: 12,
+    reward: 10,
     claimed: false,
   },
   {
-    id: 'risk-15',
-    title: 'High Roller',
-    description: 'Wager 15+ minutes in one bet',
+    id: 'earn-15',
+    title: 'Focus Boost',
+    description: 'Earn 15 minutes from minigames',
     progress: 0,
-    target: 1,
-    reward: 15,
+    target: 15,
+    reward: 12,
     claimed: false,
   },
 ];
@@ -61,7 +63,7 @@ const defaultState = (): ScreelState => {
   const resetHour = 4;
   const resetMinute = 0;
   return {
-    displayName: 'High Roller',
+    displayName: 'Focus Mode',
     connected: false,
     usageSource: 'none',
     ageVerified: false,
@@ -87,20 +89,45 @@ const defaultState = (): ScreelState => {
     soundOn: true,
     riskAlerts: true,
     adRescuesUsed: 0,
+    minutesEarnedToday: 0,
     bankPinHash: null,
   };
 };
+
+function migrateHistory(raw: unknown): HistoryEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 40).map((h) => {
+    const row = h as Partial<HistoryEntry> & { wager?: number; payout?: number };
+    const reward =
+      typeof row.reward === 'number'
+        ? row.reward
+        : Math.max(0, (row.payout ?? 0) - (row.wager ?? 0));
+    return {
+      id: String(row.id ?? `${Date.now()}`),
+      game: (row.game as GameKind) || 'blackjack',
+      reward,
+      result: (row.result as RoundResult) || 'lose',
+      detail: String(row.detail ?? ''),
+      at: typeof row.at === 'number' ? row.at : Date.now(),
+    };
+  });
+}
 
 function loadState(): ScreelState {
   const base = defaultState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('screel-v1');
     if (!raw) return base;
-    const parsed = JSON.parse(raw) as Partial<ScreelState>;
+    const parsed = JSON.parse(raw) as Partial<ScreelState> & {
+      challenges?: DailyChallenge[];
+    };
     const timeZone = parsed.timeZone || detectTimeZone();
     const resetHour = typeof parsed.resetHour === 'number' ? parsed.resetHour : 4;
     const resetMinute = typeof parsed.resetMinute === 'number' ? parsed.resetMinute : 0;
     const baseLimit = clampAllowance(parsed.baseLimit ?? 240);
+    const legacyChallenges = parsed.challenges?.some(
+      (c) => c.id === 'risk-15' || /wager|felt|high roller/i.test(`${c.title} ${c.description}`),
+    );
     return {
       ...base,
       ...parsed,
@@ -114,15 +141,19 @@ function loadState(): ScreelState {
         parsed.activePeriodId || periodId(new Date(), resetHour, resetMinute, timeZone),
       usageSource: parsed.usageSource ?? (parsed.connected ? 'simulated' : 'none'),
       ageBlocked: Boolean(parsed.ageBlocked),
-      // Fresh installs always see setup. Older installs that never linked Screen Time see it once.
       setupComplete:
         typeof parsed.setupComplete === 'boolean'
           ? parsed.setupComplete
           : Boolean(parsed.ageVerified && parsed.connected),
       fontTheme: (parsed.fontTheme as FontTheme) || 'felt',
-      challenges: parsed.challenges?.length ? parsed.challenges : defaultChallenges(),
+      challenges:
+        parsed.challenges?.length && !legacyChallenges ? parsed.challenges : defaultChallenges(),
       adRescuesUsed: typeof parsed.adRescuesUsed === 'number' ? Math.max(0, parsed.adRescuesUsed) : 0,
+      minutesEarnedToday:
+        typeof parsed.minutesEarnedToday === 'number' ? Math.max(0, parsed.minutesEarnedToday) : 0,
       bankPinHash: typeof parsed.bankPinHash === 'string' ? parsed.bankPinHash : null,
+      history: migrateHistory(parsed.history),
+      totalLost: 0,
     };
   } catch {
     return base;
@@ -132,26 +163,29 @@ function loadState(): ScreelState {
 interface ScreelContextValue {
   state: ScreelState;
   remaining: number;
+  /** Minutes still available to earn from minigames today. */
+  earnLeftToday: number;
   setBaseLimit: (n: number) => void;
   setResetTime: (hour: number, minute: number) => void;
   connectScreenTime: (opts?: { source?: UsageSource; minutesUsed?: number }) => void;
   disconnectScreenTime: () => void;
   syncUsageMinutes: (minutes: number) => void;
-  settleRound: (payload: {
+  /**
+   * Finish a minigame challenge. On success, adds minutes (capped).
+   * On fail/miss, bank is untouched. Returns minutes actually awarded.
+   */
+  completeChallenge: (payload: {
     game: GameKind;
-    wager: number;
-    payout: number;
-    result: RoundResult;
+    success: boolean;
     detail: string;
-  }) => void;
+    result?: RoundResult;
+    /** Override default GAME_REWARDS[game] when success. */
+    reward?: number;
+  }) => number;
   claimChallenge: (id: string) => void;
-  /** Rewarded-ad rescues left today. */
   adRescuesLeft: number;
-  /** Credit minutes after a completed rewarded ad. Returns false when capped. */
   claimAdRescue: () => boolean;
-  /** True when a bank PIN is configured. */
   bankLocked: boolean;
-  /** Session unlock — settings editable until lock again / remount. */
   bankUnlocked: boolean;
   unlockBank: (pin: string) => Promise<boolean>;
   lockBankSession: () => void;
@@ -193,7 +227,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.font = state.fontTheme;
   }, [state.fontTheme]);
 
-  // Auto-roll allowance when the local reset time is crossed.
   useEffect(() => {
     const tick = () => {
       setState((s) => {
@@ -209,6 +242,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           challenges: defaultChallenges(),
           streak: s.streak + 1,
           adRescuesUsed: 0,
+          minutesEarnedToday: 0,
         };
       });
     };
@@ -224,7 +258,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // After auto-reset, restart native monitoring with a clean used counter.
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
     if (state.minutesUsed !== 0) return;
@@ -237,17 +270,16 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         /* ignore */
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on period
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.activePeriodId]);
 
-  // Relock bank settings when the daily period rolls.
   useEffect(() => {
     setBankUnlocked(false);
   }, [state.activePeriodId]);
 
   const remaining = Math.max(0, state.minutesBank - state.minutesUsed);
+  const earnLeftToday = Math.max(0, GAME_EARN_DAILY_CAP - state.minutesEarnedToday);
 
-  // Sync DeviceActivity usage → never trust "already used today" from Settings.
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
 
@@ -264,7 +296,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           used = Math.min(usage.minutes, s.minutesBank + 1_000);
           return s.minutesUsed === used ? s : { ...s, minutesUsed: used };
         });
-        // Shield as soon as the Screel pile is empty (usage or casino).
         await ScreelScreenTime.applyShieldWhenBroke({ broke: bank - used <= 0 });
       } catch {
         /* ignore */
@@ -279,7 +310,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
     };
   }, [state.connected, state.usageSource, state.minutesBank, state.activePeriodId]);
 
-  // Keep DeviceActivity budget aligned with bank / reset clock.
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
     void restartNativeMonitor(state, false).catch(() => undefined);
@@ -289,6 +319,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
     return {
       state,
       remaining,
+      earnLeftToday,
       setBaseLimit: (n) => {
         setState((s) => {
           const next = clampAllowance(n);
@@ -310,7 +341,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             resetHour,
             resetMinute,
             timeZone,
-            // Keep current period id; next rollover check will migrate cleanly.
             activePeriodId: periodId(new Date(), resetHour, resetMinute, timeZone),
           };
         });
@@ -320,11 +350,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => {
           const timeZone = detectTimeZone();
           const used =
-            typeof opts?.minutesUsed === 'number'
-              ? Math.max(0, Math.round(opts.minutesUsed))
-              : source === 'simulated'
-                ? 0
-                : 0;
+            typeof opts?.minutesUsed === 'number' ? Math.max(0, Math.round(opts.minutesUsed)) : 0;
           return {
             ...s,
             connected: true,
@@ -339,18 +365,19 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => ({ ...s, connected: false, usageSource: 'none' })),
       syncUsageMinutes: (minutes) =>
         setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
-      settleRound: ({ game, wager, payout, result, detail }) => {
-        let shouldShield = false;
+      completeChallenge: ({ game, success, detail, result, reward: rewardOpt }) => {
+        const wanted = success ? Math.max(0, rewardOpt ?? GAME_REWARDS[game]) : 0;
+        let awarded = 0;
         let shouldClear = false;
         setState((s) => {
-          const net = payout - wager;
-          const nextBank = Math.max(0, s.minutesBank + net);
+          const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
+          awarded = Math.min(wanted, room);
+          const nextBank = s.minutesBank + awarded;
           const entry: HistoryEntry = {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             game,
-            wager,
-            payout,
-            result,
+            reward: awarded,
+            result: result ?? (success ? 'win' : 'lose'),
             detail,
             at: Date.now(),
           };
@@ -358,26 +385,28 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           const challenges = s.challenges.map((c) => {
             if (c.claimed) return c;
             if (c.id === 'play-3') return { ...c, progress: Math.min(c.target, c.progress + 1) };
-            if (c.id === 'win-1' && (result === 'win' || result === 'blackjack')) {
+            if (c.id === 'win-1' && success) {
               return { ...c, progress: Math.min(c.target, c.progress + 1) };
             }
-            if (c.id === 'risk-15' && wager >= 15) {
-              return { ...c, progress: Math.min(c.target, c.progress + 1) };
+            if (c.id === 'earn-15' && awarded > 0) {
+              return { ...c, progress: Math.min(c.target, c.progress + awarded) };
             }
             return c;
           });
 
-          const xpGain = result === 'blackjack' ? 40 : result === 'win' ? 25 : result === 'push' ? 8 : 5;
-          const broke = nextBank - s.minutesUsed <= 0;
-          shouldShield = s.usageSource === 'screenTime' && s.connected && broke;
-          shouldClear = s.usageSource === 'screenTime' && s.connected && !broke;
+          const xpGain = success ? (result === 'blackjack' ? 35 : 22) : 6;
+          shouldClear =
+            awarded > 0 &&
+            s.usageSource === 'screenTime' &&
+            s.connected &&
+            nextBank - s.minutesUsed > 0;
 
           return {
             ...s,
             minutesBank: nextBank,
-            totalWon: s.totalWon + Math.max(0, net),
-            totalLost: s.totalLost + Math.max(0, -net),
-            biggestWin: Math.max(s.biggestWin, Math.max(0, net)),
+            minutesEarnedToday: s.minutesEarnedToday + awarded,
+            totalWon: s.totalWon + awarded,
+            biggestWin: Math.max(s.biggestWin, awarded),
             gamesPlayed: s.gamesPlayed + 1,
             xp: s.xp + xpGain,
             level: Math.max(1, Math.floor((s.xp + xpGain) / 100) + 1),
@@ -385,8 +414,8 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             challenges,
           };
         });
-        if (shouldShield) void ScreelScreenTime.applyShieldWhenBroke({ broke: true });
-        else if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
+        if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
+        return awarded;
       },
       adRescuesLeft: Math.max(0, AD_RESCUE_DAILY_CAP - state.adRescuesUsed),
       claimAdRescue: () => {
@@ -473,10 +502,11 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             timeZone,
             activePeriodId: periodId(new Date(), s.resetHour, s.resetMinute, timeZone),
             adRescuesUsed: 0,
+            minutesEarnedToday: 0,
           };
         }),
     };
-  }, [state, remaining, bankUnlocked]);
+  }, [state, remaining, earnLeftToday, bankUnlocked]);
 
   return <ScreelContext.Provider value={value}>{children}</ScreelContext.Provider>;
 }

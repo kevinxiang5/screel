@@ -164,11 +164,11 @@ export function BankScreen() {
   return (
     <div className="screen">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">Minute vault</div>
+        <div className="eyebrow">Allowance</div>
         <h1 className="display lg">Your bank</h1>
         <p className="lede">
-          One pile of minutes for play and for the apps you choose to limit. Fresh Screel budget — not your
-          Settings Screen Time total.
+          Daily minutes for the apps you choose to limit. Earn a little more from minigames — losses never
+          take from this pile. Fresh Screel budget, not your Settings Screen Time total.
         </p>
       </motion.div>
 
@@ -307,7 +307,7 @@ export function BankScreen() {
             ))}
           </div>
           <p className="lede allowance-hint">
-            30 minutes to 16 hours. Casino wins/losses still nudge the bank.
+            30 minutes to 16 hours. Challenge wins can add minutes (daily cap).
           </p>
         </div>
       </section>

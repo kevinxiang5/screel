@@ -26,11 +26,10 @@ export function AdRescueCard() {
     <>
       <div className="ad-rescue-card">
         <div className="ad-rescue-copy">
-          <span className="badge">Comeback</span>
-          <h3>Busted the bank?</h3>
+          <span className="badge">Boost</span>
+          <h3>Out of minutes?</h3>
           <p>
-            Watch one ad, get <strong>+{AD_RESCUE_MINUTES} minutes</strong> back. {adRescuesLeft} rescue
-            {adRescuesLeft === 1 ? '' : 's'} left today.
+            Watch one ad for <strong>+{AD_RESCUE_MINUTES} minutes</strong>. {adRescuesLeft} left today.
           </p>
         </div>
         <button type="button" className="btn btn-gold" onClick={() => setWatching(true)}>

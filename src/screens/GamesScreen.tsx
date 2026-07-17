@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { GameId } from '../types';
+import { GAME_REWARDS } from '../types';
 import { AdRescueCard } from '../components/AdRescue';
 import { BlackjackTable } from './BlackjackTable';
 import { CrashGame } from './CrashGame';
@@ -8,6 +9,7 @@ import { HiLoGame } from './HiLoGame';
 import { MinesGame } from './MinesGame';
 import { RouletteTable } from './RouletteTable';
 import { SlotsGame } from './SlotsGame';
+import { useScreel } from '../context/ScreelContext';
 
 export function GamesScreen({
   activeGame,
@@ -18,6 +20,8 @@ export function GamesScreen({
   onSelect: (game: GameId) => void;
   onBack: () => void;
 }) {
+  const { earnLeftToday } = useScreel();
+
   if (activeGame === 'blackjack') return <BlackjackTable onBack={onBack} />;
   if (activeGame === 'roulette') return <RouletteTable onBack={onBack} />;
   if (activeGame === 'mines') return <MinesGame onBack={onBack} />;
@@ -29,9 +33,12 @@ export function GamesScreen({
   return (
     <div className="screen">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">The floor</div>
-        <h1 className="display lg">Pick your poison</h1>
-        <p className="lede">Every chip is a minute of simulated play. No real money.</p>
+        <div className="eyebrow">Minigames</div>
+        <h1 className="display lg">Earn more minutes</h1>
+        <p className="lede">
+          Clear a challenge to add minutes to today’s allowance. Lose a round and nothing is taken from your
+          bank. {earnLeftToday}m still earnable today.
+        </p>
       </motion.div>
 
       <div className="section">
@@ -40,41 +47,41 @@ export function GamesScreen({
 
       <div className="section" style={{ display: 'grid', gap: 14 }}>
         <button type="button" className="game-card featured bj" onClick={() => onSelect('blackjack')}>
-          <span className="badge">Classic</span>
+          <span className="badge">+{GAME_REWARDS.blackjack}m</span>
           <h3>Blackjack</h3>
-          <p>Hit 21. Blackjack pays 3:2. Push keeps your minutes.</p>
+          <p>Beat the dealer under 21. Win the hand to earn minutes.</p>
         </button>
         <button type="button" className="game-card featured rl" onClick={() => onSelect('roulette')}>
-          <span className="badge">High risk</span>
-          <h3>Roulette</h3>
-          <p>Even-money colors, dozen bets, or a wild single number.</p>
+          <span className="badge">+{GAME_REWARDS.roulette}m</span>
+          <h3>Color spin</h3>
+          <p>Pick a color, spin once. Match it to earn.</p>
         </button>
 
         <div className="grid-2">
           <button type="button" className="game-card mines" onClick={() => onSelect('mines')}>
-            <span className="badge">Nerve test</span>
-            <h3>Mines</h3>
-            <p>Dodge the bombs. Cash out before you blow.</p>
+            <span className="badge">+{GAME_REWARDS.mines}m</span>
+            <h3>Safe tiles</h3>
+            <p>Reveal five safe squares. Avoid the mines.</p>
           </button>
           <button type="button" className="game-card crash" onClick={() => onSelect('crash')}>
-            <span className="badge">Live mult</span>
-            <h3>Crash</h3>
-            <p>Ride the rocket. Eject before it pops.</p>
+            <span className="badge">+{GAME_REWARDS.crash}m</span>
+            <h3>Timing run</h3>
+            <p>Claim at ×1.5 or higher before it pops.</p>
           </button>
           <button type="button" className="game-card slots" onClick={() => onSelect('slots')}>
-            <span className="badge">×150 max</span>
-            <h3>Slots</h3>
-            <p>Three reels. Triples pay the big lines.</p>
+            <span className="badge">+{GAME_REWARDS.slots}m</span>
+            <h3>Match three</h3>
+            <p>Any pair or triple earns the reward.</p>
           </button>
           <button type="button" className="game-card hilo" onClick={() => onSelect('hilo')}>
-            <span className="badge">Streaks</span>
-            <h3>Hi-Lo</h3>
-            <p>Call each card higher or lower. Stack the mult.</p>
+            <span className="badge">+{GAME_REWARDS.hilo}m</span>
+            <h3>Higher / lower</h3>
+            <p>Three correct calls in a row.</p>
           </button>
           <button type="button" className="game-card dice" onClick={() => onSelect('dice')}>
-            <span className="badge">Pick odds</span>
-            <h3>Dice</h3>
-            <p>Set your own win chance. Roll under the line.</p>
+            <span className="badge">+{GAME_REWARDS.dice}m</span>
+            <h3>Roll under</h3>
+            <p>Roll under 50 to earn minutes.</p>
           </button>
         </div>
       </div>
