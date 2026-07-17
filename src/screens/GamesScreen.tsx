@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import type { GameId } from '../types';
 import { GAME_REWARDS } from '../types';
-import { AdRescueCard } from '../components/AdRescue';
 import { BlackjackTable } from './BlackjackTable';
 import { CrashGame } from './CrashGame';
 import { DiceGame } from './DiceGame';
@@ -43,10 +42,6 @@ export function GamesScreen({
           {state.winStreak > 0 ? ` · ${state.winStreak} keep streak` : ''}
         </p>
       </motion.div>
-
-      <div className="section">
-        <AdRescueCard />
-      </div>
 
       <div className="section" style={{ display: 'grid', gap: 14 }}>
         <button type="button" className="game-card featured math" onClick={() => onSelect('math')}>

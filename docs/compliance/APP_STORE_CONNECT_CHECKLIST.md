@@ -13,7 +13,7 @@
 | Age Assurance | **No** (welcome disclosure only; soft 13+ lockout) |
 | Parental Controls | **No** |
 | Unrestricted Web Access | **No** |
-| UGC / Social / Messaging / Ads | **No** (unless you ship rewarded ads) |
+| UGC / Social / Messaging / Ads | **No** (app contains no ads) |
 | Other mature content | **None** unless clearly present |
 
 Expected rating: Lifestyle/Productivity — not 17+ simulated gambling.

@@ -85,8 +85,6 @@ export interface ScreelState {
   challenges: DailyChallenge[];
   soundOn: boolean;
   riskAlerts: boolean;
-  /** Rewarded-ad minute rescues used in the current period (daily cap). */
-  adRescuesUsed: number;
   /** Minutes earned from minigames in the current period. */
   minutesEarnedToday: number;
   /**
@@ -100,10 +98,6 @@ export interface ScreelState {
    */
   bankPinHash: string | null;
 }
-
-/** Rewarded-ad rescue economy. */
-export const AD_RESCUE_MINUTES = 5;
-export const AD_RESCUE_DAILY_CAP = 3;
 
 /** Cap on minutes earned from minigames per day. */
 export const GAME_EARN_DAILY_CAP = 45;

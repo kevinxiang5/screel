@@ -2,8 +2,6 @@ import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
 import {
-  AD_RESCUE_DAILY_CAP,
-  AD_RESCUE_MINUTES,
   COMMIT_MAX,
   GAME_EARN_DAILY_CAP,
   type DailyChallenge,
@@ -95,7 +93,6 @@ const defaultState = (): ScreelState => {
     challenges: defaultChallenges(),
     soundOn: true,
     riskAlerts: true,
-    adRescuesUsed: 0,
     minutesEarnedToday: 0,
     commitMinutes: 0,
     bankPinHash: null,
@@ -164,7 +161,6 @@ function loadState(): ScreelState {
       fontTheme: (parsed.fontTheme as FontTheme) || 'felt',
       challenges:
         parsed.challenges?.length && !legacyChallenges ? parsed.challenges : defaultChallenges(),
-      adRescuesUsed: typeof parsed.adRescuesUsed === 'number' ? Math.max(0, parsed.adRescuesUsed) : 0,
       minutesEarnedToday:
         typeof parsed.minutesEarnedToday === 'number' ? Math.max(0, parsed.minutesEarnedToday) : 0,
       commitMinutes: clampCommit(parsed.commitMinutes ?? 0),
@@ -201,8 +197,6 @@ interface ScreelContextValue {
     result?: RoundResult;
   }) => number;
   claimChallenge: (id: string) => void;
-  adRescuesLeft: number;
-  claimAdRescue: () => boolean;
   bankLocked: boolean;
   bankUnlocked: boolean;
   unlockBank: (pin: string) => Promise<boolean>;
@@ -269,7 +263,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           minutesUsed: 0,
           challenges: defaultChallenges(),
           streak: s.streak + 1,
-          adRescuesUsed: 0,
           minutesEarnedToday: 0,
         };
       });
@@ -459,23 +452,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         if (shouldShield) void ScreelScreenTime.applyShieldWhenBroke({ broke: true });
         return applied;
       },
-      adRescuesLeft: Math.max(0, AD_RESCUE_DAILY_CAP - state.adRescuesUsed),
-      claimAdRescue: () => {
-        if (state.adRescuesUsed >= AD_RESCUE_DAILY_CAP) return false;
-        let shouldClear = false;
-        setState((s) => {
-          if (s.adRescuesUsed >= AD_RESCUE_DAILY_CAP) return s;
-          const nextBank = s.minutesBank + AD_RESCUE_MINUTES;
-          shouldClear = s.usageSource === 'screenTime' && s.connected && nextBank - s.minutesUsed > 0;
-          return {
-            ...s,
-            minutesBank: nextBank,
-            adRescuesUsed: s.adRescuesUsed + 1,
-          };
-        });
-        if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
-        return true;
-      },
       claimChallenge: (id) => {
         setState((s) => {
           const challenge = s.challenges.find((c) => c.id === id);
@@ -543,7 +519,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             streak: s.streak + 1,
             timeZone,
             activePeriodId: periodId(new Date(), s.resetHour, s.resetMinute, timeZone),
-            adRescuesUsed: 0,
             minutesEarnedToday: 0,
           };
         }),
