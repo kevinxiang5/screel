@@ -1,21 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Rocket } from 'lucide-react';
-import { RewardBadge } from '../components/RewardBadge';
+import { CommitSlider } from '../components/CommitSlider';
+import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
-import { GAME_REWARDS } from '../types';
+import { crashPot, seedPot } from '../utils/potMath';
 
-const REWARD = GAME_REWARDS.crash;
-const TARGET = 1.5;
 const RATE = 0.00014;
 
 type Stage = 'ready' | 'running' | 'done';
 
 function rollCrashPoint(): number {
-  // Mostly above target so skill/timing matters more than instant bust.
   const u = Math.random();
-  if (u < 0.12) return 1 + Math.random() * 0.4;
-  return 1.5 + Math.random() * 3;
+  if (u < 0.1) return 1 + Math.random() * 0.35;
+  if (u < 0.35) return 1.2 + Math.random() * 0.8;
+  return 1.5 + Math.random() * 4;
 }
 
 function multAt(ms: number): number {
@@ -23,19 +22,31 @@ function multAt(ms: number): number {
 }
 
 export function CrashGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, completeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [mult, setMult] = useState(1);
+  const [base, setBase] = useState(0);
+  const [commit, setCommit] = useState(0);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
   const crashPointRef = useRef(1);
   const startRef = useRef(0);
   const rafRef = useRef(0);
   const stageRef = useRef<Stage>('ready');
+  const baseRef = useRef(0);
+  const commitRef = useRef(0);
   stageRef.current = stage;
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
+  const pot = crashPot(base || seedPot('crash', state.commitMinutes), mult);
+
   const launch = () => {
+    const c = Math.min(state.commitMinutes, remaining);
+    setCommit(c);
+    commitRef.current = c;
+    const b = seedPot('crash', c);
+    setBase(b);
+    baseRef.current = b;
     crashPointRef.current = rollCrashPoint();
     startRef.current = performance.now();
     setBanner(null);
@@ -48,12 +59,19 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
       if (m >= crashPointRef.current) {
         setMult(crashPointRef.current);
         setStage('done');
-        completeChallenge({
+        const applied = settleRound({
           game: 'crash',
-          success: false,
-          detail: `Missed target ×${TARGET} (popped at ×${crashPointRef.current.toFixed(2)})`,
+          delta: commitRef.current > 0 ? -commitRef.current : 0,
+          detail: `Popped at ×${crashPointRef.current.toFixed(2)}`,
+          result: 'lose',
         });
-        setBanner({ text: `Popped at ×${crashPointRef.current.toFixed(2)} — no reward.`, kind: 'lose' });
+        setBanner({
+          text:
+            commitRef.current > 0
+              ? `Popped · ${Math.abs(applied)}m missed`
+              : `Popped at ×${crashPointRef.current.toFixed(2)} — pot wiped.`,
+          kind: 'lose',
+        });
         return;
       }
       setMult(m);
@@ -62,27 +80,22 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
     rafRef.current = requestAnimationFrame(tick);
   };
 
-  const claim = () => {
+  const bankIt = () => {
     if (stageRef.current !== 'running') return;
     const m = multAt(performance.now() - startRef.current);
     cancelAnimationFrame(rafRef.current);
     setMult(m);
     setStage('done');
-    const success = m >= TARGET;
-    const awarded = completeChallenge({
+    const amount = Math.round(crashPot(baseRef.current, m));
+    const applied = settleRound({
       game: 'crash',
-      success,
-      detail: success
-        ? `Claimed at ×${m.toFixed(2)} (target ×${TARGET})`
-        : `Claimed early at ×${m.toFixed(2)}`,
+      delta: amount,
+      detail: `Banked at ×${m.toFixed(2)}`,
+      result: 'win',
     });
     setBanner({
-      text: success
-        ? awarded > 0
-          ? `Claimed at ×${m.toFixed(2)} · +${awarded}m`
-          : 'Hit the target — earn cap full today.'
-        : `Need ×${TARGET}+ to earn. You stopped at ×${m.toFixed(2)}.`,
-      kind: success ? 'win' : 'lose',
+      text: applied > 0 ? `Banked at ×${m.toFixed(2)} · +${applied}m` : 'Kept — daily keep cap full.',
+      kind: 'win',
     });
   };
 
@@ -98,15 +111,23 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <RewardBadge reward={REWARD} earnLeft={earnLeftToday} />
+      {stage === 'ready' ? (
+        <CommitSlider
+          value={state.commitMinutes}
+          onChange={setCommitMinutes}
+          remaining={remaining}
+        />
+      ) : (
+        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
+      )}
 
       <div className={`crash-stage ${stage}`}>
         <motion.div
           className="crash-rocket"
           animate={
             stage === 'running'
-              ? { y: -12 - Math.min(60, (mult - 1) * 22), rotate: -8 }
-              : stage === 'done' && mult < TARGET
+              ? { y: -12 - Math.min(80, (mult - 1) * 28), rotate: -8 }
+              : stage === 'done' && banner?.kind === 'lose'
                 ? { y: 40, rotate: 65, opacity: 0.4 }
                 : { y: 0, rotate: 0 }
           }
@@ -115,8 +136,8 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
         </motion.div>
         <div className={`crash-mult ${stage}`}>×{mult.toFixed(2)}</div>
         <div className="crash-sub">
-          {stage === 'ready' && `Claim at ×${TARGET} or higher to earn minutes.`}
-          {stage === 'running' && `Target ×${TARGET} — claim when you’re ready.`}
+          {stage === 'ready' && 'Bank before it pops to keep the growing pot.'}
+          {stage === 'running' && 'Growing — bank it before the pop.'}
           {stage === 'done' && 'Run over.'}
         </div>
       </div>
@@ -140,8 +161,8 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
           </button>
         )}
         {stage === 'running' && (
-          <button type="button" className="btn btn-gold btn-block" onClick={claim}>
-            Claim {mult >= TARGET ? `(ready +${REWARD}m)` : `(need ×${TARGET})`}
+          <button type="button" className="btn btn-gold btn-block" onClick={bankIt}>
+            Bank it ({Math.round(pot)}m)
           </button>
         )}
         {stage === 'done' && (

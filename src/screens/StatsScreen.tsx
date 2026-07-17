@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bomb, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
+import { Bomb, Calculator, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
 import type { GameKind } from '../types';
 import { GAME_EARN_DAILY_CAP } from '../types';
 import { useScreel } from '../context/ScreelContext';
@@ -12,11 +12,12 @@ const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
   slots: { label: 'Match three', icon: Cherry },
   hilo: { label: 'Higher / lower', icon: Layers },
   dice: { label: 'Roll under', icon: Dices },
+  math: { label: 'Math sprint', icon: Calculator },
 };
 
 export function StatsScreen() {
   const { state } = useScreel();
-  const wins = state.history.filter((h) => h.reward > 0 || h.result === 'win' || h.result === 'blackjack');
+  const wins = state.history.filter((h) => h.delta > 0 || h.result === 'win' || h.result === 'blackjack');
   const winRate =
     state.history.length === 0 ? 0 : Math.round((wins.length / state.history.length) * 100);
 
@@ -25,28 +26,41 @@ export function StatsScreen() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">Progress</div>
         <h1 className="display lg">Your run</h1>
-        <p className="lede">Minutes earned from challenges — never taken by a loss.</p>
+        <p className="lede">
+          Minutes kept from challenges. Optional commit can miss minutes from today — that’s the point of the
+          focus tool.
+        </p>
       </motion.div>
 
       <div className="grid-2 section">
         <div className="stat-tile">
-          <div className="label">Earned (lifetime)</div>
+          <div className="label">Kept (lifetime)</div>
           <div className="value" style={{ color: 'var(--lime)' }}>
             +{state.totalWon}m
           </div>
         </div>
         <div className="stat-tile">
-          <div className="label">Win rate</div>
+          <div className="label">Missed (commit)</div>
+          <div className="value" style={{ color: '#ff8a8a' }}>
+            −{state.totalLost}m
+          </div>
+        </div>
+        <div className="stat-tile">
+          <div className="label">Keep rate</div>
           <div className="value">{winRate}%</div>
         </div>
         <div className="stat-tile">
-          <div className="label">Earned today</div>
+          <div className="label">Keep streak</div>
+          <div className="value">{state.winStreak}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="label">Kept today</div>
           <div className="value">
             {state.minutesEarnedToday}/{GAME_EARN_DAILY_CAP}m
           </div>
         </div>
         <div className="stat-tile">
-          <div className="label">Best single earn</div>
+          <div className="label">Best keep</div>
           <div className="value">+{state.biggestWin}m</div>
         </div>
       </div>
@@ -73,8 +87,8 @@ export function StatsScreen() {
                     {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                <div className={`delta ${h.reward > 0 ? 'up' : 'down'}`}>
-                  {h.reward > 0 ? `+${h.reward}m` : '—'}
+                <div className={`delta ${h.delta > 0 ? 'up' : h.delta < 0 ? 'down' : ''}`}>
+                  {h.delta > 0 ? `+${h.delta}m` : h.delta < 0 ? `${h.delta}m` : '—'}
                 </div>
               </div>
             );

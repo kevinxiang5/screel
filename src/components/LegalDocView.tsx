@@ -6,7 +6,7 @@ export type LegalDoc = 'privacy' | 'terms' | 'odds' | 'responsible';
 const TITLES: Record<LegalDoc, string> = {
   privacy: 'Privacy Policy',
   terms: 'Terms of Use',
-  odds: 'How earning works',
+  odds: 'How challenges work',
   responsible: 'Healthy habits',
 };
 
@@ -92,21 +92,24 @@ function OddsBody() {
     <>
       <div className="disclosure-box">
         <p>
-          Minigames never wager your bank. A successful challenge adds a fixed reward (capped per day). A miss
-          awards nothing and takes nothing.
+          Challenges build a bonus pot you can bank anytime. Pushing further can wipe the unbanked pot. An
+          optional commit can miss minutes from today’s allowance — intentional focus friction, not currency.
+          Math Sprint is a pure skill challenge: miss takes nothing.
         </p>
       </div>
-      <h3>Fixed rewards (examples)</h3>
+      <h3>How keeping works</h3>
       <ul>
-        <li>Blackjack — beat the dealer: <strong>+5m</strong></li>
-        <li>Color spin — match your color: <strong>+4m</strong></li>
-        <li>Safe tiles — five clear tiles: <strong>+6m</strong></li>
-        <li>Timing run — claim at ×1.5+: <strong>+5m</strong></li>
-        <li>Match three — any pair: <strong>+3m</strong></li>
-        <li>Higher / lower — three in a row: <strong>+5m</strong></li>
-        <li>Roll under 50: <strong>+4m</strong></li>
+        <li>Safe tiles / Timing run / Higher-lower — grow a pot, bank anytime</li>
+        <li>Color spin — match your color; bank or double again</li>
+        <li>Blackjack — win, then bank or let it ride</li>
+        <li>Match three — bank a match or one double-or-nothing</li>
+        <li>Roll under — set your own target; harder = bigger pot</li>
+        <li>Math sprint — ten answers in 30s for a fixed skill bonus</li>
       </ul>
-      <p>Daily earn from minigames is capped (30m by default). Outcomes use the device RNG for challenge play.</p>
+      <p>
+        Daily keep from challenges is capped (45m by default). Commit defaults to 0m. Outcomes use the device
+        RNG for challenge play.
+      </p>
     </>
   );
 }

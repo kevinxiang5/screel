@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
-import { RewardBadge } from '../components/RewardBadge';
+import { CommitSlider } from '../components/CommitSlider';
+import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
-import { GAME_REWARDS } from '../types';
+import { hiloPot, seedPot } from '../utils/potMath';
 
-const NEED = 3;
-const REWARD = GAME_REWARDS.hilo;
 const LABELS: Record<number, string> = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
 const SUITS = ['♠', '♥', '♦', '♣'];
 
@@ -23,19 +22,44 @@ function drawValue(exclude?: number): number {
 }
 
 export function HiLoGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, completeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [card, setCard] = useState(8);
   const [suit, setSuit] = useState('♠');
   const [streak, setStreak] = useState(0);
+  const [base, setBase] = useState(0);
+  const [commit, setCommit] = useState(0);
+  const [nearMiss, setNearMiss] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
 
+  const pot = hiloPot(base || seedPot('hilo', state.commitMinutes), streak);
+
   const start = () => {
+    const c = Math.min(state.commitMinutes, remaining);
+    setCommit(c);
+    setBase(seedPot('hilo', c));
     setCard(drawValue());
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     setStreak(0);
+    setNearMiss(null);
     setBanner(null);
     setStage('live');
+  };
+
+  const bankIt = () => {
+    if (stage !== 'live' || streak === 0) return;
+    const amount = Math.round(hiloPot(base, streak));
+    const applied = settleRound({
+      game: 'hilo',
+      delta: amount,
+      detail: `Banked after ${streak} correct calls`,
+      result: 'win',
+    });
+    setStage('done');
+    setBanner({
+      text: applied > 0 ? `Banked +${applied}m after ${streak}` : 'Kept — daily keep cap full.',
+      kind: 'win',
+    });
   };
 
   const guess = (dir: 'higher' | 'lower') => {
@@ -45,29 +69,25 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
     setCard(next);
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     if (!won) {
+      setNearMiss(`Would have been ${label(next)} — streak broken.`);
       setStage('done');
-      completeChallenge({
+      const applied = settleRound({
         game: 'hilo',
-        success: false,
+        delta: commit > 0 ? -commit : 0,
         detail: `Missed after ${streak} correct`,
-      });
-      setBanner({ text: `${label(next)} — streak broken. Bank unchanged.`, kind: 'lose' });
-      return;
-    }
-    const nextStreak = streak + 1;
-    setStreak(nextStreak);
-    if (nextStreak >= NEED) {
-      setStage('done');
-      const awarded = completeChallenge({
-        game: 'hilo',
-        success: true,
-        detail: `${NEED} correct calls in a row`,
+        result: 'lose',
       });
       setBanner({
-        text: awarded > 0 ? `${NEED} in a row! +${awarded}m` : 'Challenge cleared — earn cap full.',
-        kind: 'win',
+        text:
+          commit > 0
+            ? `${label(next)} — pot wiped · ${Math.abs(applied)}m missed.`
+            : `${label(next)} — pot wiped. Bank unchanged.`,
+        kind: 'lose',
       });
+      return;
     }
+    setStreak((s) => s + 1);
+    setNearMiss(null);
   };
 
   const red = suit === '♥' || suit === '♦';
@@ -84,7 +104,15 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <RewardBadge reward={REWARD} earnLeft={earnLeftToday} />
+      {stage === 'ready' ? (
+        <CommitSlider
+          value={state.commitMinutes}
+          onChange={setCommitMinutes}
+          remaining={remaining}
+        />
+      ) : (
+        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
+      )}
 
       <div className="hilo-stage">
         <motion.div
@@ -99,11 +127,10 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
         <div className="mines-meta">
           <div className="stat-tile">
             <div className="label">Streak</div>
-            <div className="value">
-              {streak}/{NEED}
-            </div>
+            <div className="value">{streak}</div>
           </div>
         </div>
+        {nearMiss && <p className="near-miss">{nearMiss}</p>}
       </div>
 
       <AnimatePresence>
@@ -119,20 +146,41 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <p className="rl-hint">Call higher or lower {NEED} times in a row to earn minutes.</p>
+        <p className="rl-hint">Correct calls grow the pot. Bank anytime — a miss wipes it.</p>
         {stage === 'ready' || stage === 'done' ? (
           <button type="button" className="btn btn-primary btn-block" onClick={start}>
             {stage === 'done' ? 'New run' : 'Deal'}
           </button>
         ) : (
-          <div className="bj-actions">
-            <button type="button" className="btn btn-secondary" onClick={() => guess('lower')} disabled={card === 2}>
-              <ArrowDown size={16} /> Lower
+          <>
+            <button
+              type="button"
+              className="btn btn-gold btn-block"
+              onClick={bankIt}
+              disabled={streak === 0}
+              style={{ marginBottom: 10 }}
+            >
+              Bank it ({Math.round(pot)}m)
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => guess('higher')} disabled={card === 14}>
-              <ArrowUp size={16} /> Higher
-            </button>
-          </div>
+            <div className="bj-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => guess('lower')}
+                disabled={card === 2}
+              >
+                <ArrowDown size={16} /> Lower
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => guess('higher')}
+                disabled={card === 14}
+              >
+                <ArrowUp size={16} /> Higher
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

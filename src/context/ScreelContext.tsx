@@ -4,8 +4,8 @@ import { ScreelScreenTime } from '../native/ScreelScreenTime';
 import {
   AD_RESCUE_DAILY_CAP,
   AD_RESCUE_MINUTES,
+  COMMIT_MAX,
   GAME_EARN_DAILY_CAP,
-  GAME_REWARDS,
   type DailyChallenge,
   type FontTheme,
   type GameKind,
@@ -28,7 +28,7 @@ const defaultChallenges = (): DailyChallenge[] => [
   {
     id: 'play-3',
     title: 'Three Rounds',
-    description: 'Play 3 minigames today',
+    description: 'Play 3 challenges today',
     progress: 0,
     target: 3,
     reward: 8,
@@ -36,8 +36,8 @@ const defaultChallenges = (): DailyChallenge[] => [
   },
   {
     id: 'win-1',
-    title: 'First Win',
-    description: 'Complete one challenge successfully',
+    title: 'First Keep',
+    description: 'Bank a challenge successfully',
     progress: 0,
     target: 1,
     reward: 10,
@@ -46,7 +46,7 @@ const defaultChallenges = (): DailyChallenge[] => [
   {
     id: 'earn-15',
     title: 'Focus Boost',
-    description: 'Earn 15 minutes from minigames',
+    description: 'Keep 15 minutes from challenges',
     progress: 0,
     target: 15,
     reward: 12,
@@ -56,6 +56,10 @@ const defaultChallenges = (): DailyChallenge[] => [
 
 function clampAllowance(n: number): number {
   return Math.max(ALLOWANCE_MIN, Math.min(ALLOWANCE_MAX, Math.round(n)));
+}
+
+function clampCommit(n: number): number {
+  return Math.max(0, Math.min(COMMIT_MAX, Math.round(n)));
 }
 
 const defaultState = (): ScreelState => {
@@ -78,6 +82,7 @@ const defaultState = (): ScreelState => {
     timeZone,
     activePeriodId: periodId(new Date(), resetHour, resetMinute, timeZone),
     streak: 0,
+    winStreak: 0,
     xp: 0,
     level: 1,
     totalWon: 0,
@@ -90,6 +95,7 @@ const defaultState = (): ScreelState => {
     riskAlerts: true,
     adRescuesUsed: 0,
     minutesEarnedToday: 0,
+    commitMinutes: 0,
     bankPinHash: null,
   };
 };
@@ -97,15 +103,19 @@ const defaultState = (): ScreelState => {
 function migrateHistory(raw: unknown): HistoryEntry[] {
   if (!Array.isArray(raw)) return [];
   return raw.slice(0, 40).map((h) => {
-    const row = h as Partial<HistoryEntry> & { wager?: number; payout?: number };
-    const reward =
-      typeof row.reward === 'number'
-        ? row.reward
-        : Math.max(0, (row.payout ?? 0) - (row.wager ?? 0));
+    const row = h as Partial<HistoryEntry> & {
+      reward?: number;
+      wager?: number;
+      payout?: number;
+    };
+    let delta = 0;
+    if (typeof row.delta === 'number') delta = row.delta;
+    else if (typeof row.reward === 'number') delta = row.reward;
+    else delta = (row.payout ?? 0) - (row.wager ?? 0);
     return {
       id: String(row.id ?? `${Date.now()}`),
       game: (row.game as GameKind) || 'blackjack',
-      reward,
+      delta,
       result: (row.result as RoundResult) || 'lose',
       detail: String(row.detail ?? ''),
       at: typeof row.at === 'number' ? row.at : Date.now(),
@@ -151,9 +161,11 @@ function loadState(): ScreelState {
       adRescuesUsed: typeof parsed.adRescuesUsed === 'number' ? Math.max(0, parsed.adRescuesUsed) : 0,
       minutesEarnedToday:
         typeof parsed.minutesEarnedToday === 'number' ? Math.max(0, parsed.minutesEarnedToday) : 0,
+      commitMinutes: clampCommit(parsed.commitMinutes ?? 0),
+      winStreak: typeof parsed.winStreak === 'number' ? Math.max(0, parsed.winStreak) : 0,
       bankPinHash: typeof parsed.bankPinHash === 'string' ? parsed.bankPinHash : null,
       history: migrateHistory(parsed.history),
-      totalLost: 0,
+      totalLost: typeof parsed.totalLost === 'number' ? Math.max(0, parsed.totalLost) : 0,
     };
   } catch {
     return base;
@@ -167,20 +179,20 @@ interface ScreelContextValue {
   earnLeftToday: number;
   setBaseLimit: (n: number) => void;
   setResetTime: (hour: number, minute: number) => void;
+  setCommitMinutes: (n: number) => void;
   connectScreenTime: (opts?: { source?: UsageSource; minutesUsed?: number }) => void;
   disconnectScreenTime: () => void;
   syncUsageMinutes: (minutes: number) => void;
   /**
-   * Finish a minigame challenge. On success, adds minutes (capped).
-   * On fail/miss, bank is untouched. Returns minutes actually awarded.
+   * Apply a signed minute change from a challenge round.
+   * Positive = keep bonus (capped). Negative = miss committed minutes (floors at 0).
+   * Returns the actual delta applied to the bank.
    */
-  completeChallenge: (payload: {
+  settleRound: (payload: {
     game: GameKind;
-    success: boolean;
+    delta: number;
     detail: string;
     result?: RoundResult;
-    /** Override default GAME_REWARDS[game] when success. */
-    reward?: number;
   }) => number;
   claimChallenge: (id: string) => void;
   adRescuesLeft: number;
@@ -345,6 +357,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         });
       },
+      setCommitMinutes: (n) => setState((s) => ({ ...s, commitMinutes: clampCommit(n) })),
       connectScreenTime: (opts) => {
         const source = opts?.source ?? 'simulated';
         setState((s) => {
@@ -365,19 +378,29 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => ({ ...s, connected: false, usageSource: 'none' })),
       syncUsageMinutes: (minutes) =>
         setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
-      completeChallenge: ({ game, success, detail, result, reward: rewardOpt }) => {
-        const wanted = success ? Math.max(0, rewardOpt ?? GAME_REWARDS[game]) : 0;
-        let awarded = 0;
+      settleRound: ({ game, delta: wanted, detail, result }) => {
+        let applied = 0;
         let shouldClear = false;
+        let shouldShield = false;
         setState((s) => {
           const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
-          awarded = Math.min(wanted, room);
-          const nextBank = s.minutesBank + awarded;
+          if (wanted > 0) {
+            applied = Math.min(wanted, room);
+          } else if (wanted < 0) {
+            applied = -Math.min(Math.abs(wanted), Math.max(0, s.minutesBank - s.minutesUsed));
+          } else {
+            applied = 0;
+          }
+
+          const nextBank = Math.max(0, s.minutesBank + applied);
+          const kept = applied > 0;
+          const missed = applied < 0;
+
           const entry: HistoryEntry = {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             game,
-            reward: awarded,
-            result: result ?? (success ? 'win' : 'lose'),
+            delta: applied,
+            result: result ?? (kept ? 'win' : missed ? 'lose' : 'push'),
             detail,
             at: Date.now(),
           };
@@ -385,29 +408,31 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           const challenges = s.challenges.map((c) => {
             if (c.claimed) return c;
             if (c.id === 'play-3') return { ...c, progress: Math.min(c.target, c.progress + 1) };
-            if (c.id === 'win-1' && success) {
+            if (c.id === 'win-1' && kept) {
               return { ...c, progress: Math.min(c.target, c.progress + 1) };
             }
-            if (c.id === 'earn-15' && awarded > 0) {
-              return { ...c, progress: Math.min(c.target, c.progress + awarded) };
+            if (c.id === 'earn-15' && kept) {
+              return { ...c, progress: Math.min(c.target, c.progress + applied) };
             }
             return c;
           });
 
-          const xpGain = success ? (result === 'blackjack' ? 35 : 22) : 6;
+          const xpGain = kept ? (result === 'blackjack' ? 35 : 22) : missed ? 4 : 6;
+          const nextRemaining = nextBank - s.minutesUsed;
           shouldClear =
-            awarded > 0 &&
-            s.usageSource === 'screenTime' &&
-            s.connected &&
-            nextBank - s.minutesUsed > 0;
+            kept && s.usageSource === 'screenTime' && s.connected && nextRemaining > 0;
+          shouldShield =
+            missed && s.usageSource === 'screenTime' && s.connected && nextRemaining <= 0;
 
           return {
             ...s,
             minutesBank: nextBank,
-            minutesEarnedToday: s.minutesEarnedToday + awarded,
-            totalWon: s.totalWon + awarded,
-            biggestWin: Math.max(s.biggestWin, awarded),
+            minutesEarnedToday: s.minutesEarnedToday + Math.max(0, applied),
+            totalWon: s.totalWon + Math.max(0, applied),
+            totalLost: s.totalLost + Math.max(0, -applied),
+            biggestWin: Math.max(s.biggestWin, Math.max(0, applied)),
             gamesPlayed: s.gamesPlayed + 1,
+            winStreak: kept ? s.winStreak + 1 : missed ? 0 : s.winStreak,
             xp: s.xp + xpGain,
             level: Math.max(1, Math.floor((s.xp + xpGain) / 100) + 1),
             history: [entry, ...s.history].slice(0, 40),
@@ -415,7 +440,8 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         });
         if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
-        return awarded;
+        if (shouldShield) void ScreelScreenTime.applyShieldWhenBroke({ broke: true });
+        return applied;
       },
       adRescuesLeft: Math.max(0, AD_RESCUE_DAILY_CAP - state.adRescuesUsed),
       claimAdRescue: () => {

@@ -1,53 +1,252 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { RewardBadge } from '../components/RewardBadge';
+import { CommitSlider } from '../components/CommitSlider';
+import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
-import { GAME_REWARDS } from '../types';
-import { colorOf, spinWheel, type SpinResult } from '../utils/roulette';
+import { seedPot, spinPot } from '../utils/potMath';
+import { WHEEL_ORDER, colorOf, spinWheel, type SpinResult } from '../utils/roulette';
 
 type Pick = 'red' | 'black' | 'green';
-const REWARD = GAME_REWARDS.roulette;
+type Stage = 'ready' | 'zooming' | 'live' | 'reveal' | 'choice' | 'done';
+
+const SLICE = 360 / WHEEL_ORDER.length;
+const SPIN_MS = 7200;
+const MAX_DOUBLES = 2;
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function mod360(n: number) {
+  return ((n % 360) + 360) % 360;
+}
+
+function spinDelta(current: number, targetMod: number, spins: number, dir: 1 | -1) {
+  const cur = mod360(current);
+  const target = mod360(targetMod);
+  if (dir === 1) {
+    let d = mod360(target - cur);
+    if (d === 0) d = 360;
+    return d + 360 * spins;
+  }
+  let d = mod360(cur - target);
+  if (d === 0) d = 360;
+  return -(d + 360 * spins);
+}
+
+function wheelGradient() {
+  const parts = WHEEL_ORDER.map((n, i) => {
+    const c = colorOf(n) === 'red' ? '#c81e1e' : colorOf(n) === 'green' ? '#0f8a3c' : '#141414';
+    const a0 = i * SLICE;
+    const a1 = (i + 1) * SLICE;
+    return `${c} ${a0}deg ${a1}deg`;
+  });
+  return `conic-gradient(from 0deg, ${parts.join(', ')})`;
+}
+
+function WheelGraphic({
+  rotation,
+  ballRotation,
+  size,
+  resultNum,
+  live,
+}: {
+  rotation: number;
+  ballRotation: number;
+  size: number;
+  resultNum: number | null;
+  live?: boolean;
+}) {
+  const radius = size * (live ? 0.405 : 0.39);
+
+  return (
+    <div className={`wheel-wrap live-wheel ${live ? 'live' : ''}`} style={{ width: size, height: size }}>
+      <div className="wheel-pointer" />
+      <div className="wheel-rim" />
+      <div
+        className="wheel"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          background: wheelGradient(),
+          transition: live ? `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.7, 0.1, 1)` : undefined,
+        }}
+      >
+        {WHEEL_ORDER.map((n, i) => {
+          const angle = i * SLICE + SLICE / 2;
+          const rad = ((angle - 90) * Math.PI) / 180;
+          const x = Math.cos(rad) * radius;
+          const y = Math.sin(rad) * radius;
+          const isWinner = resultNum === n;
+          return (
+            <span
+              key={n}
+              className={`wheel-num ${isWinner ? 'winner' : ''}`}
+              style={{
+                left: `calc(50% + ${x}px)`,
+                top: `calc(50% + ${y}px)`,
+                transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+              }}
+            >
+              {n}
+            </span>
+          );
+        })}
+        <div className="wheel-hub">{resultNum === null ? '·' : resultNum}</div>
+      </div>
+      <div
+        className="wheel-ball-orbit"
+        style={{
+          transform: `rotate(${ballRotation}deg)`,
+          transition: live ? `transform ${SPIN_MS}ms cubic-bezier(0.08, 0.65, 0.12, 1)` : undefined,
+        }}
+      >
+        <div className="wheel-ball" />
+      </div>
+    </div>
+  );
+}
 
 export function RouletteTable({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, completeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
   const [pick, setPick] = useState<Pick>('red');
-  const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState<SpinResult | null>(null);
-  const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
+  const [stage, setStage] = useState<Stage>('ready');
+  const [rotation, setRotation] = useState(0);
+  const [ballRotation, setBallRotation] = useState(0);
+  const [resultNum, setResultNum] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
+  const [base, setBase] = useState(0);
+  const [commit, setCommit] = useState(0);
+  const [doubles, setDoubles] = useState(0);
+  const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
+  const [liveStatus, setLiveStatus] = useState('Pick a color');
+  const spinLock = useRef(false);
+  const rotationRef = useRef(0);
+  const ballRef = useRef(0);
+  const baseRef = useRef(0);
+  const commitRef = useRef(0);
+  const doublesRef = useRef(0);
 
-  const spin = async () => {
-    if (spinning) return;
-    setSpinning(true);
-    setBanner(null);
-    setResult(null);
-    await new Promise((r) => setTimeout(r, 900));
-    const spun = spinWheel();
-    setResult(spun);
-    setHistory((h) => [spun.number, ...h].slice(0, 12));
-    const landed = colorOf(spun.number);
-    const success = landed === pick;
-    const awarded = completeChallenge({
+  const pot = spinPot(base || seedPot('roulette', state.commitMinutes), doubles);
+  const busy = stage === 'zooming' || stage === 'live' || stage === 'reveal';
+
+  const missRound = (spun: SpinResult) => {
+    const applied = settleRound({
       game: 'roulette',
-      success,
-      detail: `Picked ${pick}, landed ${spun.number} (${landed})`,
+      delta: commitRef.current > 0 ? -commitRef.current : 0,
+      detail: `Picked ${pick}, landed ${spun.number} (${colorOf(spun.number)})`,
+      result: 'lose',
     });
     setBanner({
-      text: success
-        ? awarded > 0
-          ? `${spun.number} ${landed} · +${awarded}m`
-          : 'Correct color — earn cap full for today.'
-        : `${spun.number} ${landed} — no reward. Bank unchanged.`,
-      kind: success ? 'win' : 'lose',
+      text:
+        commitRef.current > 0
+          ? `${spun.number} ${colorOf(spun.number)} · ${Math.abs(applied)}m missed`
+          : `${spun.number} ${colorOf(spun.number)} — pot wiped.`,
+      kind: 'lose',
     });
-    setSpinning(false);
+    setStage('done');
+  };
+
+  const runSpin = async () => {
+    if (spinLock.current) return;
+    spinLock.current = true;
+    setBanner(null);
+    setResultNum(null);
+    setLiveStatus('No more picks');
+    setStage('zooming');
+    await sleep(420);
+    setStage('live');
+    setLiveStatus('Ball in play');
+
+    const spun = spinWheel();
+    const index = WHEEL_ORDER.indexOf(spun.number);
+    const pocketAngle = index * SLICE + SLICE / 2;
+    const wheelTarget = mod360(-pocketAngle);
+    const wheelDelta = spinDelta(rotationRef.current, wheelTarget, 8, 1);
+    const ballDelta = spinDelta(ballRef.current, 0, 11, -1);
+
+    const nextRot = rotationRef.current + wheelDelta;
+    const nextBall = ballRef.current + ballDelta;
+    rotationRef.current = nextRot;
+    ballRef.current = nextBall;
+    // Force layout then apply — CSS transition handles the spin
+    setRotation(nextRot);
+    setBallRotation(nextBall);
+
+    await sleep(SPIN_MS);
+    setResultNum(spun.number);
+    setHistory((h) => [spun.number, ...h].slice(0, 12));
+    setLiveStatus(`${spun.number} ${colorOf(spun.number)}`);
+    setStage('reveal');
+    await sleep(900);
+
+    const landed = colorOf(spun.number);
+    if (landed !== pick) {
+      missRound(spun);
+      spinLock.current = false;
+      return;
+    }
+
+    if (doublesRef.current >= MAX_DOUBLES) {
+      const amount = Math.round(spinPot(baseRef.current, doublesRef.current));
+      const applied = settleRound({
+        game: 'roulette',
+        delta: amount,
+        detail: `Matched ${pick} · max double banked`,
+        result: 'win',
+      });
+      setBanner({
+        text: applied > 0 ? `Max double · +${applied}m` : 'Matched — keep cap full.',
+        kind: 'win',
+      });
+      setStage('done');
+    } else {
+      setStage('choice');
+      setBanner({
+        text: `${spun.number} ${landed}! Bank or spin again to double.`,
+        kind: 'win',
+      });
+    }
+    spinLock.current = false;
+  };
+
+  const start = () => {
+    const c = Math.min(state.commitMinutes, remaining);
+    setCommit(c);
+    commitRef.current = c;
+    const b = seedPot('roulette', c);
+    setBase(b);
+    baseRef.current = b;
+    setDoubles(0);
+    doublesRef.current = 0;
+    void runSpin();
+  };
+
+  const bankIt = () => {
+    const amount = Math.round(spinPot(baseRef.current, doublesRef.current));
+    const applied = settleRound({
+      game: 'roulette',
+      delta: amount,
+      detail: `Banked after ${doublesRef.current} doubles`,
+      result: 'win',
+    });
+    setBanner({
+      text: applied > 0 ? `Banked +${applied}m` : 'Kept — daily keep cap full.',
+      kind: 'win',
+    });
+    setStage('done');
+  };
+
+  const doubleAgain = () => {
+    doublesRef.current += 1;
+    setDoubles(doublesRef.current);
+    void runSpin();
   };
 
   return (
     <div className="screen game-stage rl-screen">
       <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={spinning}>
+        <button type="button" className="back-btn" onClick={onBack} disabled={busy}>
           <ArrowLeft size={16} /> Play
         </button>
         <div className="bj-balance">
@@ -56,38 +255,53 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <RewardBadge reward={REWARD} earnLeft={earnLeftToday} />
+      {stage === 'ready' || stage === 'done' ? (
+        <CommitSlider
+          value={state.commitMinutes}
+          onChange={setCommitMinutes}
+          remaining={remaining}
+          disabled={busy}
+        />
+      ) : (
+        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
+      )}
 
-      <div className="challenge-panel">
-        <p className="lede" style={{ margin: 0 }}>
-          Pick a color, then spin. Match it to earn minutes. Wrong color = no reward (nothing taken).
-        </p>
-        <div className="pick-row">
+      {(stage === 'ready' || stage === 'done') && (
+        <div className="pick-row" style={{ marginBottom: 12 }}>
           {(['red', 'black', 'green'] as Pick[]).map((c) => (
             <button
               key={c}
               type="button"
               className={`btn ${pick === c ? 'btn-primary' : 'btn-secondary'} pick-${c}`}
-              disabled={spinning}
+              disabled={busy}
               onClick={() => setPick(c)}
             >
               {c}
             </button>
           ))}
         </div>
-        <div className={`dice-readout ${result ? (colorOf(result.number) === pick ? 'win' : 'lose') : ''}`}>
-          {spinning ? '…' : result ? result.number : '·'}
-        </div>
-        <div className="rl-history">
-          <span className="hand-label">Last</span>
-          <div className="rl-history-row">
-            {history.length === 0 && <span className="mute">—</span>}
-            {history.map((n, i) => (
-              <span key={`${n}-${i}`} className={`rl-hist ${colorOf(n)}`}>
-                {n}
-              </span>
-            ))}
-          </div>
+      )}
+
+      <div className={`rl-live-stage ${stage === 'live' || stage === 'zooming' ? 'active' : ''}`}>
+        <div className="rl-live-status">{liveStatus}</div>
+        <WheelGraphic
+          rotation={rotation}
+          ballRotation={ballRotation}
+          size={stage === 'live' || stage === 'zooming' || stage === 'reveal' ? 280 : 220}
+          resultNum={resultNum}
+          live={stage === 'live'}
+        />
+      </div>
+
+      <div className="rl-history">
+        <span className="hand-label">Last</span>
+        <div className="rl-history-row">
+          {history.length === 0 && <span className="mute">—</span>}
+          {history.map((n, i) => (
+            <span key={`${n}-${i}`} className={`rl-hist ${colorOf(n)}`}>
+              {n}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -104,9 +318,21 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <button type="button" className="btn btn-primary btn-block" onClick={() => void spin()} disabled={spinning}>
-          {spinning ? 'Spinning…' : 'Spin'}
-        </button>
+        {(stage === 'ready' || stage === 'done') && (
+          <button type="button" className="btn btn-primary btn-block" onClick={start} disabled={busy}>
+            {stage === 'done' ? 'Spin again' : 'Spin'}
+          </button>
+        )}
+        {stage === 'choice' && (
+          <div className="bj-actions">
+            <button type="button" className="btn btn-gold" onClick={bankIt}>
+              Bank it ({Math.round(pot)}m)
+            </button>
+            <button type="button" className="btn btn-primary" onClick={doubleAgain}>
+              Double again
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

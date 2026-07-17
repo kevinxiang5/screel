@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { RewardBadge } from '../components/RewardBadge';
+import { CommitSlider } from '../components/CommitSlider';
+import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
-import { GAME_REWARDS } from '../types';
 import {
   createShoe,
   draw,
@@ -13,10 +13,9 @@ import {
   isRed,
   type Card,
 } from '../utils/blackjack';
+import { seedPot } from '../utils/potMath';
 
-type Phase = 'ready' | 'playing' | 'dealer' | 'result';
-
-const REWARD = GAME_REWARDS.blackjack;
+type Phase = 'ready' | 'playing' | 'dealer' | 'result' | 'ride';
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -53,14 +52,19 @@ function CardView({ card }: { card: Card }) {
 }
 
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, completeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
   const [phase, setPhase] = useState<Phase>('ready');
   const [shoe, setShoe] = useState<Card[]>(() => createShoe());
   const [dealer, setDealer] = useState<Card[]>([]);
   const [player, setPlayer] = useState<Card[]>([]);
+  const [base, setBase] = useState(0);
+  const [commit, setCommit] = useState(0);
+  const [pot, setPot] = useState(0);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' | 'push' } | null>(null);
   const [busy, setBusy] = useState(false);
   const shoeRef = useRef(shoe);
+  const potRef = useRef(0);
+  const commitRef = useRef(0);
   shoeRef.current = shoe;
 
   const pull = () => {
@@ -70,13 +74,25 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     return r.card;
   };
 
-  const deal = async () => {
-    if (busy || phase !== 'ready') return;
+  const beginRound = async (ridePot?: number) => {
     setBusy(true);
     setBanner(null);
     setDealer([]);
     setPlayer([]);
     setPhase('playing');
+
+    if (ridePot == null) {
+      const c = Math.min(state.commitMinutes, remaining);
+      setCommit(c);
+      commitRef.current = c;
+      const b = seedPot('blackjack', c);
+      setBase(b);
+      setPot(b);
+      potRef.current = b;
+    } else {
+      setPot(ridePot);
+      potRef.current = ridePot;
+    }
 
     const p1 = pull();
     const d1 = pull();
@@ -133,39 +149,81 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     const dv = handValue(dCards);
     let success = false;
     let result: 'win' | 'lose' | 'push' | 'blackjack' = 'lose';
-    let text: string;
 
     if (natural) {
       success = true;
       result = 'blackjack';
-      text = `Blackjack! +${Math.min(REWARD, earnLeftToday)}m`;
     } else if (pv > 21) {
-      text = 'Bust — no minutes this round.';
+      result = 'lose';
     } else if (dv > 21 || pv > dv) {
       success = true;
       result = 'win';
-      text = `You win · +${Math.min(REWARD, earnLeftToday)}m`;
     } else if (pv === dv) {
       result = 'push';
-      text = 'Push — try again for the reward.';
-    } else {
-      text = 'Dealer wins — bank unchanged.';
     }
 
-    const awarded = completeChallenge({
+    if (success) {
+      const amount = Math.round(potRef.current * (result === 'blackjack' ? 1.5 : 1));
+      setPot(amount);
+      potRef.current = amount;
+      setBanner({
+        text: result === 'blackjack' ? `Blackjack! Pot ${amount}m` : `You win · pot ${amount}m`,
+        kind: 'win',
+      });
+      setPhase('ride');
+      setBusy(false);
+      return;
+    }
+
+    if (result === 'push') {
+      settleRound({
+        game: 'blackjack',
+        delta: 0,
+        detail: `${handLabel(pCards)} vs ${handLabel(dCards)} · push`,
+        result: 'push',
+      });
+      setBanner({ text: 'Push — pot unchanged. Try again.', kind: 'push' });
+      setPhase('result');
+      setBusy(false);
+      return;
+    }
+
+    const applied = settleRound({
       game: 'blackjack',
-      success,
-      result,
+      delta: commitRef.current > 0 ? -commitRef.current : 0,
       detail: `${handLabel(pCards)} vs ${handLabel(dCards)}`,
-      reward: REWARD,
+      result: 'lose',
     });
-
-    if (success && awarded === 0) text = 'You won, but today’s earn cap is full.';
-    else if (success) text = result === 'blackjack' ? `Blackjack! +${awarded}m` : `You win · +${awarded}m`;
-
-    setBanner({ text, kind: success ? 'win' : result === 'push' ? 'push' : 'lose' });
+    setBanner({
+      text:
+        commitRef.current > 0
+          ? `Miss · ${Math.abs(applied)}m gone`
+          : 'Dealer wins — pot wiped. Bank unchanged.',
+      kind: 'lose',
+    });
     setPhase('result');
     setBusy(false);
+  };
+
+  const bankIt = () => {
+    const applied = settleRound({
+      game: 'blackjack',
+      delta: Math.round(potRef.current),
+      detail: 'Banked the pot',
+      result: 'win',
+    });
+    setBanner({
+      text: applied > 0 ? `Banked +${applied}m` : 'Kept — daily keep cap full.',
+      kind: 'win',
+    });
+    setPhase('result');
+  };
+
+  const letItRide = () => {
+    const doubled = Math.round(potRef.current * 2);
+    setPot(doubled);
+    potRef.current = doubled;
+    void beginRound(doubled);
   };
 
   return (
@@ -180,7 +238,15 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <RewardBadge reward={REWARD} earnLeft={earnLeftToday} />
+      {phase === 'ready' ? (
+        <CommitSlider
+          value={state.commitMinutes}
+          onChange={setCommitMinutes}
+          remaining={remaining}
+        />
+      ) : (
+        <PotTicker pot={pot || base} earnLeft={earnLeftToday} commit={commit} />
+      )}
 
       <div className="bj-table">
         <div className="bj-hand">
@@ -214,12 +280,26 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <p className="rl-hint">Beat the dealer (21 or under). Win to earn minutes — lose and nothing is taken.</p>
+        <p className="rl-hint">Win to grow the pot. Bank it — or let it ride for double-or-nothing.</p>
         <div className="bj-actions wrap">
           {phase === 'ready' || phase === 'result' ? (
-            <button type="button" className="btn btn-primary btn-block" onClick={() => void deal()} disabled={busy}>
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              onClick={() => void beginRound()}
+              disabled={busy}
+            >
               {phase === 'result' ? 'Play again' : 'Deal'}
             </button>
+          ) : phase === 'ride' ? (
+            <>
+              <button type="button" className="btn btn-gold" onClick={bankIt}>
+                Bank it ({Math.round(pot)}m)
+              </button>
+              <button type="button" className="btn btn-primary" onClick={letItRide}>
+                Let it ride (×2)
+              </button>
+            </>
           ) : (
             <>
               <button type="button" className="btn btn-secondary" onClick={() => void hit()} disabled={busy}>

@@ -7,7 +7,8 @@ export type GameKind =
   | 'crash'
   | 'slots'
   | 'hilo'
-  | 'dice';
+  | 'dice'
+  | 'math';
 
 export type GameId = GameKind | null;
 
@@ -16,8 +17,11 @@ export type RoundResult = 'win' | 'lose' | 'push' | 'blackjack';
 export interface HistoryEntry {
   id: string;
   game: GameKind;
-  /** Minutes awarded (0 on a miss). Never deducted from the bank by play. */
-  reward: number;
+  /**
+   * Signed minute change for the round.
+   * Positive = bonus kept; negative = committed minutes missed (or pot wiped).
+   */
+  delta: number;
   result: RoundResult;
   detail: string;
   at: number;
@@ -63,11 +67,13 @@ export interface ScreelState {
   /** Last applied period id — when this changes, bank auto-resets. */
   activePeriodId: string;
   streak: number;
+  /** Current consecutive successful banks (resets on a miss). */
+  winStreak: number;
   xp: number;
   level: number;
-  /** Minutes earned from minigames (lifetime). */
+  /** Minutes kept from challenges (lifetime). */
   totalWon: number;
-  /** Kept for older installs; always 0 in earn model. */
+  /** Minutes missed via commit mode (lifetime). */
   totalLost: number;
   biggestWin: number;
   gamesPlayed: number;
@@ -80,6 +86,11 @@ export interface ScreelState {
   /** Minutes earned from minigames in the current period. */
   minutesEarnedToday: number;
   /**
+   * Default commit for the next challenge (0–COMMIT_MAX).
+   * 0 = press-your-luck only (Second Thought style).
+   */
+  commitMinutes: number;
+  /**
    * Optional SHA-256 hash of a 4-digit bank PIN.
    * When set, allowance / reset time / period reset need unlock first.
    */
@@ -91,15 +102,19 @@ export const AD_RESCUE_MINUTES = 5;
 export const AD_RESCUE_DAILY_CAP = 3;
 
 /** Cap on minutes earned from minigames per day. */
-export const GAME_EARN_DAILY_CAP = 30;
+export const GAME_EARN_DAILY_CAP = 45;
 
-/** Fixed minute rewards per game on a successful challenge. */
+/** Max minutes a user can commit to a single challenge. */
+export const COMMIT_MAX = 10;
+
+/** Base minute pot seeds per game (before ladder / multiplier growth). */
 export const GAME_REWARDS: Record<GameKind, number> = {
   blackjack: 5,
   roulette: 4,
-  mines: 6,
-  crash: 5,
+  mines: 3,
+  crash: 3,
   slots: 3,
-  hilo: 5,
+  hilo: 3,
   dice: 4,
+  math: 6,
 };

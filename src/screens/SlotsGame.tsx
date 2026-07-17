@@ -1,9 +1,10 @@
 ﻿import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { RewardBadge } from '../components/RewardBadge';
+import { CommitSlider } from '../components/CommitSlider';
+import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
-import { GAME_REWARDS } from '../types';
+import { seedPot } from '../utils/potMath';
 
 interface SlotSymbol {
   glyph: string;
@@ -21,7 +22,6 @@ const SYMBOLS: SlotSymbol[] = [
 
 const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
 const SPIN_MS = [900, 1500, 2100];
-const REWARD = GAME_REWARDS.slots;
 
 function draw(): SlotSymbol {
   let roll = Math.random() * TOTAL_WEIGHT;
@@ -32,18 +32,37 @@ function draw(): SlotSymbol {
   return SYMBOLS[0];
 }
 
+type Stage = 'ready' | 'spinning' | 'choice' | 'done';
+
 export function SlotsGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, completeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
   const [reels, setReels] = useState<string[]>(['\u{1F352}', '\u{1F514}', '\u{1F48E}']);
   const [spinningReels, setSpinningReels] = useState([false, false, false]);
-  const [spinning, setSpinning] = useState(false);
+  const [stage, setStage] = useState<Stage>('ready');
+  const [pot, setPot] = useState(0);
+  const [commit, setCommit] = useState(0);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
   const spinTargets = useRef<(string | null)[]>([null, null, null]);
+  const potRef = useRef(0);
+  const commitRef = useRef(0);
+  const isDoubleRef = useRef(false);
 
-  const spin = () => {
-    if (spinning) return;
+  const spin = (forDouble: boolean) => {
+    if (stage === 'spinning') return;
+    if (!forDouble) {
+      const c = Math.min(state.commitMinutes, remaining);
+      setCommit(c);
+      commitRef.current = c;
+      const b = seedPot('slots', c);
+      setPot(b);
+      potRef.current = b;
+      isDoubleRef.current = false;
+    } else {
+      isDoubleRef.current = true;
+    }
+
     const result = [draw(), draw(), draw()];
-    setSpinning(true);
+    setStage('spinning');
     setBanner(null);
     setSpinningReels([true, true, true]);
     spinTargets.current = [null, null, null];
@@ -65,29 +84,65 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
           window.clearInterval(cycler);
           const [a, b, c] = result;
           const success = a.glyph === b.glyph || b.glyph === c.glyph || a.glyph === c.glyph;
-          const awarded = completeChallenge({
-            game: 'slots',
-            success,
-            detail: `${a.glyph} ${b.glyph} ${c.glyph}`,
-          });
-          setBanner({
-            text: success
-              ? awarded > 0
-                ? `Match! +${awarded}m`
-                : 'Match — earn cap full today.'
-              : 'No match — bank unchanged.',
-            kind: success ? 'win' : 'lose',
-          });
-          setSpinning(false);
+          if (success) {
+            if (isDoubleRef.current) {
+              const amount = Math.round(potRef.current * 2);
+              potRef.current = amount;
+              setPot(amount);
+              const applied = settleRound({
+                game: 'slots',
+                delta: amount,
+                detail: `Double keep · ${a.glyph} ${b.glyph} ${c.glyph}`,
+                result: 'win',
+              });
+              setBanner({
+                text: applied > 0 ? `Doubled! +${applied}m` : 'Match — keep cap full.',
+                kind: 'win',
+              });
+              setStage('done');
+            } else {
+              setBanner({ text: 'Match! Bank it or one double-or-nothing respin.', kind: 'win' });
+              setStage('choice');
+            }
+          } else {
+            const applied = settleRound({
+              game: 'slots',
+              delta: commitRef.current > 0 ? -commitRef.current : 0,
+              detail: `${a.glyph} ${b.glyph} ${c.glyph}`,
+              result: 'lose',
+            });
+            setBanner({
+              text:
+                commitRef.current > 0
+                  ? `No match · ${Math.abs(applied)}m missed`
+                  : 'No match — pot wiped.',
+              kind: 'lose',
+            });
+            setStage('done');
+          }
         }
       }, SPIN_MS[i]);
     });
   };
 
+  const bankIt = () => {
+    const applied = settleRound({
+      game: 'slots',
+      delta: Math.round(potRef.current),
+      detail: 'Banked match pot',
+      result: 'win',
+    });
+    setBanner({
+      text: applied > 0 ? `Banked +${applied}m` : 'Kept — daily keep cap full.',
+      kind: 'win',
+    });
+    setStage('done');
+  };
+
   return (
     <div className="screen game-stage">
       <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={spinning}>
+        <button type="button" className="back-btn" onClick={onBack} disabled={stage === 'spinning'}>
           <ArrowLeft size={16} /> Play
         </button>
         <div className="bj-balance">
@@ -96,7 +151,15 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <RewardBadge reward={REWARD} earnLeft={earnLeftToday} />
+      {stage === 'ready' || stage === 'done' ? (
+        <CommitSlider
+          value={state.commitMinutes}
+          onChange={setCommitMinutes}
+          remaining={remaining}
+        />
+      ) : (
+        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
+      )}
 
       <div className="slots-cabinet">
         <div className="slots-reels">
@@ -106,7 +169,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </div>
-        <p className="slots-paytable">Any pair or triple earns +{REWARD}m. No stake.</p>
+        <p className="slots-paytable">Any pair or triple grows the pot. Then bank — or one double-or-nothing.</p>
       </div>
 
       <AnimatePresence>
@@ -122,9 +185,21 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <button type="button" className="btn btn-primary btn-block" onClick={spin} disabled={spinning}>
-          {spinning ? 'Spinning…' : 'Spin'}
-        </button>
+        {(stage === 'ready' || stage === 'done') && (
+          <button type="button" className="btn btn-primary btn-block" onClick={() => spin(false)}>
+            Spin
+          </button>
+        )}
+        {stage === 'choice' && (
+          <div className="bj-actions">
+            <button type="button" className="btn btn-gold" onClick={bankIt}>
+              Bank it ({Math.round(pot)}m)
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => spin(true)}>
+              Double or nothing
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -21,8 +21,8 @@ export function HomeScreen({
         <div className="eyebrow">Screen time helper</div>
         <h1 className="display xl">screel</h1>
         <p className="lede">
-          Set a daily minute budget for the apps you choose. Play short challenges to earn a little more —
-          never wager what you already have.
+          Set a daily minute budget for the apps you choose. Clear short challenges to keep a bonus pot —
+          push your luck to grow it, or bank it anytime.
         </p>
       </motion.div>
 
@@ -71,21 +71,22 @@ export function HomeScreen({
           </button>
         </div>
         <div className="grid-2">
-          <button type="button" className="game-card bj" onClick={() => onPlay('blackjack')}>
-            <span className="badge">+{GAME_REWARDS.blackjack}m</span>
-            <h3>Blackjack</h3>
-            <p>Beat the dealer. Earn minutes on a win.</p>
+          <button type="button" className="game-card math" onClick={() => onPlay('math')}>
+            <span className="badge">+{GAME_REWARDS.math}m</span>
+            <h3>Math sprint</h3>
+            <p>Skill challenge — ten answers, thirty seconds.</p>
           </button>
           <button type="button" className="game-card mines" onClick={() => onPlay('mines')}>
-            <span className="badge">+{GAME_REWARDS.mines}m</span>
+            <span className="badge">ladder</span>
             <h3>Safe tiles</h3>
-            <p>Five clear tiles. Avoid the mines.</p>
+            <p>Grow the pot. Bank anytime.</p>
           </button>
         </div>
         <p className="lede" style={{ marginTop: 10 }}>
+          {state.winStreak > 0 ? `${state.winStreak} keep streak · ` : ''}
           {earnLeftToday > 0
-            ? `${earnLeftToday}m still earnable from challenges today.`
-            : 'Daily earn cap reached — allowance still runs until reset.'}
+            ? `${earnLeftToday}m still keepable from challenges today.`
+            : 'Daily keep cap reached — allowance still runs until reset.'}
         </p>
       </section>
 

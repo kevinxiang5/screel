@@ -20,12 +20,13 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">Profile</div>
         <h1 className="display lg">You</h1>
-        <p className="lede">Tune Screel. Stay honest about what it is: a screen-time helper with earn challenges.</p>
+        <p className="lede">Tune Screel. Stay honest about what it is: a screen-time helper with focus challenges.</p>
       </motion.div>
 
       <div className="disclosure-box" style={{ marginTop: 14 }}>
         <p>
-          No real money. Minigames award fixed minutes when you succeed and never take minutes when you miss.
+          No real money. Challenges build a bonus pot you can bank. Optional commit can miss minutes from
+          today — intentional friction for focus.
         </p>
       </div>
 

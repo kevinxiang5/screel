@@ -84,8 +84,8 @@ export function SetupFlow() {
           <>
             <h1 className="display lg">Welcome to Screel</h1>
             <p className="lede">
-              Set a daily minute budget for apps you choose. Optional minigames can earn a little more —
-              losses never take from your bank.
+              Set a daily minute budget for apps you choose. Optional challenges let you keep a bonus pot —
+              bank anytime, or push further and risk wiping the unbanked pot.
             </p>
             <div className="disclosure-box">
               <p>

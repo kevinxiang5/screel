@@ -3086,3 +3086,154 @@ button {
 }
 
 
+.commit-slider {
+  margin: 10px 0 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(246, 243, 234, 0.03);
+}
+
+.commit-slider.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.commit-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.commit-slider-head strong {
+  font-family: var(--font-accent);
+  font-size: 1.25rem;
+  color: var(--lime);
+}
+
+.commit-slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--lime);
+}
+
+.commit-slider-hint {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--mute);
+}
+
+.pot-ticker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(200, 255, 46, 0.22);
+  background: linear-gradient(135deg, rgba(200, 255, 46, 0.08), rgba(246, 243, 234, 0.02));
+}
+
+.pot-ticker strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.pot-ticker p {
+  margin: 0;
+  max-width: 18ch;
+  text-align: right;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--mute);
+}
+
+.near-miss {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(255, 138, 138, 0.9);
+}
+
+.mine-tile.near {
+  opacity: 0.35;
+}
+
+.math-stage {
+  margin-top: 8px;
+  padding: 18px 14px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(246, 243, 234, 0.03);
+}
+
+.math-problem {
+  margin: 18px 0 20px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 12vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.math-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.game-card.math {
+  background:
+    radial-gradient(circle at 85% 20%, rgba(200, 255, 46, 0.18), transparent 45%),
+    linear-gradient(160deg, #163526, #0a1a12);
+}
+
+.rl-live-stage {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  margin: 8px 0 12px;
+  min-height: 240px;
+  transition: min-height 0.35s ease;
+}
+
+.rl-live-stage.active {
+  min-height: 300px;
+}
+
+.pick-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pick-red.btn-primary {
+  background: #c81e1e;
+  color: #fff;
+  border-color: #c81e1e;
+}
+
+.pick-black.btn-primary {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #444;
+}
+
+.pick-green.btn-primary {
+  background: #0f8a3c;
+  color: #fff;
+  border-color: #0f8a3c;
+}
+
+.mines-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
