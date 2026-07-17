@@ -19,25 +19,31 @@
   color-scheme: dark;
 }
 
+/* Display font is reserved for hero moments (brand, big numbers).
+   Accent falls back to the body family so dense UI stays easy on the eyes. */
 html[data-font='felt'],
 html:not([data-font]) {
   --font-display: 'Syne', system-ui, sans-serif;
   --font-body: 'Outfit', system-ui, sans-serif;
+  --font-accent: 'Outfit', system-ui, sans-serif;
 }
 
 html[data-font='editorial'] {
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'Lora', Georgia, serif;
+  --font-accent: 'Lora', Georgia, serif;
 }
 
 html[data-font='soft'] {
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Nunito', system-ui, sans-serif;
+  --font-accent: 'Nunito', system-ui, sans-serif;
 }
 
 html[data-font='clean'] {
   --font-display: 'DM Sans', system-ui, sans-serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-accent: 'DM Sans', system-ui, sans-serif;
 }
 
 *,
@@ -300,6 +306,14 @@ button {
   margin: 0;
 }
 
+/* Mid-size headings drop to the calmer accent face; only xl keeps the loud display font. */
+.display.lg,
+.display.md {
+  font-family: var(--font-accent);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 .display.xl {
   font-size: clamp(2.6rem, 11vw, 3.5rem);
 }
@@ -445,7 +459,7 @@ button {
 
 .section-head h2 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -480,7 +494,7 @@ button {
 
 .stat-tile .value {
   margin-top: 8px;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 1.55rem;
   letter-spacing: -0.03em;
@@ -567,7 +581,7 @@ button {
 
 .game-card h3 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: clamp(1.05rem, 4.2vw, 1.4rem);
   font-weight: 800;
   letter-spacing: -0.045em;
@@ -817,7 +831,7 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
   animation: dealIn 0.35s ease both;
@@ -867,7 +881,7 @@ button {
   padding: 14px 16px;
   border-radius: 16px;
   text-align: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 1.15rem;
   letter-spacing: -0.02em;
@@ -958,7 +972,7 @@ button {
   border: 3px solid var(--gold);
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 1.35rem;
   color: var(--gold);
@@ -1070,7 +1084,7 @@ button {
 }
 
 .delta {
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 1rem;
 }
@@ -1142,7 +1156,7 @@ button {
   border-radius: 20px;
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 1.5rem;
   color: var(--ink);
@@ -1261,7 +1275,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 0.85rem;
   flex-shrink: 0;
@@ -1296,7 +1310,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 0.72rem;
   z-index: 2;
@@ -1332,7 +1346,7 @@ button {
 }
 
 .bj-balance strong {
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.15rem;
   color: var(--lime);
 }
@@ -1586,7 +1600,7 @@ button {
   inset: 0;
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 1.4rem;
   color: rgba(200, 255, 46, 0.55);
@@ -1599,7 +1613,7 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 0.72rem;
   line-height: 1;
@@ -1756,7 +1770,7 @@ button {
 .rl-live-status {
   position: relative;
   z-index: 1;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 1.05rem;
   letter-spacing: -0.02em;
@@ -1780,7 +1794,7 @@ button {
   padding: 10px 18px;
   border-radius: 18px;
   text-align: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-weight: 800;
   font-size: 2rem;
   letter-spacing: -0.04em;
@@ -1893,7 +1907,7 @@ button {
 
 .rl-bet-total strong {
   color: var(--lime);
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.1rem;
 }
 
@@ -1952,7 +1966,7 @@ button {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   font-size: 1.2rem;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
 }
 
 .rl-numbers {
@@ -2097,7 +2111,7 @@ button {
 
 .legal-prose h3 {
   margin: 22px 0 8px;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.05rem;
 }
 
@@ -2150,7 +2164,7 @@ button {
 
 .screel-toast strong {
   display: block;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 0.95rem;
   margin-bottom: 2px;
 }
@@ -2236,7 +2250,7 @@ button {
 
 .screel-modal h2 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.35rem;
   letter-spacing: -0.03em;
 }
@@ -2523,7 +2537,7 @@ button {
 
 .wager-readout strong {
   color: var(--snow);
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.25rem;
 }
 
@@ -2705,7 +2719,7 @@ button {
 }
 
 .hilo-rank {
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 3rem;
   font-weight: 800;
   line-height: 1;
@@ -2737,7 +2751,7 @@ button {
   background: linear-gradient(160deg, rgba(246, 243, 234, 0.07), rgba(246, 243, 234, 0.02));
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 2.6rem;
   font-weight: 800;
   color: var(--snow);
@@ -2808,7 +2822,7 @@ button {
 
 .ad-rescue-copy h3 {
   margin: 6px 0 4px;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.1rem;
 }
 
@@ -2860,7 +2874,7 @@ button {
 
 .ad-player-frame h3 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.3rem;
   color: var(--snow);
 }
@@ -2896,7 +2910,7 @@ button {
 }
 
 .reward-badge strong {
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.35rem;
   color: var(--lime);
 }
@@ -3004,7 +3018,7 @@ button {
 
 .bank-pin-sheet h2 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.25rem;
   letter-spacing: -0.03em;
 }
@@ -3057,7 +3071,7 @@ button {
   border: 1px solid var(--line);
   background: rgba(246, 243, 234, 0.06);
   color: var(--snow);
-  font-family: var(--font-display);
+  font-family: var(--font-accent);
   font-size: 1.35rem;
   font-weight: 700;
 }
