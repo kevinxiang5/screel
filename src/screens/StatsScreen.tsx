@@ -1,6 +1,17 @@
 import { motion } from 'framer-motion';
-import { Spade, Target } from 'lucide-react';
+import { Bomb, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
+import type { GameKind } from '../types';
 import { useScreel } from '../context/ScreelContext';
+
+const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
+  blackjack: { label: 'Blackjack', icon: Spade },
+  roulette: { label: 'Roulette', icon: Target },
+  mines: { label: 'Mines', icon: Bomb },
+  crash: { label: 'Crash', icon: Rocket },
+  slots: { label: 'Slots', icon: Cherry },
+  hilo: { label: 'Hi-Lo', icon: Layers },
+  dice: { label: 'Dice', icon: Dices },
+};
 
 export function StatsScreen() {
   const { state } = useScreel();
@@ -53,13 +64,15 @@ export function StatsScreen() {
         ) : (
           state.history.map((h) => {
             const delta = h.payout - h.wager;
+            const meta = GAME_META[h.game] ?? GAME_META.blackjack;
+            const Icon = meta.icon;
             return (
               <div className="history-item" key={h.id}>
                 <div className="history-icon">
-                  {h.game === 'blackjack' ? <Spade size={18} /> : <Target size={18} />}
+                  <Icon size={18} />
                 </div>
                 <div>
-                  <h4>{h.game === 'blackjack' ? 'Blackjack' : 'Roulette'}</h4>
+                  <h4>{meta.label}</h4>
                   <p>
                     {h.detail} · {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>

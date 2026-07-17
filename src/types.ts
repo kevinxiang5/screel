@@ -1,12 +1,21 @@
 export type TabId = 'home' | 'play' | 'bank' | 'stats' | 'you';
 
-export type GameId = 'blackjack' | 'roulette' | null;
+export type GameKind =
+  | 'blackjack'
+  | 'roulette'
+  | 'mines'
+  | 'crash'
+  | 'slots'
+  | 'hilo'
+  | 'dice';
+
+export type GameId = GameKind | null;
 
 export type RoundResult = 'win' | 'lose' | 'push' | 'blackjack';
 
 export interface HistoryEntry {
   id: string;
-  game: 'blackjack' | 'roulette';
+  game: GameKind;
   wager: number;
   payout: number;
   result: RoundResult;
@@ -64,4 +73,10 @@ export interface ScreelState {
   challenges: DailyChallenge[];
   soundOn: boolean;
   riskAlerts: boolean;
+  /** Rewarded-ad minute rescues used in the current period (daily cap). */
+  adRescuesUsed: number;
 }
+
+/** Rewarded-ad rescue economy. */
+export const AD_RESCUE_MINUTES = 5;
+export const AD_RESCUE_DAILY_CAP = 3;

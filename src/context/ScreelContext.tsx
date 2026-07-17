@@ -1,13 +1,16 @@
 import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
-import type {
-  DailyChallenge,
-  FontTheme,
-  HistoryEntry,
-  RoundResult,
-  ScreelState,
-  UsageSource,
+import {
+  AD_RESCUE_DAILY_CAP,
+  AD_RESCUE_MINUTES,
+  type DailyChallenge,
+  type FontTheme,
+  type GameKind,
+  type HistoryEntry,
+  type RoundResult,
+  type ScreelState,
+  type UsageSource,
 } from '../types';
 import {
   ALLOWANCE_MAX,
@@ -82,6 +85,7 @@ const defaultState = (): ScreelState => {
     challenges: defaultChallenges(),
     soundOn: true,
     riskAlerts: true,
+    adRescuesUsed: 0,
   };
 };
 
@@ -115,6 +119,7 @@ function loadState(): ScreelState {
           : Boolean(parsed.ageVerified && parsed.connected),
       fontTheme: (parsed.fontTheme as FontTheme) || 'felt',
       challenges: parsed.challenges?.length ? parsed.challenges : defaultChallenges(),
+      adRescuesUsed: typeof parsed.adRescuesUsed === 'number' ? Math.max(0, parsed.adRescuesUsed) : 0,
     };
   } catch {
     return base;
@@ -130,13 +135,17 @@ interface ScreelContextValue {
   disconnectScreenTime: () => void;
   syncUsageMinutes: (minutes: number) => void;
   settleRound: (payload: {
-    game: 'blackjack' | 'roulette';
+    game: GameKind;
     wager: number;
     payout: number;
     result: RoundResult;
     detail: string;
   }) => void;
   claimChallenge: (id: string) => void;
+  /** Rewarded-ad rescues left today. */
+  adRescuesLeft: number;
+  /** Credit minutes after a completed rewarded ad. Returns false when capped. */
+  claimAdRescue: () => boolean;
   updateProfile: (
     patch: Partial<
       Pick<ScreelState, 'displayName' | 'soundOn' | 'riskAlerts' | 'ageVerified' | 'fontTheme' | 'setupComplete'>
@@ -187,6 +196,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           minutesUsed: 0,
           challenges: defaultChallenges(),
           streak: s.streak + 1,
+          adRescuesUsed: 0,
         };
       });
     };
@@ -361,6 +371,23 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         if (shouldShield) void ScreelScreenTime.applyShieldWhenBroke({ broke: true });
         else if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
       },
+      adRescuesLeft: Math.max(0, AD_RESCUE_DAILY_CAP - state.adRescuesUsed),
+      claimAdRescue: () => {
+        if (state.adRescuesUsed >= AD_RESCUE_DAILY_CAP) return false;
+        let shouldClear = false;
+        setState((s) => {
+          if (s.adRescuesUsed >= AD_RESCUE_DAILY_CAP) return s;
+          const nextBank = s.minutesBank + AD_RESCUE_MINUTES;
+          shouldClear = s.usageSource === 'screenTime' && s.connected && nextBank - s.minutesUsed > 0;
+          return {
+            ...s,
+            minutesBank: nextBank,
+            adRescuesUsed: s.adRescuesUsed + 1,
+          };
+        });
+        if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
+        return true;
+      },
       claimChallenge: (id) => {
         setState((s) => {
           const challenge = s.challenges.find((c) => c.id === id);
@@ -398,6 +425,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             streak: s.streak + 1,
             timeZone,
             activePeriodId: periodId(new Date(), s.resetHour, s.resetMinute, timeZone),
+            adRescuesUsed: 0,
           };
         }),
     };

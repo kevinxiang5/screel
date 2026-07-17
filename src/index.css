@@ -2430,4 +2430,451 @@ button {
   font-family: 'DM Sans', system-ui, sans-serif;
 }
 
+/* —— Arcade floor cards —— */
+.game-card.mines {
+  background:
+    radial-gradient(circle at 80% 10%, rgba(200, 255, 46, 0.3), transparent 45%),
+    linear-gradient(160deg, #16281f, #070d0a);
+}
+
+.game-card.mines::after {
+  content: '✶';
+  right: -4%;
+  bottom: -14%;
+  font-size: clamp(5.5rem, 24vw, 7.5rem);
+  color: var(--lime);
+  transform: rotate(14deg);
+}
+
+.game-card.crash {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(91, 157, 255, 0.32), transparent 50%),
+    linear-gradient(160deg, #141b2e, #07090f);
+}
+
+.game-card.crash::after {
+  content: '▲';
+  right: -2%;
+  bottom: -10%;
+  font-size: clamp(5rem, 22vw, 7rem);
+  color: #5b9dff;
+  transform: rotate(24deg);
+}
+
+.game-card.slots {
+  background:
+    radial-gradient(circle at 85% 100%, rgba(240, 201, 77, 0.32), transparent 50%),
+    linear-gradient(160deg, #2a2210, #0e0b05);
+}
+
+.game-card.slots::after {
+  content: '7';
+  right: 2%;
+  bottom: -16%;
+  font-size: clamp(6rem, 26vw, 8rem);
+  color: var(--gold);
+  transform: rotate(-8deg);
+}
+
+.game-card.hilo {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 75, 43, 0.26), transparent 45%),
+    linear-gradient(160deg, #241722, #0d070c);
+}
+
+.game-card.hilo::after {
+  content: '♦';
+  right: -4%;
+  bottom: -12%;
+  font-size: clamp(5.5rem, 24vw, 7.5rem);
+  color: var(--coral);
+  transform: rotate(-14deg);
+}
+
+.game-card.dice {
+  background:
+    radial-gradient(circle at 80% 0%, rgba(45, 212, 160, 0.3), transparent 45%),
+    linear-gradient(160deg, #10261f, #060d0a);
+}
+
+.game-card.dice::after {
+  content: '⚄';
+  right: -4%;
+  bottom: -14%;
+  font-size: clamp(5.5rem, 24vw, 7.5rem);
+  color: #2dd4a0;
+  transform: rotate(12deg);
+}
+
+/* —— Shared wager bar —— */
+.wager-bar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.wager-readout {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.82rem;
+  color: var(--mute);
+}
+
+.wager-readout strong {
+  color: var(--snow);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.wager-quick {
+  display: flex;
+  gap: 8px;
+}
+
+.wager-quick .btn {
+  flex: 1;
+}
+
+/* —— Mines —— */
+.mines-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mines-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mine-tile {
+  aspect-ratio: 1;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(246, 243, 234, 0.08), rgba(246, 243, 234, 0.02));
+  color: var(--snow);
+  display: grid;
+  place-items: center;
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+
+.mine-tile:not(:disabled):active {
+  transform: scale(0.92);
+}
+
+.mine-tile.safe {
+  background: var(--lime-dim);
+  border-color: rgba(200, 255, 46, 0.4);
+  color: var(--lime);
+}
+
+.mine-tile.boom {
+  background: var(--coral-dim);
+  border-color: rgba(255, 75, 43, 0.5);
+  color: #ff8a74;
+}
+
+.mines-count-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* —— Crash —— */
+.crash-stage {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 16px 22px;
+  margin-bottom: 12px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 110%, rgba(91, 157, 255, 0.18), transparent 60%),
+    linear-gradient(180deg, #0a1020, #060a12);
+  overflow: hidden;
+  min-height: 220px;
+}
+
+.crash-rocket {
+  color: #5b9dff;
+}
+
+.crash-stage.crashed .crash-rocket {
+  color: #ff8a74;
+}
+
+.crash-mult {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 12vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--snow);
+  font-variant-numeric: tabular-nums;
+}
+
+.crash-mult.running {
+  color: var(--lime);
+}
+
+.crash-mult.crashed {
+  color: #ff8a74;
+}
+
+.crash-mult.cashed {
+  color: var(--gold);
+}
+
+.crash-sub {
+  font-size: 0.85rem;
+  color: var(--mute);
+}
+
+/* —— Slots —— */
+.slots-cabinet {
+  display: grid;
+  gap: 14px;
+  padding: 20px 16px;
+  margin-bottom: 12px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(240, 201, 77, 0.14), transparent 55%),
+    linear-gradient(180deg, #171207, #0b0804);
+}
+
+.slots-reels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.slots-reel {
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  font-size: clamp(2.2rem, 12vw, 3rem);
+  border-radius: 16px;
+  border: 1px solid rgba(240, 201, 77, 0.3);
+  background: linear-gradient(180deg, rgba(246, 243, 234, 0.09), rgba(246, 243, 234, 0.02));
+}
+
+.slots-reel.spinning span {
+  filter: blur(2px);
+  opacity: 0.85;
+}
+
+.slots-paytable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--mute);
+}
+
+/* —— Hi-Lo —— */
+.hilo-stage {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.hilo-card {
+  width: 130px;
+  height: 180px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #fdfcf8, #e9e4d5);
+  color: #14120f;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.hilo-card.red {
+  color: #c0181f;
+}
+
+.hilo-rank {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.hilo-suit {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.hilo-stage .mines-meta {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* —— Dice —— */
+.dice-stage {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.dice-readout {
+  justify-self: center;
+  min-width: 120px;
+  padding: 18px 26px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(246, 243, 234, 0.07), rgba(246, 243, 234, 0.02));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--snow);
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-readout.win {
+  color: var(--lime);
+  border-color: rgba(200, 255, 46, 0.4);
+}
+
+.dice-readout.lose {
+  color: #ff8a74;
+  border-color: rgba(255, 75, 43, 0.4);
+}
+
+.dice-slider-block {
+  display: grid;
+  gap: 8px;
+}
+
+.dice-slider-block input[type='range'] {
+  width: 100%;
+  accent-color: var(--lime);
+}
+
+.dice-slider-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--mute);
+}
+
+.dice-slider-meta strong {
+  color: var(--snow);
+}
+
+.dice-track-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+/* —— Ad rescue —— */
+.ad-rescue-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(240, 201, 77, 0.4);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(240, 201, 77, 0.22), transparent 55%),
+    linear-gradient(160deg, #241d0b, #0e0b05);
+}
+
+.ad-rescue-copy .badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.ad-rescue-copy h3 {
+  margin: 6px 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.ad-rescue-copy p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--mute);
+  line-height: 1.4;
+}
+
+.ad-rescue-card .btn {
+  flex-shrink: 0;
+}
+
+.ad-player {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 4, 0.9);
+  backdrop-filter: blur(12px);
+}
+
+.ad-player-frame {
+  width: min(360px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(240, 201, 77, 0.35);
+  background: linear-gradient(165deg, #1c160a, #0a0805);
+  text-align: center;
+  color: var(--gold);
+}
+
+.ad-player-tag {
+  justify-self: start;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(240, 201, 77, 0.5);
+  color: var(--gold);
+}
+
+.ad-player-frame h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--snow);
+}
+
+.ad-player-frame p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mute);
+  line-height: 1.45;
+}
+
+.ad-player-count {
+  font-size: 0.85rem;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
 
