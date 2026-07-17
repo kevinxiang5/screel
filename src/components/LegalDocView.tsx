@@ -101,9 +101,10 @@ function OddsBody() {
       </div>
       <h3>How keeping works</h3>
       <ul>
-        <li>Safe tiles / Timing run / Higher-lower — grow a pot, bank anytime</li>
+        <li>Safe tiles — 5 hazards on a 25-tile board; grow a pot, bank anytime</li>
+        <li>Timing run / Higher-lower — grow a pot, bank anytime</li>
         <li>Color spin — match your color; bank or double again</li>
-        <li>Twenty-one — win, then bank or go again to double</li>
+        <li>Twenty-one — double on first two cards, or bank / go again after a win</li>
         <li>Match three — bank a match or one double-up respin</li>
         <li>Roll under — set your own target; harder = bigger pot</li>
       </ul>

@@ -98,7 +98,7 @@ export function HomeScreen({
           <button type="button" className="game-card mines" onClick={() => onPlay('mines')}>
             <span className="badge">ladder</span>
             <h3>Safe tiles</h3>
-            <p>Grow the pot. Bank anytime.</p>
+            <p>5 hazards on the board. Grow the pot. Bank anytime.</p>
           </button>
         </div>
         <p className="lede" style={{ marginTop: 10 }}>

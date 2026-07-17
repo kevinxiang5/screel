@@ -51,6 +51,8 @@ function CardView({ card }: { card: Card }) {
   );
 }
 
+const MAX_RIDES = 3;
+
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
   const [phase, setPhase] = useState<Phase>('ready');
@@ -60,11 +62,14 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const [base, setBase] = useState(0);
   const [commit, setCommit] = useState(0);
   const [pot, setPot] = useState(0);
+  const [rides, setRides] = useState(0);
+  const [canDouble, setCanDouble] = useState(false);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' | 'push' } | null>(null);
   const [busy, setBusy] = useState(false);
   const shoeRef = useRef(shoe);
   const potRef = useRef(0);
   const commitRef = useRef(0);
+  const ridesRef = useRef(0);
   shoeRef.current = shoe;
 
   const pull = () => {
@@ -79,6 +84,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     setBanner(null);
     setDealer([]);
     setPlayer([]);
+    setCanDouble(false);
     setPhase('playing');
 
     if (ridePot == null) {
@@ -89,6 +95,8 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       setBase(b);
       setPot(b);
       potRef.current = b;
+      setRides(0);
+      ridesRef.current = 0;
     } else {
       setPot(ridePot);
       potRef.current = ridePot;
@@ -110,12 +118,14 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       await finish([p1, p2], [d1, { ...d2, hidden: false }], true);
       return;
     }
+    setCanDouble(true);
     setBusy(false);
   };
 
   const hit = async () => {
     if (busy || phase !== 'playing') return;
     setBusy(true);
+    setCanDouble(false);
     const next = [...player, pull()];
     setPlayer(next);
     if (handValue(next) > 21) {
@@ -128,7 +138,22 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const stand = async () => {
     if (busy || phase !== 'playing') return;
     setBusy(true);
+    setCanDouble(false);
     await finish(player, dealer, false);
+  };
+
+  /** Double the pot, take exactly one more card, then hold. */
+  const doubleDown = async () => {
+    if (busy || phase !== 'playing' || !canDouble || player.length !== 2) return;
+    setBusy(true);
+    setCanDouble(false);
+    const doubled = Math.round(potRef.current * 2);
+    setPot(doubled);
+    potRef.current = doubled;
+    const next = [...player, pull()];
+    setPlayer(next);
+    await sleep(280);
+    await finish(next, dealer, false);
   };
 
   const finish = async (pCards: Card[], dStart: Card[], natural: boolean) => {
@@ -220,11 +245,19 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   };
 
   const letItRide = () => {
+    if (ridesRef.current >= MAX_RIDES) {
+      bankIt();
+      return;
+    }
     const doubled = Math.round(potRef.current * 2);
     setPot(doubled);
     potRef.current = doubled;
+    ridesRef.current += 1;
+    setRides(ridesRef.current);
     void beginRound(doubled);
   };
+
+  const ridesLeft = Math.max(0, MAX_RIDES - rides);
 
   return (
     <div className="screen game-stage bj-screen">
@@ -280,7 +313,17 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <p className="rl-hint">Win to grow the pot. Bank it — or go again to double.</p>
+        <p className="rl-hint">
+          {phase === 'playing'
+            ? canDouble
+              ? 'Double doubles the pot and draws one card — then you hold.'
+              : 'Draw or hold. Win to bank or go again.'
+            : phase === 'ride'
+              ? ridesLeft > 0
+                ? `Bank it, or go again to double (${ridesLeft} double${ridesLeft === 1 ? '' : 's'} left).`
+                : 'Max doubles reached — bank your pot.'
+              : 'Win to grow the pot. Double on your first two cards, or go again after a win.'}
+        </p>
         <div className="bj-actions wrap">
           {phase === 'ready' || phase === 'result' ? (
             <button
@@ -296,11 +339,13 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
               <button type="button" className="btn btn-gold" onClick={bankIt}>
                 Bank it ({Math.round(pot)}m)
               </button>
-              <button type="button" className="btn btn-primary" onClick={letItRide}>
-                Go again (×2)
-              </button>
+              {ridesLeft > 0 && (
+                <button type="button" className="btn btn-primary" onClick={letItRide}>
+                  Go again (×2)
+                </button>
+              )}
             </>
-          ) : (
+          ) : phase === 'playing' ? (
             <>
               <button type="button" className="btn btn-secondary" onClick={() => void hit()} disabled={busy}>
                 Draw
@@ -308,8 +353,13 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
               <button type="button" className="btn btn-primary" onClick={() => void stand()} disabled={busy}>
                 Hold
               </button>
+              {canDouble && (
+                <button type="button" className="btn btn-gold" onClick={() => void doubleDown()} disabled={busy}>
+                  Double ({Math.round(pot * 2)}m)
+                </button>
+              )}
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

@@ -101,7 +101,8 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       )}
 
       <p className="lede" style={{ marginTop: 0 }}>
-        Reveal safe tiles to grow the pot. Bank it anytime — or hit a hazard and the pot is gone.
+        This board has <strong>{MINES} hazards</strong> hidden in {GRID} tiles. Reveal safe tiles to grow
+        the pot. Bank anytime — hit a hazard and the pot is gone.
       </p>
 
       <div className={`mines-grid ${stage === 'done' ? 'over' : ''}`}>
@@ -137,9 +138,15 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <div className="stat-tile" style={{ marginBottom: 10 }}>
-          <div className="label">Safe tiles</div>
-          <div className="value">{revealed.size}</div>
+        <div className="grid-2" style={{ marginBottom: 10, gap: 10 }}>
+          <div className="stat-tile">
+            <div className="label">Hazards</div>
+            <div className="value">{MINES}</div>
+          </div>
+          <div className="stat-tile">
+            <div className="label">Safe found</div>
+            <div className="value">{revealed.size}</div>
+          </div>
         </div>
         {stage === 'live' && (
           <div className="bj-actions">
