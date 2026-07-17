@@ -4,6 +4,21 @@ import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 import { GAME_EARN_DAILY_CAP, GAME_REWARDS, type GameId, type TabId } from '../types';
 
+const GOAL_LINES: Record<string, string> = {
+  scroll: 'Less scrolling, more living. Your budget keeps the feed in check.',
+  sleep: 'Earlier nights start with tighter days. Your budget has your back.',
+  focus: 'Deep work needs quiet apps. Your budget holds the line.',
+  present: 'Look up more. Your budget keeps the phone in its place.',
+};
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return 'Up late';
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export function HomeScreen({
   onNavigate,
   onPlay,
@@ -14,15 +29,19 @@ export function HomeScreen({
   const { state, remaining, earnLeftToday, claimChallenge } = useScreel();
   const { toast } = useScreelUI();
   const usedPct = Math.min(100, Math.round((state.minutesUsed / Math.max(1, state.minutesBank)) * 100));
+  const firstName = state.displayName === 'Focus Mode' ? '' : state.displayName.split(' ')[0];
 
   return (
     <div className="screen">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">Screen time helper</div>
+        <div className="eyebrow">
+          {greeting()}
+          {firstName ? `, ${firstName}` : ''}
+        </div>
         <h1 className="display xl">screel</h1>
         <p className="lede">
-          Set a daily minute budget for the apps you choose. Clear short challenges to keep a bonus pot —
-          push your luck to grow it, or bank it anytime.
+          {(state.focusGoal && GOAL_LINES[state.focusGoal]) ||
+            'Set a daily minute budget for the apps you choose. Clear short challenges to keep a bonus pot — bank anytime.'}
         </p>
       </motion.div>
 

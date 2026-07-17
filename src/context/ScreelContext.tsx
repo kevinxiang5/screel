@@ -73,6 +73,8 @@ const defaultState = (): ScreelState => {
     ageVerified: false,
     ageBlocked: false,
     setupComplete: false,
+    focusGoal: null,
+    distractions: [],
     fontTheme: 'felt',
     baseLimit: 240,
     minutesBank: 240,
@@ -155,6 +157,10 @@ function loadState(): ScreelState {
         typeof parsed.setupComplete === 'boolean'
           ? parsed.setupComplete
           : Boolean(parsed.ageVerified && parsed.connected),
+      focusGoal: typeof parsed.focusGoal === 'string' ? parsed.focusGoal : null,
+      distractions: Array.isArray(parsed.distractions)
+        ? parsed.distractions.filter((d): d is string => typeof d === 'string')
+        : [],
       fontTheme: (parsed.fontTheme as FontTheme) || 'felt',
       challenges:
         parsed.challenges?.length && !legacyChallenges ? parsed.challenges : defaultChallenges(),
@@ -205,7 +211,17 @@ interface ScreelContextValue {
   clearBankPin: (pin: string) => Promise<boolean>;
   updateProfile: (
     patch: Partial<
-      Pick<ScreelState, 'displayName' | 'soundOn' | 'riskAlerts' | 'ageVerified' | 'fontTheme' | 'setupComplete'>
+      Pick<
+        ScreelState,
+        | 'displayName'
+        | 'soundOn'
+        | 'riskAlerts'
+        | 'ageVerified'
+        | 'fontTheme'
+        | 'setupComplete'
+        | 'focusGoal'
+        | 'distractions'
+      >
     >,
   ) => void;
   resetDay: () => void;

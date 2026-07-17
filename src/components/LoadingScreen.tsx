@@ -47,7 +47,7 @@ export function LoadingScreen({ onDone }: { onDone: () => void }) {
         >
           screel
         </motion.h1>
-        <p className="loading-sub">Play with your minutes</p>
+        <p className="loading-sub">Make your minutes count</p>
         <div className="loading-bar">
           <span />
         </div>

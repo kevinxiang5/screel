@@ -67,8 +67,8 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       setBanner({
         text:
           commit > 0
-            ? `Mine! Pot gone · ${Math.abs(applied)}m missed.`
-            : 'Mine! Pot wiped — bank unchanged.',
+            ? `Hazard! Pot gone · ${Math.abs(applied)}m missed.`
+            : 'Hazard! Pot wiped — bank unchanged.',
         kind: 'lose',
       });
       return;

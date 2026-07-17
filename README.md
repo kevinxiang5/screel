@@ -1,8 +1,8 @@
 # Screel
 
-Play with your **minute bank**. Set a daily ceiling, then play **Blackjack** or **Roulette** to win or lose fictional minutes.
+**Screen-time helper** for iPhone. Set a daily minute budget for apps you choose, optionally link Apple Screen Time, and clear short focus challenges to keep a bonus pot.
 
-**No real-money gambling.** Minutes cannot be cashed out.
+**No real money.** Minutes are not a currency and cannot be cashed out.
 
 ## Compliance note
 
@@ -20,11 +20,11 @@ Open the local URL Vite prints (usually `http://localhost:5173`).
 
 ## What’s inside
 
-- **Age gate** (18+ pending counsel confirmation)
-- **Loading screen** → Home with bank, challenges, quick play
-- **Play** — Blackjack + Roulette (minute wagers)
-- **Bank** — Screen Time link (native) or simulated fallback, daily ceiling, claims, reset day
-- **Stats** — net minutes, win rate, history
-- **You** — profile, toggles, Privacy / Terms / Odds / Responsible play
+- **Personalized setup** — name, goal, distractions, suggested budget, Screen Time connect
+- **Home** — remaining minutes, streak, daily goals, quick play
+- **Play** — Math Sprint (skill) plus press-your-luck challenges (Safe tiles, Timing run, Color spin, Blackjack, and more)
+- **Bank** — Screen Time link (native) or simulated fallback, daily ceiling, optional PIN, claims
+- **Stats** — kept / missed minutes, keep rate, history
+- **You** — profile, toggles, Privacy / Terms / How challenges work
 
 Progress saves in `localStorage`.

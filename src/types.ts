@@ -53,6 +53,10 @@ export interface ScreelState {
   ageBlocked: boolean;
   /** Finished post-age setup (allowance / reset / connect prompt). */
   setupComplete: boolean;
+  /** Why the user is here — picked during onboarding, personalizes copy. */
+  focusGoal: string | null;
+  /** App categories the user said eat their time. */
+  distractions: string[];
   fontTheme: FontTheme;
   /** Daily Screel allowance in minutes (30–960). */
   baseLimit: number;
@@ -87,7 +91,7 @@ export interface ScreelState {
   minutesEarnedToday: number;
   /**
    * Default commit for the next challenge (0–COMMIT_MAX).
-   * 0 = press-your-luck only (Second Thought style).
+   * 0 = press-your-luck only; nothing leaves the bank on a miss.
    */
   commitMinutes: number;
   /**

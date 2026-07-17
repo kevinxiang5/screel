@@ -237,7 +237,7 @@ export function BankScreen() {
           <h2>Bank lock</h2>
           <span className={`pill ${bankLocked ? 'gold' : ''}`}>{bankLocked ? 'On' : 'Off'}</span>
         </div>
-        <div className="wager-box bank-lock-box">
+        <div className="panel-box bank-lock-box">
           <p className="lede" style={{ margin: 0 }}>
             Optional 4-digit PIN. Locks daily allowance, reset time, and “reset this period” so nobody can
             bump the bank mid-day.
@@ -279,7 +279,7 @@ export function BankScreen() {
             <Lock size={14} /> Unlock to edit allowance
           </button>
         )}
-        <div className="limit-control wager-box allowance-stable">
+        <div className="limit-control panel-box allowance-stable">
           <label>
             <span>How much Screen Time you want</span>
             <strong className="tabular allowance-readout">{formatMinutes(state.baseLimit)}</strong>
@@ -321,7 +321,7 @@ export function BankScreen() {
             <Lock size={14} /> Unlock to edit reset time
           </button>
         )}
-        <div className="wager-box reset-time-box">
+        <div className="panel-box reset-time-box">
           <div className="reset-time-head">
             <span>When your allowance restarts</span>
             <strong className="tabular">{resetLabel}</strong>

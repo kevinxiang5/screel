@@ -38,12 +38,12 @@ function PrivacyBody() {
         Last updated: 2026-07-13.</em>
       </p>
       <h3>Who we are</h3>
-      <p>Screel (“we”) provides a wellbeing-gameplay app. Contact: support@screel.app (replace with your email).</p>
+      <p>Screel (“we”) provides a screen-time helper app. Contact: support@screel.app (replace with your email).</p>
       <h3>Data we store on your device</h3>
       <p>
-        Display nickname, minute bank, usage simulation flags, game history, and settings (including sound and
-        risk alerts). Stored locally (e.g. browser localStorage or on-device storage). We do not operate an
-        account system in v1.
+        Display nickname, minute bank, focus goal and setup answers, challenge history, and settings (including
+        sound and risk alerts). Stored locally (e.g. browser localStorage or on-device storage). We do not
+        operate an account system in v1.
       </p>
       <h3>Network</h3>
       <p>
@@ -66,7 +66,10 @@ function TermsBody() {
         <em>Draft for counsel review. Last updated: 2026-07-13. US-oriented. Not a substitute for legal advice.</em>
       </p>
       <h3>Eligibility</h3>
-      <p>You must be at least {AGE_FLOOR} years old and able to form a binding contract where you live.</p>
+      <p>
+        Screel is for self-directed screen-time management by people {AGE_FLOOR} or older who can form a
+        binding contract where they live (or have guardian consent).
+      </p>
       <h3>No real money</h3>
       <p>
         Screel is a screen-time helper. The only in-app unit is <strong>minutes</strong> of daily allowance.
