@@ -75,6 +75,11 @@ export interface ScreelState {
   riskAlerts: boolean;
   /** Rewarded-ad minute rescues used in the current period (daily cap). */
   adRescuesUsed: number;
+  /**
+   * Optional SHA-256 hash of a 4-digit bank PIN.
+   * When set, allowance / reset time / period reset need unlock first.
+   */
+  bankPinHash: string | null;
 }
 
 /** Rewarded-ad rescue economy. */

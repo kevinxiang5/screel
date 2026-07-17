@@ -18,6 +18,7 @@ import {
   detectTimeZone,
   periodId,
 } from '../utils/dayPeriod';
+import { hashBankPin, isValidPin, pinsMatch } from '../utils/bankPin';
 
 const STORAGE_KEY = 'screel-v2';
 
@@ -86,6 +87,7 @@ const defaultState = (): ScreelState => {
     soundOn: true,
     riskAlerts: true,
     adRescuesUsed: 0,
+    bankPinHash: null,
   };
 };
 
@@ -120,6 +122,7 @@ function loadState(): ScreelState {
       fontTheme: (parsed.fontTheme as FontTheme) || 'felt',
       challenges: parsed.challenges?.length ? parsed.challenges : defaultChallenges(),
       adRescuesUsed: typeof parsed.adRescuesUsed === 'number' ? Math.max(0, parsed.adRescuesUsed) : 0,
+      bankPinHash: typeof parsed.bankPinHash === 'string' ? parsed.bankPinHash : null,
     };
   } catch {
     return base;
@@ -146,6 +149,14 @@ interface ScreelContextValue {
   adRescuesLeft: number;
   /** Credit minutes after a completed rewarded ad. Returns false when capped. */
   claimAdRescue: () => boolean;
+  /** True when a bank PIN is configured. */
+  bankLocked: boolean;
+  /** Session unlock — settings editable until lock again / remount. */
+  bankUnlocked: boolean;
+  unlockBank: (pin: string) => Promise<boolean>;
+  lockBankSession: () => void;
+  setBankPin: (pin: string) => Promise<boolean>;
+  clearBankPin: (pin: string) => Promise<boolean>;
   updateProfile: (
     patch: Partial<
       Pick<ScreelState, 'displayName' | 'soundOn' | 'riskAlerts' | 'ageVerified' | 'fontTheme' | 'setupComplete'>
@@ -172,6 +183,7 @@ async function restartNativeMonitor(state: ScreelState, resetUsed: boolean) {
 
 export function ScreelProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ScreelState>(() => loadState());
+  const [bankUnlocked, setBankUnlocked] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -226,6 +238,11 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on period
+  }, [state.activePeriodId]);
+
+  // Relock bank settings when the daily period rolls.
+  useEffect(() => {
+    setBankUnlocked(false);
   }, [state.activePeriodId]);
 
   const remaining = Math.max(0, state.minutesBank - state.minutesUsed);
@@ -401,6 +418,36 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         });
       },
+      bankLocked: Boolean(state.bankPinHash),
+      bankUnlocked: !state.bankPinHash || bankUnlocked,
+      unlockBank: async (pin) => {
+        if (!state.bankPinHash) {
+          setBankUnlocked(true);
+          return true;
+        }
+        const ok = await pinsMatch(pin, state.bankPinHash);
+        if (ok) setBankUnlocked(true);
+        return ok;
+      },
+      lockBankSession: () => setBankUnlocked(false),
+      setBankPin: async (pin) => {
+        if (!isValidPin(pin)) return false;
+        const hash = await hashBankPin(pin);
+        setState((s) => ({ ...s, bankPinHash: hash }));
+        setBankUnlocked(true);
+        return true;
+      },
+      clearBankPin: async (pin) => {
+        if (!state.bankPinHash) {
+          setBankUnlocked(true);
+          return true;
+        }
+        const ok = await pinsMatch(pin, state.bankPinHash);
+        if (!ok) return false;
+        setState((s) => ({ ...s, bankPinHash: null }));
+        setBankUnlocked(true);
+        return true;
+      },
       updateProfile: (patch) => setState((s) => ({ ...s, ...patch })),
       verifyAge: () => setState((s) => ({ ...s, ageVerified: true, ageBlocked: false })),
       blockUnderage: () =>
@@ -429,7 +476,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         }),
     };
-  }, [state, remaining]);
+  }, [state, remaining, bankUnlocked]);
 
   return <ScreelContext.Provider value={value}>{children}</ScreelContext.Provider>;
 }

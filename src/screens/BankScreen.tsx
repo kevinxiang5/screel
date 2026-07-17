@@ -1,6 +1,7 @@
-import { motion } from 'framer-motion';
-import { Link2, Link2Off, RefreshCw, Shield } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link2, Link2Off, Lock, LockOpen, RefreshCw, Shield } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { BankPinModal, type BankPinMode } from '../components/BankPinGate';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 import { connectScreenTimeFlow } from '../native/connectScreenTimeFlow';
@@ -27,15 +28,30 @@ export function BankScreen() {
     disconnectScreenTime,
     claimChallenge,
     resetDay,
+    bankLocked,
+    bankUnlocked,
+    unlockBank,
+    lockBankSession,
+    setBankPin,
+    clearBankPin,
   } = useScreel();
   const { toast, confirm } = useScreelUI();
   const [linking, setLinking] = useState(false);
+  const [pinMode, setPinMode] = useState<BankPinMode | null>(null);
+  const [pendingPin, setPendingPin] = useState<string | null>(null);
   const isNativeLink = state.usageSource === 'screenTime';
+  const settingsEditable = bankUnlocked;
 
   const resetLabel = useMemo(
     () => formatResetClock(state.resetHour, state.resetMinute),
     [state.resetHour, state.resetMinute],
   );
+
+  const requireUnlock = () => {
+    if (settingsEditable) return true;
+    setPinMode('unlock');
+    return false;
+  };
 
   const onConnect = async () => {
     if (linking) return;
@@ -100,6 +116,7 @@ export function BankScreen() {
   };
 
   const onReset = async () => {
+    if (!requireUnlock()) return;
     const ok = await confirm({
       title: 'Reset this period?',
       message: `Restores bank to ${formatMinutes(state.baseLimit)}, clears used minutes, unlocks apps. Next auto-reset is still ${resetLabel}.`,
@@ -134,8 +151,14 @@ export function BankScreen() {
   };
 
   const onResetTimeChange = (value: string) => {
+    if (!requireUnlock()) return;
     const [h, m] = value.split(':').map(Number);
     if (Number.isFinite(h) && Number.isFinite(m)) setResetTime(h, m);
+  };
+
+  const onAllowanceChange = (n: number) => {
+    if (!requireUnlock()) return;
+    setBaseLimit(n);
   };
 
   return (
@@ -211,9 +234,51 @@ export function BankScreen() {
 
       <section className="section">
         <div className="section-head">
+          <h2>Bank lock</h2>
+          <span className={`pill ${bankLocked ? 'gold' : ''}`}>{bankLocked ? 'On' : 'Off'}</span>
+        </div>
+        <div className="wager-box bank-lock-box">
+          <p className="lede" style={{ margin: 0 }}>
+            Optional 4-digit PIN. Locks daily allowance, reset time, and “reset this period” so nobody can
+            bump the bank mid-day.
+          </p>
+          <div className="bank-lock-actions">
+            {!bankLocked ? (
+              <button type="button" className="btn btn-secondary btn-block" onClick={() => setPinMode('set')}>
+                <Lock size={16} /> Set PIN
+              </button>
+            ) : settingsEditable ? (
+              <>
+                <button type="button" className="btn btn-secondary btn-block" onClick={lockBankSession}>
+                  <Lock size={16} /> Lock settings again
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-block"
+                  onClick={() => setPinMode('remove')}
+                >
+                  Remove PIN
+                </button>
+              </>
+            ) : (
+              <button type="button" className="btn btn-gold btn-block" onClick={() => setPinMode('unlock')}>
+                <LockOpen size={16} /> Unlock settings
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className={`section ${!settingsEditable ? 'bank-settings-locked' : ''}`}>
+        <div className="section-head">
           <h2>Daily allowance</h2>
           <span className="pill gold tabular">{formatMinutes(state.baseLimit)}</span>
         </div>
+        {!settingsEditable && (
+          <button type="button" className="bank-lock-banner" onClick={() => setPinMode('unlock')}>
+            <Lock size={14} /> Unlock to edit allowance
+          </button>
+        )}
         <div className="limit-control wager-box allowance-stable">
           <label>
             <span>How much Screen Time you want</span>
@@ -225,7 +290,8 @@ export function BankScreen() {
             max={ALLOWANCE_MAX}
             step={15}
             value={state.baseLimit}
-            onChange={(e) => setBaseLimit(Number(e.target.value))}
+            disabled={!settingsEditable}
+            onChange={(e) => onAllowanceChange(Number(e.target.value))}
           />
           <div className="preset-row">
             {ALLOWANCE_PRESETS.map((p) => (
@@ -233,7 +299,8 @@ export function BankScreen() {
                 key={p}
                 type="button"
                 className={`btn btn-sm ${state.baseLimit === p ? 'btn-gold' : 'btn-secondary'}`}
-                onClick={() => setBaseLimit(p)}
+                disabled={!settingsEditable}
+                onClick={() => onAllowanceChange(p)}
               >
                 {formatMinutes(p)}
               </button>
@@ -245,10 +312,15 @@ export function BankScreen() {
         </div>
       </section>
 
-      <section className="section">
+      <section className={`section ${!settingsEditable ? 'bank-settings-locked' : ''}`}>
         <div className="section-head">
           <h2>Daily reset time</h2>
         </div>
+        {!settingsEditable && (
+          <button type="button" className="bank-lock-banner" onClick={() => setPinMode('unlock')}>
+            <Lock size={14} /> Unlock to edit reset time
+          </button>
+        )}
         <div className="wager-box reset-time-box">
           <div className="reset-time-head">
             <span>When your allowance restarts</span>
@@ -259,6 +331,7 @@ export function BankScreen() {
               type="time"
               className="time-input"
               value={toTimeInputValue(state.resetHour, state.resetMinute)}
+              disabled={!settingsEditable}
               onChange={(e) => onResetTimeChange(e.target.value)}
             />
           </div>
@@ -266,7 +339,12 @@ export function BankScreen() {
             Uses this phone’s timezone. At that time Screel restores your ceiling and unlocks apps.
           </p>
         </div>
-        <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 12 }} onClick={onReset}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          style={{ marginTop: 12 }}
+          onClick={() => void onReset()}
+        >
           <RefreshCw size={16} /> Reset this period now
         </button>
       </section>
@@ -299,6 +377,48 @@ export function BankScreen() {
           );
         })}
       </section>
+
+      <AnimatePresence>
+        {pinMode && (
+          <BankPinModal
+            mode={pinMode}
+            pendingPin={pendingPin}
+            onCancel={() => {
+              setPinMode(null);
+              setPendingPin(null);
+            }}
+            onUnlock={async (pin) => {
+              const ok = await unlockBank(pin);
+              if (ok) {
+                toast('Bank settings unlocked for this session.', { title: 'Unlocked', tone: 'success' });
+                setPinMode(null);
+              }
+              return ok;
+            }}
+            onSet={(pin) => {
+              setPendingPin(pin);
+              setPinMode('confirm');
+            }}
+            onConfirm={async (pin) => {
+              const ok = await setBankPin(pin);
+              if (ok) {
+                toast('Allowance and reset time now need this PIN.', { title: 'PIN set', tone: 'success' });
+                setPendingPin(null);
+                setPinMode(null);
+              }
+              return ok;
+            }}
+            onRemove={async (pin) => {
+              const ok = await clearBankPin(pin);
+              if (ok) {
+                toast('Bank lock turned off.', { title: 'PIN removed', tone: 'info' });
+                setPinMode(null);
+              }
+              return ok;
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

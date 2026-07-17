@@ -2878,3 +2878,140 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+/* —— Bank PIN lock —— */
+.bank-lock-box {
+  display: grid;
+  gap: 14px;
+}
+
+.bank-lock-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.bank-lock-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(240, 201, 77, 0.35);
+  background: var(--gold-dim);
+  color: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.bank-settings-locked .wager-box,
+.bank-settings-locked .limit-control {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.bank-pin-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+  background: rgba(2, 6, 4, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.bank-pin-sheet {
+  width: min(400px, 100%);
+  padding: 22px 18px 18px;
+  border-radius: 28px 28px 22px 22px;
+  border: 1px solid rgba(240, 201, 77, 0.3);
+  background:
+    radial-gradient(circle at 80% 0%, rgba(240, 201, 77, 0.16), transparent 45%),
+    linear-gradient(165deg, #1a2218, #070d0a);
+  text-align: center;
+  margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.bank-pin-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: var(--gold-dim);
+  color: var(--gold);
+  border: 1px solid rgba(240, 201, 77, 0.35);
+}
+
+.bank-pin-sheet h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+}
+
+.bank-pin-sheet > p {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--mute);
+  line-height: 1.4;
+}
+
+.bank-pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 18px 0 10px;
+}
+
+.bank-pin-dots span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(246, 243, 234, 0.35);
+  background: transparent;
+}
+
+.bank-pin-dots span.filled {
+  background: var(--lime);
+  border-color: var(--lime);
+  box-shadow: 0 0 10px rgba(200, 255, 46, 0.45);
+}
+
+.bank-pin-error {
+  min-height: 1.2em;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  color: #ff8a74;
+}
+
+.bank-pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+
+.bank-pin-key {
+  height: 56px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(246, 243, 234, 0.06);
+  color: var(--snow);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.bank-pin-key:active:not(:disabled) {
+  background: rgba(200, 255, 46, 0.16);
+}
+
+.bank-pin-key.muted {
+  font-size: 1rem;
+  color: var(--mute);
+}
+
+
