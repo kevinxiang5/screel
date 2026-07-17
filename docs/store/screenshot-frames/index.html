@@ -73,32 +73,58 @@
   .dual .stage { gap: 24px; align-items: center; padding: 0 40px; }
   .dual .phone { width: 540px; transform: rotate(-6deg) translateY(30px); }
   .dual .phone.right { transform: rotate(6deg) translateY(-10px); }
+
+  /* —— iPad 12.9" frames (2048×2732) —— */
+  .pad {
+    width: 2048px;
+    height: 2732px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0a1410 0%, #050806 45%, #030504 100%);
+    font-family: Outfit, system-ui, sans-serif;
+    color: #f6f3ea;
+  }
+  .pad .brand { top: 88px; font-size: 42px; }
+  .pad .copy { top: 170px; left: 120px; right: 120px; }
+  .pad .copy h1 { font-size: 92px; margin-bottom: 22px; }
+  .pad .copy p { font-size: 38px; }
+  .pad .stage {
+    top: 520px;
+    bottom: 64px;
+    gap: 56px;
+    align-items: center;
+    padding: 0 80px;
+  }
+  .pad .phone { width: 780px; transform: rotate(-5deg) translateY(24px); }
+  .pad .phone.right { transform: rotate(5deg) translateY(-16px); }
+  .pad.single .phone { width: 860px; transform: rotate(-3deg); }
 </style>
 </head>
 <body>
+<!-- iPhone 6.5" — order: bank, home, play, stats, duals -->
 <section class="shot" id="s1">
   <div class="brand">scree<i>l</i></div>
-  <div class="copy"><h1>Play with your minutes.</h1><p>Simulated chips. No real money.</p></div>
-  <div class="stage"><div class="phone"><img src="../screenshots/raw/home.png"/></div></div>
+  <div class="copy"><h1>Your minutes.<br/>Your limit.</h1><p>Set a daily budget and link Apple Screen Time.</p></div>
+  <div class="stage"><div class="phone"><img src="../screenshots/raw/bank.png"/></div></div>
 </section>
 <section class="shot" id="s2">
   <div class="brand">scree<i>l</i></div>
-  <div class="copy"><h1>Pick your poison.</h1><p>Every chip is a minute.</p></div>
-  <div class="stage"><div class="phone right"><img src="../screenshots/raw/play.png"/></div></div>
+  <div class="copy"><h1>Make your minutes count.</h1><p>See what’s left today at a glance.</p></div>
+  <div class="stage"><div class="phone right"><img src="../screenshots/raw/home.png"/></div></div>
 </section>
 <section class="shot" id="s3">
   <div class="brand">scree<i>l</i></div>
-  <div class="copy"><h1>One pile. Your rules.</h1><p>Set a limit. Play the rest.</p></div>
-  <div class="stage"><div class="phone"><img src="../screenshots/raw/bank.png"/></div></div>
+  <div class="copy"><h1>Short challenges.<br/>Bonus minutes.</h1><p>Clear a challenge and bank the bonus anytime.</p></div>
+  <div class="stage"><div class="phone"><img src="../screenshots/raw/play.png"/></div></div>
 </section>
 <section class="shot" id="s4">
   <div class="brand">scree<i>l</i></div>
-  <div class="copy"><h1>Know the run.</h1><p>Every minute on the felt.</p></div>
+  <div class="copy"><h1>Progress you can see.</h1><p>Kept minutes, streaks, and history.</p></div>
   <div class="stage"><div class="phone right"><img src="../screenshots/raw/stats.png"/></div></div>
 </section>
 <section class="shot dual" id="s5">
   <div class="brand">scree<i>l</i></div>
-  <div class="copy"><h1>Tonight’s table.</h1><p>From your bank to the floor.</p></div>
+  <div class="copy"><h1>Focus first.<br/>Fun second.</h1><p>A budget for your apps — challenges for your bonus.</p></div>
   <div class="stage">
     <div class="phone"><img src="../screenshots/raw/home.png"/></div>
     <div class="phone right"><img src="../screenshots/raw/play.png"/></div>
@@ -106,7 +132,35 @@
 </section>
 <section class="shot dual" id="s6">
   <div class="brand">scree<i>l</i></div>
-  <div class="copy"><h1>Bank it. Track it.</h1><p>Limits meet the ledger.</p></div>
+  <div class="copy"><h1>Set it. Stick to it.</h1><p>Your limit and your progress, side by side.</p></div>
+  <div class="stage">
+    <div class="phone"><img src="../screenshots/raw/bank.png"/></div>
+    <div class="phone right"><img src="../screenshots/raw/stats.png"/></div>
+  </div>
+</section>
+
+<!-- iPad 12.9" -->
+<section class="pad single" id="p1">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Your minutes. Your limit.</h1><p>Set a daily budget and link Apple Screen Time.</p></div>
+  <div class="stage"><div class="phone"><img src="../screenshots/raw/bank.png"/></div></div>
+</section>
+<section class="pad single" id="p2">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Make your minutes count.</h1><p>See what’s left today at a glance.</p></div>
+  <div class="stage"><div class="phone right"><img src="../screenshots/raw/home.png"/></div></div>
+</section>
+<section class="pad" id="p3">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Short challenges. Bonus minutes.</h1><p>Clear a challenge and bank the bonus anytime.</p></div>
+  <div class="stage">
+    <div class="phone"><img src="../screenshots/raw/play.png"/></div>
+    <div class="phone right"><img src="../screenshots/raw/home.png"/></div>
+  </div>
+</section>
+<section class="pad" id="p4">
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Set it. Stick to it.</h1><p>Your limit and your progress, side by side.</p></div>
   <div class="stage">
     <div class="phone"><img src="../screenshots/raw/bank.png"/></div>
     <div class="phone right"><img src="../screenshots/raw/stats.png"/></div>
