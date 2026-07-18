@@ -43,7 +43,7 @@ Screel is a screen-time helper for iPhone.
 
 • Set a daily minute allowance for apps you select
 • Link Apple Screen Time (Family Controls) to enforce when you’re out
-• Optional challenges: Safe tiles, Timing run, Color spin, Twenty-one, Match three, and more
+• Optional challenges: Safe tiles, Timing run, Multiplier wheel, Twenty-one, Match three, and more
 • Choose a minute stake before each challenge
 • Wins add the displayed payout; misses subtract the stake
 • Daily keep cap · optional PIN lock on allowance settings

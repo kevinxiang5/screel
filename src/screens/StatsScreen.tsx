@@ -6,7 +6,7 @@ import { useScreel } from '../context/ScreelContext';
 
 const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
   blackjack: { label: 'Twenty-one', icon: Spade },
-  roulette: { label: 'Color spin', icon: Target },
+  roulette: { label: 'Multiplier wheel', icon: Target },
   mines: { label: 'Safe tiles', icon: Bomb },
   crash: { label: 'Timing run', icon: Rocket },
   slots: { label: 'Match three', icon: Cherry },

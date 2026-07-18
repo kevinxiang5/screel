@@ -58,8 +58,8 @@ await page.getByRole('button', { name: /7 · Intense/i }).click();
 await page.getByText('7 hazards').waitFor();
 await page.getByRole('button', { name: /Play/ }).click();
 
-await page.getByRole('button', { name: /Color spin/i }).click();
-await page.getByRole('button', { name: /green · 8×/i }).waitFor();
+await page.getByRole('button', { name: /Multiplier wheel/i }).click();
+await page.getByRole('button', { name: /20×/ }).waitFor();
 await page.getByRole('button', { name: /Cinematic/i }).waitFor();
 await page.getByRole('button', { name: /Play/ }).click();
 

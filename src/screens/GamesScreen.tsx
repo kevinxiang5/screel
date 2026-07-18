@@ -105,8 +105,8 @@ export function GamesScreen({
         </button>
         <button type="button" className="game-card featured rl" onClick={() => onSelect('roulette')} disabled={outOfChallenges}>
           <span className="badge">stake</span>
-          <h3>Color spin</h3>
-          <p>Pick a color, watch the wheel. Match to grow — bank or double.</p>
+          <h3>Multiplier wheel</h3>
+          <p>Bet a multiplier (2×–20×). Land it to win stake × multiplier — miss and the stake is spent.</p>
         </button>
 
         <div className="grid-2">
