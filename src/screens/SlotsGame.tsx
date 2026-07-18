@@ -2,6 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { PotTicker } from '../components/PotTicker';
+import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import { seedPot } from '../utils/potMath';
 
@@ -34,7 +35,7 @@ function draw(): SlotSymbol {
 type Stage = 'ready' | 'spinning' | 'choice' | 'done';
 
 export function SlotsGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [reels, setReels] = useState<string[]>(['\u{1F352}', '\u{1F514}', '\u{1F48E}']);
   const [spinningReels, setSpinningReels] = useState([false, false, false]);
   const [stage, setStage] = useState<Stage>('ready');
@@ -43,16 +44,27 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
   const spinTargets = useRef<(string | null)[]>([null, null, null]);
   const potRef = useRef(0);
+  const stakeRef = useRef(0);
   const isDoubleRef = useRef(false);
 
   const spin = (forDouble: boolean) => {
     if (stage === 'spinning') return;
     if (!forDouble) {
+      if (earnLeftToday < 1) {
+        setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
+        return;
+      }
+      if (remaining < 1) {
+        setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
+        return;
+      }
       if (!consumeChallenge()) {
         setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
         return;
       }
-      const b = seedPot('slots');
+      const stake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+      stakeRef.current = stake;
+      const b = seedPot('slots', stake);
       setPot(b);
       potRef.current = b;
       isDoubleRef.current = false;
@@ -92,11 +104,12 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
                 game: 'slots',
                 pot: amount,
                 kept: true,
+                wager: stakeRef.current,
                 detail: `Double keep · ${a.glyph} ${b.glyph} ${c.glyph}`,
                 result: 'win',
               });
               setBanner({
-                text: applied > 0 ? `Doubled! +${applied}m` : 'Match — keep cap full.',
+                text: applied > 0 ? `Doubled! +${applied}m` : 'Match — daily winnings cap reached.',
                 kind: 'win',
               });
               setStage('done');
@@ -109,10 +122,11 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
               game: 'slots',
               pot: 0,
               kept: false,
+              wager: stakeRef.current,
               detail: `${a.glyph} ${b.glyph} ${c.glyph}`,
               result: 'lose',
             });
-            setBanner({ text: 'No match — unbanked pot wiped. Allowance unchanged.', kind: 'lose' });
+            setBanner({ text: `No match · lost ${stakeRef.current}m`, kind: 'lose' });
             setStage('done');
           }
         }
@@ -125,11 +139,12 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
       game: 'slots',
       pot: Math.round(potRef.current),
       kept: true,
+      wager: stakeRef.current,
       detail: 'Banked match pot',
       result: 'win',
     });
     setBanner({
-      text: applied > 0 ? `Banked +${applied}m` : 'Kept — daily keep cap full.',
+      text: applied > 0 ? `Won +${applied}m` : 'Win recorded — daily winnings cap reached.',
       kind: 'win',
     });
     setStage('done');
@@ -147,7 +162,15 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={pot || seedPot('slots')} earnLeft={earnLeftToday} />
+      <PotTicker
+        pot={pot || seedPot('slots', Math.min(state.wagerMinutes, remaining, earnLeftToday))}
+        earnLeft={earnLeftToday}
+        wager={stakeRef.current || Math.min(state.wagerMinutes, remaining, earnLeftToday)}
+      />
+
+      {(stage === 'ready' || stage === 'done') && (
+        <WagerSelector value={state.wagerMinutes} remaining={remaining} limit={earnLeftToday} onChange={setWagerMinutes} />
+      )}
 
       {(stage === 'ready' || stage === 'done') && (
         <div className="option-strip">
@@ -169,7 +192,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </div>
-        <p className="slots-paytable">Any pair or triple grows the pot. Then bank — or one double-up respin.</p>
+        <p className="slots-paytable">Any pair or triple wins. Take the payout — or try one double-up respin.</p>
       </div>
 
       <AnimatePresence>

@@ -26,37 +26,37 @@ export function StatsScreen() {
         <div className="eyebrow">Progress</div>
         <h1 className="display lg">Your run</h1>
         <p className="lede">
-          Minutes kept from challenge bonus pots. Misses never subtract from your daily allowance.
+          Track minute winnings, stake losses, win rate, and challenge history.
         </p>
       </motion.div>
 
       <div className="grid-2 section">
         <div className="stat-tile">
-          <div className="label">Kept (lifetime)</div>
+          <div className="label">Winnings (lifetime)</div>
           <div className="value" style={{ color: 'var(--lime)' }}>
             +{state.totalWon}m
           </div>
         </div>
         <div className="stat-tile">
-          <div className="label">Plan</div>
-          <div className="value">{state.isPremium ? 'Premium' : 'Normal'}</div>
+          <div className="label">Stake losses</div>
+          <div className="value" style={{ color: '#ff8a8a' }}>−{state.totalLost}m</div>
         </div>
         <div className="stat-tile">
-          <div className="label">Keep rate</div>
+          <div className="label">Win rate</div>
           <div className="value">{winRate}%</div>
         </div>
         <div className="stat-tile">
-          <div className="label">Keep streak</div>
+          <div className="label">Win streak</div>
           <div className="value">{state.winStreak}</div>
         </div>
         <div className="stat-tile">
-          <div className="label">Kept today</div>
+          <div className="label">Won today</div>
           <div className="value">
             {state.minutesEarnedToday}/{GAME_EARN_DAILY_CAP}m
           </div>
         </div>
         <div className="stat-tile">
-          <div className="label">Best keep</div>
+          <div className="label">Best win</div>
           <div className="value">+{state.biggestWin}m</div>
         </div>
       </div>

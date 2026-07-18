@@ -30,6 +30,7 @@ const seeded = {
   soundOn: true,
   riskAlerts: true,
   minutesEarnedToday: 0,
+  wagerMinutes: 5,
   isPremium: false,
   challengesUsedToday: 0,
   challengeAdsUsedToday: 0,
@@ -51,6 +52,8 @@ await boot(seeded);
 await page.getByRole('button', { name: 'Play', exact: true }).click();
 await page.getByText('20 challenges left').waitFor();
 await page.getByRole('button', { name: /Safe tiles/i }).click();
+await page.getByLabel('Minute stake').waitFor();
+await page.getByRole('button', { name: '10m' }).click();
 await page.getByRole('button', { name: /7 · Intense/i }).click();
 await page.getByText('7 hazards').waitFor();
 await page.getByRole('button', { name: /Play/ }).click();
@@ -58,6 +61,14 @@ await page.getByRole('button', { name: /Play/ }).click();
 await page.getByRole('button', { name: /Color spin/i }).click();
 await page.getByRole('button', { name: /green · 8×/i }).waitFor();
 await page.getByRole('button', { name: /Cinematic/i }).waitFor();
+await page.getByRole('button', { name: /Play/ }).click();
+
+await page.getByRole('button', { name: /Roll under/i }).click();
+await page.evaluate(() => {
+  Math.random = () => 0.99;
+});
+await page.getByRole('button', { name: /Roll for/i }).click();
+await page.getByText('230m', { exact: true }).waitFor();
 await page.getByRole('button', { name: /Play/ }).click();
 
 await page.getByRole('button', { name: 'You', exact: true }).click();

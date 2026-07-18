@@ -5,13 +5,15 @@ import { GAME_EARN_DAILY_CAP } from '../types';
 export function PotTicker({
   pot,
   earnLeft,
-  label = 'Unbanked bonus',
+  wager,
+  label = 'Current payout',
 }: {
   pot: number;
   earnLeft: number;
+  wager?: number;
   label?: string;
 }) {
-  const display = Math.max(0, Math.round(pot * 10) / 10);
+  const display = Math.max(0, Math.round(Math.min(pot, earnLeft) * 10) / 10);
   return (
     <div className="pot-ticker">
       <div>
@@ -26,9 +28,10 @@ export function PotTicker({
         </motion.strong>
       </div>
       <p>
+        {wager ? `${wager}m stake · ` : ''}
         {earnLeft <= 0
-          ? `Daily keep cap reached (${GAME_EARN_DAILY_CAP}m).`
-          : `${earnLeft}m still keepable today.`}
+          ? `Daily winnings cap reached (${GAME_EARN_DAILY_CAP}m).`
+          : `${earnLeft}m of winnings available today.`}
       </p>
     </div>
   );

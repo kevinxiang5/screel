@@ -8,6 +8,7 @@ import {
   FREE_CHALLENGES_PER_DAY,
   GAME_EARN_DAILY_CAP,
   MINUTE_RESCUE_REWARD,
+  WAGER_MAX,
   type DailyChallenge,
   type FontTheme,
   type GameKind,
@@ -38,8 +39,8 @@ const defaultChallenges = (): DailyChallenge[] => [
   },
   {
     id: 'win-1',
-    title: 'First Keep',
-    description: 'Bank a challenge successfully',
+    title: 'First Win',
+    description: 'Win and bank a challenge payout',
     progress: 0,
     target: 1,
     reward: 10,
@@ -58,6 +59,10 @@ const defaultChallenges = (): DailyChallenge[] => [
 
 function clampAllowance(n: number): number {
   return Math.max(ALLOWANCE_MIN, Math.min(ALLOWANCE_MAX, Math.round(n)));
+}
+
+function clampWager(n: number): number {
+  return Math.max(1, Math.min(WAGER_MAX, Math.round(n)));
 }
 
 const defaultState = (): ScreelState => {
@@ -95,6 +100,7 @@ const defaultState = (): ScreelState => {
     soundOn: true,
     riskAlerts: true,
     minutesEarnedToday: 0,
+    wagerMinutes: 5,
     isPremium: false,
     challengesUsedToday: 0,
     challengeAdsUsedToday: 0,
@@ -172,6 +178,7 @@ function loadState(): ScreelState {
         parsed.challenges?.length && !legacyChallenges ? parsed.challenges : defaultChallenges(),
       minutesEarnedToday:
         typeof parsed.minutesEarnedToday === 'number' ? Math.max(0, parsed.minutesEarnedToday) : 0,
+      wagerMinutes: clampWager(parsed.wagerMinutes ?? 5),
       isPremium: Boolean(parsed.isPremium),
       challengesUsedToday:
         typeof parsed.challengesUsedToday === 'number' ? Math.max(0, parsed.challengesUsedToday) : 0,
@@ -199,14 +206,16 @@ interface ScreelContextValue {
   challengeAdsLeftToday: number;
   setBaseLimit: (n: number) => void;
   setResetTime: (hour: number, minute: number) => void;
+  setWagerMinutes: (n: number) => void;
   connectScreenTime: (opts?: { source?: UsageSource; minutesUsed?: number }) => void;
   disconnectScreenTime: () => void;
   syncUsageMinutes: (minutes: number) => void;
-  /** Keep or forfeit an unbanked bonus pot. Never subtracts existing allowance. */
+  /** Settle a staked round. Wins add profit; losses subtract the stake; pushes change nothing. */
   settleRound: (payload: {
     game: GameKind;
     pot: number;
     kept: boolean;
+    wager?: number;
     detail: string;
     result?: RoundResult;
   }) => number;
@@ -404,6 +413,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         });
       },
+      setWagerMinutes: (n) => setState((s) => ({ ...s, wagerMinutes: clampWager(n) })),
       connectScreenTime: (opts) => {
         const source = opts?.source ?? 'simulated';
         setState((s) => {
@@ -424,10 +434,16 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => ({ ...s, connected: false, usageSource: 'none' })),
       syncUsageMinutes: (minutes) =>
         setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
-      settleRound: ({ game, pot, kept, detail, result }) => {
+      settleRound: ({ game, pot, kept, wager = 0, detail, result }) => {
         const s = stateRef.current;
         const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
-        const applied = kept ? Math.min(Math.max(0, Math.round(pot)), room) : 0;
+        const isPush = result === 'push';
+        const available = Math.max(0, s.minutesBank - s.minutesUsed);
+        const applied = isPush
+          ? 0
+          : kept
+            ? Math.min(Math.max(0, Math.round(pot)), room)
+            : -Math.min(Math.max(0, Math.round(wager)), available);
         const entry: HistoryEntry = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           game,
@@ -448,12 +464,13 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         const xpGain = kept ? (result === 'blackjack' ? 35 : 22) : 4;
         const next: ScreelState = {
           ...s,
-          minutesBank: s.minutesBank + applied,
-          minutesEarnedToday: s.minutesEarnedToday + applied,
-          totalWon: s.totalWon + applied,
-          biggestWin: Math.max(s.biggestWin, applied),
+          minutesBank: Math.max(0, s.minutesBank + applied),
+          minutesEarnedToday: s.minutesEarnedToday + Math.max(0, applied),
+          totalWon: s.totalWon + Math.max(0, applied),
+          totalLost: s.totalLost + Math.max(0, -applied),
+          biggestWin: Math.max(s.biggestWin, Math.max(0, applied)),
           gamesPlayed: s.gamesPlayed + 1,
-          winStreak: kept ? s.winStreak + 1 : 0,
+          winStreak: kept ? s.winStreak + 1 : isPush ? s.winStreak : 0,
           xp: s.xp + xpGain,
           level: Math.max(1, Math.floor((s.xp + xpGain) / 100) + 1),
           history: [entry, ...s.history].slice(0, 80),
@@ -461,8 +478,10 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         };
         stateRef.current = next;
         setState(next);
-        if (applied > 0 && next.usageSource === 'screenTime' && next.connected) {
-          void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
+        if (applied !== 0 && next.usageSource === 'screenTime' && next.connected) {
+          void ScreelScreenTime.applyShieldWhenBroke({
+            broke: next.minutesBank - next.minutesUsed <= 0,
+          });
         }
         return applied;
       },

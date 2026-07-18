@@ -1,8 +1,8 @@
 import { GAME_REWARDS, type GameKind } from '../types';
 
-/** Seed an unearned bonus pot. Existing allowance is never part of a pot. */
-export function seedPot(game: GameKind): number {
-  return GAME_REWARDS[game];
+/** Seed a payout from the selected minute stake. */
+export function seedPot(game: GameKind, wager?: number): number {
+  return Math.max(1, Math.round(wager ?? GAME_REWARDS[game]));
 }
 
 /** Mines ladder multipliers after each safe tile (1-indexed). */

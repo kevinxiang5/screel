@@ -98,21 +98,21 @@ function OddsBody() {
     <>
       <div className="disclosure-box">
         <p>
-          Challenges build a bonus pot you can bank anytime. Pushing further can wipe only that unbanked
-          bonus. Existing allowance is never staked, purchased, transferred, or reduced by a challenge.
+          Choose a minute stake before each challenge. A win adds the displayed payout; a miss subtracts the
+          stake from today’s allowance. Minutes cannot be purchased, transferred, or redeemed for value.
         </p>
       </div>
       <h3>How keeping works</h3>
       <ul>
-        <li>Safe tiles — 5 hazards on a 25-tile board; grow a pot, bank anytime</li>
-        <li>Timing run / Higher-lower — grow a pot, bank anytime</li>
+        <li>Safe tiles — choose 3, 5, or 7 hazards; safe tiles grow the payout</li>
+        <li>Timing run / Higher-lower — grow the payout and bank anytime</li>
         <li>Color spin — match your color; bank or double again</li>
         <li>Twenty-one — double on first two cards, or bank / go again after a win</li>
         <li>Match three — bank a match or one double-up respin</li>
-        <li>Roll under — set your own target; harder = bigger pot</li>
+        <li>Roll under — set your own target; harder = bigger payout</li>
       </ul>
       <p>
-        Daily keep from challenges is capped (45m by default). Normal includes 20 daily starts plus limited
+        Daily winnings from challenges are capped (45m by default). Normal includes 20 daily starts plus limited
         rewarded-ad refills; Premium removes ads and start limits. Outcomes use the device RNG.
       </p>
     </>

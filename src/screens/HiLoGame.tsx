@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
 import { PotTicker } from '../components/PotTicker';
+import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import { hiloPot, seedPot } from '../utils/potMath';
 
@@ -23,24 +24,38 @@ function drawValue(exclude?: number, tight = false): number {
 }
 
 export function HiLoGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [deckMode, setDeckMode] = useState<'classic' | 'tight'>('classic');
   const [card, setCard] = useState(8);
   const [suit, setSuit] = useState('♠');
   const [streak, setStreak] = useState(0);
   const [base, setBase] = useState(0);
+  const [stake, setStake] = useState(0);
   const [nearMiss, setNearMiss] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
 
-  const pot = hiloPot(base || seedPot('hilo') * (deckMode === 'tight' ? 1.5 : 1), streak);
+  const pot = hiloPot(
+    base || seedPot('hilo', Math.min(state.wagerMinutes, remaining, earnLeftToday)) * (deckMode === 'tight' ? 1.5 : 1),
+    streak,
+  );
 
   const start = () => {
+    if (earnLeftToday < 1) {
+      setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
+      return;
+    }
+    if (remaining < 1) {
+      setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
+      return;
+    }
     if (!consumeChallenge()) {
       setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
-    setBase(seedPot('hilo') * (deckMode === 'tight' ? 1.5 : 1));
+    const nextStake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+    setStake(nextStake);
+    setBase(seedPot('hilo', nextStake) * (deckMode === 'tight' ? 1.5 : 1));
     setCard(drawValue(undefined, deckMode === 'tight'));
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     setStreak(0);
@@ -56,12 +71,13 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
       game: 'hilo',
       pot: amount,
       kept: true,
+      wager: stake,
       detail: `Banked after ${streak} correct calls`,
       result: 'win',
     });
     setStage('done');
     setBanner({
-      text: applied > 0 ? `Banked +${applied}m after ${streak}` : 'Kept — daily keep cap full.',
+      text: applied > 0 ? `Won +${applied}m after ${streak}` : 'Win recorded — daily winnings cap reached.',
       kind: 'win',
     });
   };
@@ -79,10 +95,11 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
         game: 'hilo',
         pot: 0,
         kept: false,
+        wager: stake,
         detail: `Missed after ${streak} correct`,
         result: 'lose',
       });
-      setBanner({ text: `${label(next)} — unbanked pot wiped. Allowance unchanged.`, kind: 'lose' });
+      setBanner({ text: `${label(next)} missed · lost ${stake}m`, kind: 'lose' });
       return;
     }
     setStreak((s) => s + 1);
@@ -103,7 +120,11 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={pot} earnLeft={earnLeftToday} />
+      <PotTicker pot={pot} earnLeft={earnLeftToday} wager={stake || Math.min(state.wagerMinutes, remaining, earnLeftToday)} />
+
+      {(stage === 'ready' || stage === 'done') && (
+        <WagerSelector value={state.wagerMinutes} remaining={remaining} limit={earnLeftToday} onChange={setWagerMinutes} />
+      )}
 
       {(stage === 'ready' || stage === 'done') && (
         <div className="option-strip">
@@ -149,7 +170,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
       </AnimatePresence>
 
       <div className="bj-dock">
-        <p className="rl-hint">Correct calls grow the pot. Bank anytime — a miss wipes it.</p>
+        <p className="rl-hint">Correct calls grow the payout. Bank anytime — a miss loses your stake.</p>
         {stage === 'ready' || stage === 'done' ? (
           <button type="button" className="btn btn-primary btn-block" onClick={start}>
             {stage === 'done' ? 'New run' : 'Start'}

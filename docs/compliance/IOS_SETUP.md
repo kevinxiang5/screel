@@ -22,7 +22,7 @@
 
 - Development: Family Controls usually works with your personal team on-device  
 - Distribution: wait for Apple’s Family Controls approval or App Review will reject the entitlement  
-- Review notes: paste from [`APP_STORE_CONNECT_CHECKLIST.md`](./APP_STORE_CONNECT_CHECKLIST.md) (screen-time helper / bonus pots — not “chips” or casino language)
+- Review notes: re-check [`APP_STORE_CONNECT_CHECKLIST.md`](./APP_STORE_CONNECT_CHECKLIST.md); the current minute-stake build carries simulated-gambling review risk
 
 ## Do not
 

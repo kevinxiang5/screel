@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { PotTicker } from '../components/PotTicker';
+import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import {
   createShoe,
@@ -53,7 +54,7 @@ function CardView({ card }: { card: Card }) {
 const MAX_RIDES = 3;
 
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [phase, setPhase] = useState<Phase>('ready');
   const [shoe, setShoe] = useState<Card[]>(() => createShoe());
   const [dealer, setDealer] = useState<Card[]>([]);
@@ -67,6 +68,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const [dealSpeed, setDealSpeed] = useState<'quick' | 'cinematic'>('cinematic');
   const shoeRef = useRef(shoe);
   const potRef = useRef(0);
+  const stakeRef = useRef(0);
   const ridesRef = useRef(0);
   shoeRef.current = shoe;
 
@@ -86,13 +88,27 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     setPhase('playing');
 
     if (ridePot == null) {
+      if (earnLeftToday < 1) {
+        setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
+        setPhase('result');
+        setBusy(false);
+        return;
+      }
+      if (remaining < 1) {
+        setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
+        setPhase('result');
+        setBusy(false);
+        return;
+      }
       if (!consumeChallenge()) {
         setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
         setPhase('result');
         setBusy(false);
         return;
       }
-      const b = seedPot('blackjack');
+      const stake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+      stakeRef.current = stake;
+      const b = seedPot('blackjack', stake);
       setBase(b);
       setPot(b);
       potRef.current = b;
@@ -196,7 +212,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       setPot(amount);
       potRef.current = amount;
       setBanner({
-        text: result === 'blackjack' ? `Natural 21! Pot ${amount}m` : `You win · pot ${amount}m`,
+        text: result === 'blackjack' ? `Natural 21! Payout ${amount}m` : `You win · payout ${amount}m`,
         kind: 'win',
       });
       setPhase('ride');
@@ -209,10 +225,11 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
         game: 'blackjack',
         pot: 0,
         kept: false,
+        wager: stakeRef.current,
         detail: `${handLabel(pCards)} vs ${handLabel(dCards)} · push`,
         result: 'push',
       });
-      setBanner({ text: 'Push — pot unchanged. Try again.', kind: 'push' });
+      setBanner({ text: 'Push — no minutes won or lost.', kind: 'push' });
       setPhase('result');
       setBusy(false);
       return;
@@ -222,10 +239,11 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       game: 'blackjack',
       pot: 0,
       kept: false,
+      wager: stakeRef.current,
       detail: `${handLabel(pCards)} vs ${handLabel(dCards)}`,
       result: 'lose',
     });
-    setBanner({ text: 'House hand wins — unbanked pot wiped. Allowance unchanged.', kind: 'lose' });
+    setBanner({ text: `House hand wins · lost ${stakeRef.current}m`, kind: 'lose' });
     setPhase('result');
     setBusy(false);
   };
@@ -235,11 +253,12 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       game: 'blackjack',
       pot: Math.round(potRef.current),
       kept: true,
+      wager: stakeRef.current,
       detail: 'Banked the pot',
       result: 'win',
     });
     setBanner({
-      text: applied > 0 ? `Banked +${applied}m` : 'Kept — daily keep cap full.',
+      text: applied > 0 ? `Won +${applied}m` : 'Win recorded — daily winnings cap reached.',
       kind: 'win',
     });
     setPhase('result');
@@ -272,7 +291,15 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={pot || base || seedPot('blackjack')} earnLeft={earnLeftToday} />
+      <PotTicker
+        pot={pot || base || seedPot('blackjack', Math.min(state.wagerMinutes, remaining, earnLeftToday))}
+        earnLeft={earnLeftToday}
+        wager={stakeRef.current || Math.min(state.wagerMinutes, remaining, earnLeftToday)}
+      />
+
+      {(phase === 'ready' || phase === 'result') && (
+        <WagerSelector value={state.wagerMinutes} remaining={remaining} limit={earnLeftToday} onChange={setWagerMinutes} />
+      )}
 
       {(phase === 'ready' || phase === 'result') && (
         <div className="option-strip">
@@ -321,13 +348,13 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
         <p className="rl-hint">
           {phase === 'playing'
             ? canDouble
-              ? 'Double doubles the pot and draws one card — then you hold.'
+              ? 'Double doubles the payout and draws one card — then you hold.'
               : 'Draw or hold. Win to bank or go again.'
             : phase === 'ride'
               ? ridesLeft > 0
                 ? `Bank it, or go again to double (${ridesLeft} double${ridesLeft === 1 ? '' : 's'} left).`
-                : 'Max doubles reached — bank your pot.'
-              : 'Win to grow the pot. Double on your first two cards, or go again after a win.'}
+                : 'Max doubles reached — bank your payout.'
+              : 'Win to grow the payout. Double on your first two cards, or go again after a win.'}
         </p>
         <div className="bj-actions wrap">
           {phase === 'ready' || phase === 'result' ? (

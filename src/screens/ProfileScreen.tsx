@@ -54,8 +54,8 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
 
       <div className="disclosure-box" style={{ marginTop: 14 }}>
         <p>
-          Challenges build an unbanked bonus pot. A miss can wipe that bonus, but your existing daily
-          allowance never shrinks.
+          Challenges use minute stakes. Wins add the displayed payout; misses subtract the selected stake
+          from today’s allowance. Minutes have no cash value.
         </p>
       </div>
 
@@ -202,7 +202,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
         </div>
         <div className="challenge">
           <h3>3. Earn a little more</h3>
-          <p>Optional minigames award fixed minutes when you succeed. Misses never shrink your bank.</p>
+          <p>Choose a stake and play optional minigames. Wins add minutes; misses subtract the stake.</p>
         </div>
       </section>
     </div>

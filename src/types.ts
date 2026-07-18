@@ -16,7 +16,7 @@ export type RoundResult = 'win' | 'lose' | 'push' | 'blackjack';
 export interface HistoryEntry {
   id: string;
   game: GameKind;
-  /** Bonus minutes kept. A miss is always 0; challenges never subtract allowance. */
+  /** Signed minute result: positive winnings, negative stake loss, or 0 for a push. */
   delta: number;
   result: RoundResult;
   detail: string;
@@ -74,7 +74,7 @@ export interface ScreelState {
   level: number;
   /** Minutes kept from challenges (lifetime). */
   totalWon: number;
-  /** Legacy migration field; new challenge rounds never subtract allowance. */
+  /** Minutes lost from challenge stakes (lifetime). */
   totalLost: number;
   biggestWin: number;
   gamesPlayed: number;
@@ -84,6 +84,8 @@ export interface ScreelState {
   riskAlerts: boolean;
   /** Minutes earned from minigames in the current period. */
   minutesEarnedToday: number;
+  /** Default minute stake for the next challenge. */
+  wagerMinutes: number;
   /** StoreKit entitlement. Refreshed from the store on native startup. */
   isPremium: boolean;
   /** Free-plan challenge quota consumed this period. */
@@ -108,6 +110,7 @@ export const FREE_CHALLENGES_PER_DAY = 20;
 export const CHALLENGE_AD_DAILY_CAP = 5;
 export const CHALLENGE_AD_REWARD = 2;
 export const MINUTE_RESCUE_REWARD = 5;
+export const WAGER_MAX = 20;
 
 /** Base minute pot seeds per game (before ladder / multiplier growth). */
 export const GAME_REWARDS: Record<GameKind, number> = {

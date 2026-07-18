@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Dices } from 'lucide-react';
 import { PotTicker } from '../components/PotTicker';
+import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import { dicePot, seedPot } from '../utils/potMath';
 
 export function DiceGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [mode, setMode] = useState<'under' | 'over'>('under');
   const [target, setTarget] = useState(50);
   const [rolling, setRolling] = useState(false);
@@ -14,15 +15,25 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
   const [history, setHistory] = useState<{ roll: number; won: boolean }[]>([]);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
   const chance = mode === 'under' ? target : 100 - target;
-  const previewPot = dicePot(seedPot('dice'), chance);
+  const selectedStake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+  const previewPot = dicePot(seedPot('dice', selectedStake), chance);
 
   const doRoll = () => {
     if (rolling) return;
+    if (earnLeftToday < 1) {
+      setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
+      return;
+    }
+    if (remaining < 1) {
+      setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
+      return;
+    }
     if (!consumeChallenge()) {
       setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
-    const pot = Math.round(dicePot(seedPot('dice'), chance));
+    const stake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+    const pot = Math.round(dicePot(seedPot('dice', stake), chance));
     setRolling(true);
     setBanner(null);
     let ticks = 0;
@@ -40,11 +51,12 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
             game: 'dice',
             pot,
             kept: true,
+            wager: stake,
             detail: `Rolled ${result} ${mode} ${target}`,
             result: 'win',
           });
           setBanner({
-            text: applied > 0 ? `${result} ${mode} ${target} · +${applied}m` : 'Hit — keep cap full.',
+            text: applied > 0 ? `${result} ${mode} ${target} · +${applied}m` : 'Hit — daily winnings cap reached.',
             kind: 'win',
           });
         } else {
@@ -52,10 +64,11 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
             game: 'dice',
             pot: 0,
             kept: false,
+            wager: stake,
             detail: `Rolled ${result}, needed ${mode} ${target}`,
             result: 'lose',
           });
-          setBanner({ text: `${result} missed ${mode} ${target} — no bonus kept.`, kind: 'lose' });
+          setBanner({ text: `${result} missed ${mode} ${target} · lost ${stake}m`, kind: 'lose' });
         }
         setRolling(false);
       }
@@ -74,7 +87,15 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={previewPot} earnLeft={earnLeftToday} label="If you hit" />
+      <PotTicker pot={previewPot} earnLeft={earnLeftToday} wager={selectedStake} label="Potential payout" />
+
+      <WagerSelector
+        value={state.wagerMinutes}
+        remaining={remaining}
+        limit={earnLeftToday}
+        onChange={setWagerMinutes}
+        disabled={rolling}
+      />
 
       <div className="option-strip">
         <span className="hand-label">Call</span>

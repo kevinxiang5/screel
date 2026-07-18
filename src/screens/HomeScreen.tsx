@@ -61,7 +61,7 @@ export function HomeScreen({
         <h1 className="display xl">screel</h1>
         <p className="lede">
           {(state.focusGoal && GOAL_LINES[state.focusGoal]) ||
-            'Set a daily minute budget for the apps you choose. Clear short challenges to keep a bonus pot — bank anytime.'}
+            'Set a daily minute budget for the apps you choose. Stake minutes on short challenges to win more.'}
         </p>
       </motion.div>
 
@@ -124,21 +124,21 @@ export function HomeScreen({
         </div>
         <div className="grid-2">
           <button type="button" className="game-card bj" onClick={() => onPlay('blackjack')}>
-            <span className="badge">pot</span>
+            <span className="badge">stake</span>
             <h3>Twenty-one</h3>
             <p>Beat the house. Bank or double.</p>
           </button>
           <button type="button" className="game-card mines" onClick={() => onPlay('mines')}>
             <span className="badge">ladder</span>
             <h3>Safe tiles</h3>
-            <p>5 hazards on the board. Grow the pot. Bank anytime.</p>
+            <p>Choose a stake. Safe tiles grow your payout.</p>
           </button>
         </div>
         <p className="lede" style={{ marginTop: 10 }}>
-          {state.winStreak > 0 ? `${state.winStreak} keep streak · ` : ''}
+          {state.winStreak > 0 ? `${state.winStreak} win streak · ` : ''}
           {earnLeftToday > 0
-            ? `${earnLeftToday}m still keepable from challenges today.`
-            : 'Daily keep cap reached — allowance still runs until reset.'}
+            ? `${earnLeftToday}m of challenge winnings available today.`
+            : 'Daily winnings cap reached — allowance still runs until reset.'}
         </p>
       </section>
 

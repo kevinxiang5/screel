@@ -214,7 +214,7 @@ export function SetupFlow() {
                   {[
                     { icon: Timer, text: 'Set a daily minute budget for chosen apps' },
                     { icon: ShieldCheck, text: 'Apps can lock when the budget runs out' },
-                    { icon: Sparkles, text: 'Clear challenges to keep bonus minutes' },
+                    { icon: Sparkles, text: 'Stake minutes on challenges to win more' },
                   ].map(({ icon: Icon, text }) => (
                     <motion.div className="feature-row" key={text} variants={chipItem}>
                       <span className="feature-icon">

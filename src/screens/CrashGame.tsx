@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Rocket } from 'lucide-react';
 import { PotTicker } from '../components/PotTicker';
+import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import { crashPot, seedPot } from '../utils/potMath';
 
@@ -21,7 +22,7 @@ function multAt(ms: number): number {
 }
 
 export function CrashGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [mult, setMult] = useState(1);
   const [base, setBase] = useState(0);
@@ -32,18 +33,29 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
   const rafRef = useRef(0);
   const stageRef = useRef<Stage>('ready');
   const baseRef = useRef(0);
+  const stakeRef = useRef(0);
   stageRef.current = stage;
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
-  const pot = crashPot(base || seedPot('crash'), mult);
+  const pot = crashPot(base || seedPot('crash', Math.min(state.wagerMinutes, remaining, earnLeftToday)), mult);
 
   const launch = () => {
+    if (earnLeftToday < 1) {
+      setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
+      return;
+    }
+    if (remaining < 1) {
+      setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
+      return;
+    }
     if (!consumeChallenge()) {
       setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
-    const b = seedPot('crash');
+    const stake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+    stakeRef.current = stake;
+    const b = seedPot('crash', stake);
     setBase(b);
     baseRef.current = b;
     crashPointRef.current = rollCrashPoint();
@@ -62,11 +74,12 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
           game: 'crash',
           pot: 0,
           kept: false,
+          wager: stakeRef.current,
           detail: `Popped at ×${crashPointRef.current.toFixed(2)}`,
           result: 'lose',
         });
         setBanner({
-          text: `Popped at ×${crashPointRef.current.toFixed(2)} — unbanked pot wiped.`,
+          text: `Popped at ×${crashPointRef.current.toFixed(2)} · lost ${stakeRef.current}m`,
           kind: 'lose',
         });
         return;
@@ -80,11 +93,12 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
           game: 'crash',
           pot: amount,
           kept: true,
+          wager: stakeRef.current,
           detail: `Auto-banked at ×${autoBank.toFixed(2)}`,
           result: 'win',
         });
         setBanner({
-          text: applied > 0 ? `Auto-banked at ×${autoBank.toFixed(2)} · +${applied}m` : 'Kept — daily keep cap full.',
+          text: applied > 0 ? `Auto-banked at ×${autoBank.toFixed(2)} · +${applied}m` : 'Win recorded — daily winnings cap reached.',
           kind: 'win',
         });
         return;
@@ -106,11 +120,12 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
       game: 'crash',
       pot: amount,
       kept: true,
+      wager: stakeRef.current,
       detail: `Banked at ×${m.toFixed(2)}`,
       result: 'win',
     });
     setBanner({
-      text: applied > 0 ? `Banked at ×${m.toFixed(2)} · +${applied}m` : 'Kept — daily keep cap full.',
+      text: applied > 0 ? `Banked at ×${m.toFixed(2)} · +${applied}m` : 'Win recorded — daily winnings cap reached.',
       kind: 'win',
     });
   };
@@ -127,7 +142,15 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={pot} earnLeft={earnLeftToday} />
+      <PotTicker
+        pot={pot}
+        earnLeft={earnLeftToday}
+        wager={stakeRef.current || Math.min(state.wagerMinutes, remaining, earnLeftToday)}
+      />
+
+      {(stage === 'ready' || stage === 'done') && (
+        <WagerSelector value={state.wagerMinutes} remaining={remaining} limit={earnLeftToday} onChange={setWagerMinutes} />
+      )}
 
       {(stage === 'ready' || stage === 'done') && (
         <div className="option-strip">
@@ -160,7 +183,7 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
         </motion.div>
         <div className={`crash-mult ${stage}`}>×{mult.toFixed(2)}</div>
         <div className="crash-sub">
-          {stage === 'ready' && 'Bank before it pops to keep the growing pot.'}
+          {stage === 'ready' && 'Bank before it pops to win the growing payout.'}
           {stage === 'running' && 'Growing — bank it before the pop.'}
           {stage === 'done' && 'Run over.'}
         </div>

@@ -1,6 +1,6 @@
 # Screel
 
-**Screen-time helper** for iPhone. Set a daily minute budget for apps you choose, optionally link Apple Screen Time, and clear short focus challenges to keep a bonus pot.
+**Screen-time helper** for iPhone. Set a daily minute budget for apps you choose, optionally link Apple Screen Time, and stake minutes on short focus challenges.
 
 **No real money.** Minutes are not a currency and cannot be cashed out.
 

@@ -3308,6 +3308,72 @@ button {
   background: var(--lime);
 }
 
+.wager-selector {
+  margin: 10px 0 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(240, 201, 77, 0.35);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(240, 201, 77, 0.09), rgba(246, 243, 234, 0.025));
+}
+
+.wager-selector.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.wager-selector-head,
+.wager-selector-head > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wager-selector-head > div {
+  align-items: baseline;
+}
+
+.wager-selector-head strong {
+  color: var(--gold);
+  font-family: var(--font-accent);
+  font-size: 1.3rem;
+}
+
+.wager-selector-head > span {
+  color: var(--mute);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.wager-selector input[type='range'] {
+  width: 100%;
+  margin: 12px 0 8px;
+  accent-color: var(--gold);
+}
+
+.wager-presets {
+  display: flex;
+  gap: 7px;
+}
+
+.wager-presets button {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 8px;
+  color: var(--mute);
+  background: transparent;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.wager-presets button.active {
+  color: #151006;
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
 @media (max-width: 520px) {
   .access-panel,
   .rescue-panel,

@@ -21,12 +21,12 @@ export function AgeGate() {
         <h1 className="display lg">Ready to focus?</h1>
         <p className="lede">
           Screel is a <strong>screen-time helper</strong>. Set a daily minute budget, optionally link Apple
-          Screen Time, and clear short challenges to keep bonus minutes.
+          Screen Time, and stake minutes on short challenges for a chance to win more.
         </p>
         <div className="disclosure-box">
           <p>
-            Challenges build a bonus pot you can bank anytime. Pushing further can wipe only the unbanked
-            bonus; your daily allowance never shrinks. No real money. Designed for self-directed screen-time management (ages{' '}
+            Challenges use minute stakes. Wins add minutes and misses subtract the selected stake from
+            today’s allowance. Minutes have no cash value. No real money. Designed for self-directed screen-time management (ages{' '}
             {AGE_FLOOR}+).
           </p>
         </div>

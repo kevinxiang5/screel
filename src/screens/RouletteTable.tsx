@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { PotTicker } from '../components/PotTicker';
+import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import { seedPot, spinPot } from '../utils/potMath';
 import { WHEEL_ORDER, colorOf, spinWheel, type SpinResult } from '../utils/roulette';
@@ -108,7 +109,7 @@ function WheelGraphic({
 }
 
 export function RouletteTable({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [pick, setPick] = useState<Pick>('red');
   const [stage, setStage] = useState<Stage>('ready');
   const [rotation, setRotation] = useState(0);
@@ -124,10 +125,14 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
   const rotationRef = useRef(0);
   const ballRef = useRef(0);
   const baseRef = useRef(0);
+  const stakeRef = useRef(0);
   const doublesRef = useRef(0);
 
   const pickFactor = pick === 'green' ? 8 : 1;
-  const pot = spinPot(base || seedPot('roulette') * pickFactor, doubles);
+  const pot = spinPot(
+    base || seedPot('roulette', Math.min(state.wagerMinutes, remaining, earnLeftToday)) * pickFactor,
+    doubles,
+  );
   const busy = stage === 'zooming' || stage === 'live' || stage === 'reveal';
 
   const missRound = (spun: SpinResult) => {
@@ -135,11 +140,12 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
       game: 'roulette',
       pot: 0,
       kept: false,
+      wager: stakeRef.current,
       detail: `Picked ${pick}, landed ${spun.number} (${colorOf(spun.number)})`,
       result: 'lose',
     });
     setBanner({
-      text: `${spun.number} ${colorOf(spun.number)} — unbanked pot wiped. Allowance unchanged.`,
+      text: `${spun.number} ${colorOf(spun.number)} · lost ${stakeRef.current}m`,
       kind: 'lose',
     });
     setStage('done');
@@ -191,11 +197,12 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
         game: 'roulette',
         pot: amount,
         kept: true,
+        wager: stakeRef.current,
         detail: `Matched ${pick} · max double banked`,
         result: 'win',
       });
       setBanner({
-        text: applied > 0 ? `Max double · +${applied}m` : 'Matched — keep cap full.',
+        text: applied > 0 ? `Max double · +${applied}m` : 'Matched — daily winnings cap reached.',
         kind: 'win',
       });
       setStage('done');
@@ -210,11 +217,21 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
   };
 
   const start = () => {
+    if (earnLeftToday < 1) {
+      setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
+      return;
+    }
+    if (remaining < 1) {
+      setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
+      return;
+    }
     if (!consumeChallenge()) {
       setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
-    const b = seedPot('roulette') * pickFactor;
+    const stake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+    stakeRef.current = stake;
+    const b = seedPot('roulette', stake) * pickFactor;
     setBase(b);
     baseRef.current = b;
     setDoubles(0);
@@ -228,11 +245,12 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
       game: 'roulette',
       pot: amount,
       kept: true,
+      wager: stakeRef.current,
       detail: `Banked after ${doublesRef.current} doubles`,
       result: 'win',
     });
     setBanner({
-      text: applied > 0 ? `Banked +${applied}m` : 'Kept — daily keep cap full.',
+      text: applied > 0 ? `Won +${applied}m` : 'Win recorded — daily winnings cap reached.',
       kind: 'win',
     });
     setStage('done');
@@ -256,7 +274,15 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={pot} earnLeft={earnLeftToday} />
+      <PotTicker
+        pot={pot}
+        earnLeft={earnLeftToday}
+        wager={stakeRef.current || Math.min(state.wagerMinutes, remaining, earnLeftToday)}
+      />
+
+      {(stage === 'ready' || stage === 'done') && (
+        <WagerSelector value={state.wagerMinutes} remaining={remaining} limit={earnLeftToday} onChange={setWagerMinutes} />
+      )}
 
       {(stage === 'ready' || stage === 'done') && (
         <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
