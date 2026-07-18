@@ -103,9 +103,6 @@ export interface ScreelState {
   bankPinHash: string | null;
 }
 
-/** Cap on minutes earned from minigames per day. */
-export const GAME_EARN_DAILY_CAP = 45;
-
 export const FREE_CHALLENGES_PER_DAY = 20;
 export const CHALLENGE_AD_DAILY_CAP = 5;
 export const CHALLENGE_AD_REWARD = 2;

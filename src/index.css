@@ -2428,8 +2428,8 @@ button {
 /* —— Arcade floor cards —— */
 .game-card.mines {
   background:
-    radial-gradient(circle at 80% 10%, rgba(200, 255, 46, 0.3), transparent 45%),
-    linear-gradient(160deg, #16281f, #070d0a);
+    radial-gradient(circle at 80% 10%, rgba(167, 139, 250, 0.34), transparent 45%),
+    linear-gradient(160deg, #241a38, #0c0716);
 }
 
 .game-card.mines::after {
@@ -2437,7 +2437,7 @@ button {
   right: -4%;
   bottom: -14%;
   font-size: clamp(5.5rem, 24vw, 7.5rem);
-  color: var(--lime);
+  color: #a78bfa;
   transform: rotate(14deg);
 }
 
@@ -2488,8 +2488,8 @@ button {
 
 .game-card.dice {
   background:
-    radial-gradient(circle at 80% 0%, rgba(45, 212, 160, 0.3), transparent 45%),
-    linear-gradient(160deg, #10261f, #060d0a);
+    radial-gradient(circle at 80% 0%, rgba(251, 146, 60, 0.3), transparent 45%),
+    linear-gradient(160deg, #2a1c10, #0e0804);
 }
 
 .game-card.dice::after {
@@ -2497,7 +2497,7 @@ button {
   right: -4%;
   bottom: -14%;
   font-size: clamp(5.5rem, 24vw, 7.5rem);
-  color: #2dd4a0;
+  color: #fb923c;
   transform: rotate(12deg);
 }
 

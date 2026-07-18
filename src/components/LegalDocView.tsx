@@ -106,14 +106,14 @@ function OddsBody() {
       <ul>
         <li>Safe tiles — choose 3, 5, or 7 hazards; safe tiles grow the payout</li>
         <li>Timing run / Higher-lower — grow the payout and bank anytime</li>
-        <li>Color spin — match your color; bank or double again</li>
+        <li>Multiplier wheel — bet a multiplier tier; land it to win stake × multiplier</li>
         <li>Twenty-one — double on first two cards, or bank / go again after a win</li>
         <li>Match three — bank a match or one double-up respin</li>
         <li>Roll under — set your own target; harder = bigger payout</li>
       </ul>
       <p>
-        Daily winnings from challenges are capped (45m by default). Normal includes 20 daily starts plus limited
-        rewarded-ad refills; Premium removes ads and start limits. Outcomes use the device RNG.
+        Normal includes 20 daily starts plus limited rewarded-ad refills; Premium removes ads and start
+        limits. Outcomes use the device RNG.
       </p>
     </>
   );

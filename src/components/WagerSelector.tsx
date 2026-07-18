@@ -3,19 +3,17 @@ import { WAGER_MAX } from '../types';
 export function WagerSelector({
   value,
   remaining,
-  limit,
   onChange,
   disabled = false,
 }: {
   value: number;
   remaining: number;
-  limit?: number;
   onChange: (value: number) => void;
   disabled?: boolean;
 }) {
-  const max = Math.max(1, Math.min(WAGER_MAX, remaining, limit ?? WAGER_MAX));
+  const max = Math.max(1, Math.min(WAGER_MAX, remaining));
   const selected = Math.min(value, max);
-  const unavailable = disabled || remaining < 1 || (limit !== undefined && limit < 1);
+  const unavailable = disabled || remaining < 1;
 
   return (
     <div className={`wager-selector ${unavailable ? 'disabled' : ''}`}>

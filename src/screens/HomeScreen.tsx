@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Flame, PlayCircle, Sparkles, Trophy, Zap } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
-import { GAME_EARN_DAILY_CAP, type GameId, type TabId } from '../types';
+import type { GameId, TabId } from '../types';
 import { showRewardedAd } from '../native/monetization';
 
 const GOAL_LINES: Record<string, string> = {
@@ -28,7 +28,7 @@ export function HomeScreen({
   onNavigate: (tab: TabId) => void;
   onPlay: (game: GameId) => void;
 }) {
-  const { state, remaining, earnLeftToday, claimChallenge, grantMinuteRescue } = useScreel();
+  const { state, remaining, claimChallenge, grantMinuteRescue } = useScreel();
   const { toast } = useScreelUI();
   const [rescueBusy, setRescueBusy] = useState(false);
   const usedPct = Math.min(100, Math.round((state.minutesUsed / Math.max(1, state.minutesBank)) * 100));
@@ -108,9 +108,7 @@ export function HomeScreen({
           </div>
           <div className="meter-meta">
             <span>{state.minutesUsed}m used</span>
-            <span>
-              Earned {state.minutesEarnedToday}/{GAME_EARN_DAILY_CAP}m
-            </span>
+            <span>Won +{state.minutesEarnedToday}m today</span>
           </div>
         </div>
       </motion.div>
@@ -135,10 +133,9 @@ export function HomeScreen({
           </button>
         </div>
         <p className="lede" style={{ marginTop: 10 }}>
-          {state.winStreak > 0 ? `${state.winStreak} win streak · ` : ''}
-          {earnLeftToday > 0
-            ? `${earnLeftToday}m of challenge winnings available today.`
-            : 'Daily winnings cap reached — allowance still runs until reset.'}
+          {state.winStreak > 0
+            ? `${state.winStreak} win streak — keep it going.`
+            : 'Stake minutes from your allowance. Win the round, grow the bank.'}
         </p>
       </section>
 

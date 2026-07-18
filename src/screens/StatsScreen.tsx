@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { Bomb, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
 import type { GameKind } from '../types';
-import { GAME_EARN_DAILY_CAP } from '../types';
 import { useScreel } from '../context/ScreelContext';
 
 const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
@@ -51,9 +50,7 @@ export function StatsScreen() {
         </div>
         <div className="stat-tile">
           <div className="label">Won today</div>
-          <div className="value">
-            {state.minutesEarnedToday}/{GAME_EARN_DAILY_CAP}m
-          </div>
+          <div className="value">+{state.minutesEarnedToday}m</div>
         </div>
         <div className="stat-tile">
           <div className="label">Best win</div>

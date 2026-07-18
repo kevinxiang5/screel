@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Bomb, Gem } from 'lucide-react';
-import { PotTicker } from '../components/PotTicker';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import { minesPot, seedPot } from '../utils/potMath';
@@ -17,7 +16,7 @@ function pickMines(count: number): Set<number> {
 }
 
 export function MinesGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [hazardCount, setHazardCount] = useState(5);
   const [mines, setMines] = useState<Set<number>>(new Set());
@@ -26,14 +25,10 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
   const [stake, setStake] = useState(0);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
 
-  const riskBase = (base || seedPot('mines', Math.min(state.wagerMinutes, remaining, earnLeftToday))) * (hazardCount / 5);
+  const riskBase = (base || seedPot('mines', Math.min(state.wagerMinutes, remaining))) * (hazardCount / 5);
   const pot = minesPot(riskBase, revealed.size);
 
   const start = () => {
-    if (earnLeftToday < 1) {
-      setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
-      return;
-    }
     if (remaining < 1) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
       return;
@@ -42,7 +37,7 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
-    const nextStake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+    const nextStake = Math.min(state.wagerMinutes, remaining);
     setStake(nextStake);
     setBase(seedPot('mines', nextStake));
     setMines(pickMines(hazardCount));
@@ -63,10 +58,7 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       result: 'win',
     });
     setStage('done');
-    setBanner({
-      text: applied > 0 ? `Won +${applied}m` : 'Win recorded — daily winnings cap reached.',
-      kind: 'win',
-    });
+    setBanner({ text: `Won +${applied}m`, kind: 'win' });
   };
 
   const reveal = (i: number) => {
@@ -101,10 +93,8 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={pot} earnLeft={earnLeftToday} wager={stake || Math.min(state.wagerMinutes, remaining, earnLeftToday)} />
-
       {(stage === 'ready' || stage === 'done') && (
-        <WagerSelector value={state.wagerMinutes} remaining={remaining} limit={earnLeftToday} onChange={setWagerMinutes} />
+        <WagerSelector value={state.wagerMinutes} remaining={remaining} onChange={setWagerMinutes} />
       )}
 
       <p className="lede" style={{ marginTop: 0 }}>

@@ -6,7 +6,6 @@ import {
   CHALLENGE_AD_DAILY_CAP,
   CHALLENGE_AD_REWARD,
   FREE_CHALLENGES_PER_DAY,
-  GAME_EARN_DAILY_CAP,
   MINUTE_RESCUE_REWARD,
   WAGER_MAX,
   type DailyChallenge,
@@ -200,8 +199,6 @@ function loadState(): ScreelState {
 interface ScreelContextValue {
   state: ScreelState;
   remaining: number;
-  /** Minutes still available to earn from minigames today. */
-  earnLeftToday: number;
   challengesLeftToday: number;
   challengeAdsLeftToday: number;
   setBaseLimit: (n: number) => void;
@@ -339,7 +336,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
   }, [state.activePeriodId]);
 
   const remaining = Math.max(0, state.minutesBank - state.minutesUsed);
-  const earnLeftToday = Math.max(0, GAME_EARN_DAILY_CAP - state.minutesEarnedToday);
   const challengeAllowance = FREE_CHALLENGES_PER_DAY + state.bonusChallengesToday;
   const challengesLeftToday = state.isPremium
     ? Number.POSITIVE_INFINITY
@@ -385,7 +381,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
     return {
       state,
       remaining,
-      earnLeftToday,
       challengesLeftToday,
       challengeAdsLeftToday,
       setBaseLimit: (n) => {
@@ -436,13 +431,12 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
       settleRound: ({ game, pot, kept, wager = 0, detail, result }) => {
         const s = stateRef.current;
-        const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
         const isPush = result === 'push';
         const available = Math.max(0, s.minutesBank - s.minutesUsed);
         const applied = isPush
           ? 0
           : kept
-            ? Math.min(Math.max(0, Math.round(pot)), room)
+            ? Math.max(0, Math.round(pot))
             : -Math.min(Math.max(0, Math.round(wager)), available);
         const entry: HistoryEntry = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -529,8 +523,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => {
           const challenge = s.challenges.find((c) => c.id === id);
           if (!challenge || challenge.claimed || challenge.progress < challenge.target) return s;
-          const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
-          const applied = Math.min(challenge.reward, room);
+          const applied = challenge.reward;
           return {
             ...s,
             minutesBank: s.minutesBank + applied,
@@ -606,7 +599,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
   }, [
     state,
     remaining,
-    earnLeftToday,
     challengesLeftToday,
     challengeAdsLeftToday,
     bankUnlocked,

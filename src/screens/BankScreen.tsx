@@ -307,7 +307,7 @@ export function BankScreen() {
             ))}
           </div>
           <p className="lede allowance-hint">
-            30 minutes to 16 hours. Challenge wins can add minutes (daily cap).
+            30 minutes to 16 hours. Challenge wins add minutes on top.
           </p>
         </div>
       </section>

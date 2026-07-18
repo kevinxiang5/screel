@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { PotTicker } from '../components/PotTicker';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import {
@@ -95,7 +94,7 @@ function WheelGraphic({
 }
 
 export function RouletteTable({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
   const [pick, setPick] = useState<number>(2);
   const [stage, setStage] = useState<Stage>('ready');
   const [rotation, setRotation] = useState(0);
@@ -107,16 +106,10 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
   const rotationRef = useRef(0);
   const stakeRef = useRef(0);
 
-  const selectedStake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
-  const potentialWin = Math.round(selectedStake * (pick - 1));
   const busy = stage === 'spinning';
 
   const start = async () => {
     if (spinLock.current) return;
-    if (earnLeftToday < 1) {
-      setBanner({ text: 'Daily winnings cap reached. Come back after reset.', kind: 'lose' });
-      return;
-    }
     if (remaining < 1) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
       return;
@@ -126,7 +119,7 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
       return;
     }
 
-    const stake = Math.min(state.wagerMinutes, remaining, earnLeftToday);
+    const stake = Math.min(state.wagerMinutes, remaining);
     stakeRef.current = stake;
     spinLock.current = true;
     setBanner(null);
@@ -157,10 +150,7 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
         detail: `Bet ${pick}× · landed ${landed}×`,
         result: 'win',
       });
-      setBanner({
-        text: applied > 0 ? `Landed ${landed}× · +${applied}m` : 'Win — daily winnings cap reached.',
-        kind: 'win',
-      });
+      setBanner({ text: `Landed ${landed}× · +${applied}m`, kind: 'win' });
     } else {
       settleRound({
         game: 'roulette',
@@ -188,15 +178,8 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <PotTicker pot={potentialWin} earnLeft={earnLeftToday} wager={selectedStake} label="Potential win" />
-
       {(stage === 'ready' || stage === 'done') && (
-        <WagerSelector
-          value={state.wagerMinutes}
-          remaining={remaining}
-          limit={earnLeftToday}
-          onChange={setWagerMinutes}
-        />
+        <WagerSelector value={state.wagerMinutes} remaining={remaining} onChange={setWagerMinutes} />
       )}
 
       {(stage === 'ready' || stage === 'done') && (

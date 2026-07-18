@@ -24,7 +24,6 @@ export function GamesScreen({
   onBack: () => void;
 }) {
   const {
-    earnLeftToday,
     state,
     challengesLeftToday,
     challengeAdsLeftToday,
@@ -67,8 +66,7 @@ export function GamesScreen({
         <h1 className="display lg">Earn more minutes</h1>
         <p className="lede">
           Choose a minute stake, play the challenge, and bank the payout when you win. A miss subtracts your
-          stake. {earnLeftToday}m of winnings still available today.
-          {state.winStreak > 0 ? ` · ${state.winStreak} win streak` : ''}
+          stake.{state.winStreak > 0 ? ` ${state.winStreak} win streak.` : ''}
         </p>
       </motion.div>
 
