@@ -1,38 +1,39 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Bomb, Gem } from 'lucide-react';
-import { CommitSlider } from '../components/CommitSlider';
 import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
 import { minesPot, seedPot } from '../utils/potMath';
 
 const GRID = 25;
-const MINES = 5;
 
 type Stage = 'ready' | 'live' | 'done';
 
-function pickMines(): Set<number> {
+function pickMines(count: number): Set<number> {
   const spots = new Set<number>();
-  while (spots.size < MINES) spots.add(Math.floor(Math.random() * GRID));
+  while (spots.size < count) spots.add(Math.floor(Math.random() * GRID));
   return spots;
 }
 
 export function MinesGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
+  const [hazardCount, setHazardCount] = useState(5);
   const [mines, setMines] = useState<Set<number>>(new Set());
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [base, setBase] = useState(0);
-  const [commit, setCommit] = useState(0);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
 
-  const pot = minesPot(base || seedPot('mines', state.commitMinutes), revealed.size);
+  const riskBase = (base || seedPot('mines')) * (hazardCount / 5);
+  const pot = minesPot(riskBase, revealed.size);
 
   const start = () => {
-    const c = Math.min(state.commitMinutes, remaining);
-    setCommit(c);
-    setBase(seedPot('mines', c));
-    setMines(pickMines());
+    if (!consumeChallenge()) {
+      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
+      return;
+    }
+    setBase(seedPot('mines'));
+    setMines(pickMines(hazardCount));
     setRevealed(new Set());
     setBanner(null);
     setStage('live');
@@ -40,10 +41,11 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
 
   const bankIt = () => {
     if (stage !== 'live' || revealed.size === 0) return;
-    const amount = Math.round(minesPot(base, revealed.size));
+    const amount = Math.round(minesPot(base * (hazardCount / 5), revealed.size));
     const applied = settleRound({
       game: 'mines',
-      delta: amount,
+      pot: amount,
+      kept: true,
       detail: `Banked after ${revealed.size} safe tiles`,
       result: 'win',
     });
@@ -58,19 +60,14 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
     if (stage !== 'live' || revealed.has(i)) return;
     if (mines.has(i)) {
       setStage('done');
-      const applied = settleRound({
+      settleRound({
         game: 'mines',
-        delta: commit > 0 ? -commit : 0,
-        detail: `Mine after ${revealed.size} safe · pot ${Math.round(minesPot(base, revealed.size))}m wiped`,
+        pot: 0,
+        kept: false,
+        detail: `Hazard after ${revealed.size} safe · ${hazardCount} hazard board`,
         result: 'lose',
       });
-      setBanner({
-        text:
-          commit > 0
-            ? `Hazard! Pot gone · ${Math.abs(applied)}m missed.`
-            : 'Hazard! Pot wiped — bank unchanged.',
-        kind: 'lose',
-      });
+      setBanner({ text: 'Hazard! Unbanked pot wiped — allowance unchanged.', kind: 'lose' });
       return;
     }
     const next = new Set(revealed);
@@ -90,20 +87,28 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {stage === 'ready' ? (
-        <CommitSlider
-          value={state.commitMinutes}
-          onChange={setCommitMinutes}
-          remaining={remaining}
-        />
-      ) : (
-        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
-      )}
+      <PotTicker pot={pot} earnLeft={earnLeftToday} />
 
       <p className="lede" style={{ marginTop: 0 }}>
-        This board has <strong>{MINES} hazards</strong> hidden in {GRID} tiles. Reveal safe tiles to grow
+        This board has <strong>{hazardCount} hazards</strong> hidden in {GRID} tiles. Reveal safe tiles to grow
         the pot. Bank anytime — hit a hazard and the pot is gone.
       </p>
+
+      {(stage === 'ready' || stage === 'done') && (
+        <div className="option-strip" aria-label="Safe tiles difficulty">
+          <span className="hand-label">Hazards</span>
+          {[3, 5, 7].map((count) => (
+            <button
+              type="button"
+              key={count}
+              className={hazardCount === count ? 'active' : ''}
+              onClick={() => setHazardCount(count)}
+            >
+              {count} · {count === 3 ? 'Calm' : count === 5 ? 'Focused' : 'Intense'}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className={`mines-grid ${stage === 'done' ? 'over' : ''}`}>
         {Array.from({ length: GRID }, (_, i) => {
@@ -141,7 +146,7 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
         <div className="grid-2" style={{ marginBottom: 10, gap: 10 }}>
           <div className="stat-tile">
             <div className="label">Hazards</div>
-            <div className="value">{MINES}</div>
+            <div className="value">{hazardCount}</div>
           </div>
           <div className="stat-tile">
             <div className="label">Safe found</div>

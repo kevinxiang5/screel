@@ -1,6 +1,6 @@
 # App Store Connect checklist (US only) — screen-time helper / individual account
 
-**Product positioning:** Screen-time helper with optional **focus challenges** (skill + press-your-luck bonus pots). No currency, no purchases for minutes, no cash-out. **Individual Developer account.** Declare **Simulated Gambling = None**.
+**Product positioning:** Screen-time helper with optional focus challenges and additive-only bonus pots. Existing allowance is never wagered or reduced by a challenge. No currency, purchases for minutes, or cash-out. **Individual Developer account.**
 
 ## Age rating questionnaire (must match the binary)
 
@@ -13,7 +13,8 @@
 | Age Assurance | **No** (welcome disclosure only; soft 13+ lockout) |
 | Parental Controls | **No** |
 | Unrestricted Web Access | **No** |
-| UGC / Social / Messaging / Ads | **No** (app contains no ads) |
+| UGC / Social / Messaging | **No** |
+| Advertising | **Yes** (user-initiated Google rewarded ads on Normal only) |
 | Other mature content | **None** unless clearly present |
 
 Expected rating: Productivity / Lifestyle — **not** 17+ simulated gambling.
@@ -31,7 +32,7 @@ If you answer Simulated Gambling = Frequent/Infrequent on an Individual account,
 **Subtitle:** `Challenges for screen time`
 
 **Promotional text:**  
-Screel helps you set a daily minute budget. Clear short challenges to keep a bonus pot — bank anytime, or push further.
+Set a daily minute budget, build better habits, and clear optional focus challenges. Premium adds unlimited ad-free challenge play.
 
 **Description:**
 
@@ -42,8 +43,10 @@ Screel is a screen-time helper for iPhone.
 • Link Apple Screen Time (Family Controls) to enforce when you’re out
 • Optional challenges: Safe tiles, Timing run, Color spin, Twenty-one, Match three, and more
 • Grow a bonus pot and bank it anytime — miss wipes the unbanked pot
-• Optional commit: miss minutes from today’s allowance (focus friction, default off)
+• Existing allowance is never wagered or reduced by challenge outcomes
 • Daily keep cap · optional PIN lock on allowance settings
+• Normal: 20 daily challenges with optional rewarded-ad refills
+• Premium subscription: unlimited challenges, no ads, and richer stats
 
 No real money. No deposits. No cash-out. Minutes are only your daily screen allowance.
 
@@ -53,7 +56,7 @@ Designed for self-directed screen-time management. United States only for v1.
 **Keywords:** `screen time,focus,habit,app limit,digital wellbeing,minutes,challenge`
 
 **What’s New (resubmit):**  
-Focus challenges with bonus pots you can bank anytime. Optional commit defaults to off. Screen-time helper positioning.
+Added Normal and Premium plans, additive-only bonus pots, challenge customization, and clearer progress stats.
 
 ## Review notes (paste)
 
@@ -64,9 +67,11 @@ Users set a daily minute allowance and may authorize Apple Family Controls / Dev
 
 Optional challenges:
 • Challenges build a temporary BONUS POT. Users may bank the pot anytime. Continuing can wipe the unbanked pot. This is foregone bonus time, not a wager against purchased currency.
-• Optional “commit” (default 0) lets a user intentionally risk minutes from today’s allowance as a commitment device. Losing reduces screen time — the product’s purpose. Nothing is purchased or cashed out.
+• Existing allowance is never placed into a challenge and never decreases after a miss.
 
-No real money, deposits, withdrawals, chips, or IAP for minutes. No simulated gambling currency.
+Normal includes 20 daily challenge starts. Users may voluntarily complete up to five rewarded ads for +2 starts each and one rewarded ad for a +5-minute rescue when out of minutes. Premium is an auto-renewable subscription for unlimited starts, no ads, and richer statistics. Premium does not improve odds, raise minute rewards, or sell minutes.
+
+No real money, deposits, withdrawals, chips, or IAP for minutes.
 
 United States only. No demo account — all data on-device.
 
@@ -78,7 +83,7 @@ Store screenshots should lead with the bank / Screen Time setup (not the color w
 ```
 Thank you for the feedback. Screel is a screen-time helper, not a casino product.
 
-Minigames are framed as focus challenges. They build a temporary bonus pot the user can bank anytime; missing wipes only the unbanked pot. An optional commit (default off) can reduce today’s allowance as intentional focus friction — never purchased currency, never cash-out.
+Minigames are framed as focus challenges. They build a temporary bonus pot the user can bank anytime; missing wipes only the unbanked bonus. Existing allowance is never wagered or reduced by a challenge.
 
 We declare Simulated Gambling = None, refresh metadata and screenshots to match the productivity positioning, and resubmit a new binary. Please re-review as a screen-time / digital-wellbeing app suitable for an Individual developer account.
 ```
@@ -95,8 +100,9 @@ We declare Simulated Gambling = None, refresh metadata and screenshots to match 
 
 ## App Privacy
 
-- Product Interaction for App Functionality, not linked, not tracking (or “No data collected” if you prefer local-only optional disclosure)
-- Advertising: **No**
+- Advertising: **Yes**
+- Update the privacy nutrition label for Google Mobile Ads before submission. Review Device ID, Product Interaction, Advertising Data, Diagnostics, Third-Party Advertising, and Analytics against Google’s current SDK disclosure.
+- Ads request non-personalized treatment (`npa: true`); Screel does not request ATT permission or use IDFA.
 
 ## Family Controls (blocking)
 
@@ -111,7 +117,9 @@ Without distribution approval, App Store / TestFlight uploads that include the F
 
 ## Before Submit
 
-- [ ] New binary with challenge / pot model (no ads, no “Blackjack” label in UI)
+- [ ] Create auto-renewable subscription `com.screel.app.premium.monthly`, add localization/price, and attach it to the version
+- [ ] Create AdMob iOS app + rewarded units; replace Google sample IDs before release
+- [ ] New binary with additive-only challenge / pot model (no “Blackjack” label in UI)
 - [ ] Age ratings: Simulated Gambling = **None**
 - [ ] Listing copy matches above
 - [ ] Screenshots lead with bank + setup (not casino-looking tables)

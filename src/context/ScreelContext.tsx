@@ -1,9 +1,13 @@
 import { Capacitor } from '@capacitor/core';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
+import { checkPremium } from '../native/monetization';
 import {
-  COMMIT_MAX,
+  CHALLENGE_AD_DAILY_CAP,
+  CHALLENGE_AD_REWARD,
+  FREE_CHALLENGES_PER_DAY,
   GAME_EARN_DAILY_CAP,
+  MINUTE_RESCUE_REWARD,
   type DailyChallenge,
   type FontTheme,
   type GameKind,
@@ -20,7 +24,7 @@ import {
 } from '../utils/dayPeriod';
 import { hashBankPin, isValidPin, pinsMatch } from '../utils/bankPin';
 
-const STORAGE_KEY = 'screel-v2';
+const STORAGE_KEY = 'screel-v3';
 
 const defaultChallenges = (): DailyChallenge[] => [
   {
@@ -56,15 +60,12 @@ function clampAllowance(n: number): number {
   return Math.max(ALLOWANCE_MIN, Math.min(ALLOWANCE_MAX, Math.round(n)));
 }
 
-function clampCommit(n: number): number {
-  return Math.max(0, Math.min(COMMIT_MAX, Math.round(n)));
-}
-
 const defaultState = (): ScreelState => {
   const timeZone = detectTimeZone();
   const resetHour = 4;
   const resetMinute = 0;
   return {
+    schemaVersion: 3,
     displayName: 'Focus Mode',
     connected: false,
     usageSource: 'none',
@@ -94,7 +95,11 @@ const defaultState = (): ScreelState => {
     soundOn: true,
     riskAlerts: true,
     minutesEarnedToday: 0,
-    commitMinutes: 0,
+    isPremium: false,
+    challengesUsedToday: 0,
+    challengeAdsUsedToday: 0,
+    bonusChallengesToday: 0,
+    minuteRescueUsedToday: false,
     bankPinHash: null,
   };
 };
@@ -125,7 +130,10 @@ function migrateHistory(raw: unknown): HistoryEntry[] {
 function loadState(): ScreelState {
   const base = defaultState();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('screel-v1');
+    const raw =
+      localStorage.getItem(STORAGE_KEY) ??
+      localStorage.getItem('screel-v2') ??
+      localStorage.getItem('screel-v1');
     if (!raw) return base;
     const parsed = JSON.parse(raw) as Partial<ScreelState> & {
       challenges?: DailyChallenge[];
@@ -140,6 +148,7 @@ function loadState(): ScreelState {
     return {
       ...base,
       ...parsed,
+      schemaVersion: 3,
       baseLimit,
       minutesBank: typeof parsed.minutesBank === 'number' ? Math.max(0, parsed.minutesBank) : baseLimit,
       minutesUsed: typeof parsed.minutesUsed === 'number' ? Math.max(0, parsed.minutesUsed) : 0,
@@ -163,7 +172,14 @@ function loadState(): ScreelState {
         parsed.challenges?.length && !legacyChallenges ? parsed.challenges : defaultChallenges(),
       minutesEarnedToday:
         typeof parsed.minutesEarnedToday === 'number' ? Math.max(0, parsed.minutesEarnedToday) : 0,
-      commitMinutes: clampCommit(parsed.commitMinutes ?? 0),
+      isPremium: Boolean(parsed.isPremium),
+      challengesUsedToday:
+        typeof parsed.challengesUsedToday === 'number' ? Math.max(0, parsed.challengesUsedToday) : 0,
+      challengeAdsUsedToday:
+        typeof parsed.challengeAdsUsedToday === 'number' ? Math.max(0, parsed.challengeAdsUsedToday) : 0,
+      bonusChallengesToday:
+        typeof parsed.bonusChallengesToday === 'number' ? Math.max(0, parsed.bonusChallengesToday) : 0,
+      minuteRescueUsedToday: Boolean(parsed.minuteRescueUsedToday),
       winStreak: typeof parsed.winStreak === 'number' ? Math.max(0, parsed.winStreak) : 0,
       bankPinHash: typeof parsed.bankPinHash === 'string' ? parsed.bankPinHash : null,
       history: migrateHistory(parsed.history),
@@ -179,23 +195,25 @@ interface ScreelContextValue {
   remaining: number;
   /** Minutes still available to earn from minigames today. */
   earnLeftToday: number;
+  challengesLeftToday: number;
+  challengeAdsLeftToday: number;
   setBaseLimit: (n: number) => void;
   setResetTime: (hour: number, minute: number) => void;
-  setCommitMinutes: (n: number) => void;
   connectScreenTime: (opts?: { source?: UsageSource; minutesUsed?: number }) => void;
   disconnectScreenTime: () => void;
   syncUsageMinutes: (minutes: number) => void;
-  /**
-   * Apply a signed minute change from a challenge round.
-   * Positive = keep bonus (capped). Negative = miss committed minutes (floors at 0).
-   * Returns the actual delta applied to the bank.
-   */
+  /** Keep or forfeit an unbanked bonus pot. Never subtracts existing allowance. */
   settleRound: (payload: {
     game: GameKind;
-    delta: number;
+    pot: number;
+    kept: boolean;
     detail: string;
     result?: RoundResult;
   }) => number;
+  consumeChallenge: () => boolean;
+  grantChallengeAdReward: () => boolean;
+  grantMinuteRescue: () => boolean;
+  setPremiumEntitlement: (active: boolean) => void;
   claimChallenge: (id: string) => void;
   bankLocked: boolean;
   bankUnlocked: boolean;
@@ -239,15 +257,24 @@ async function restartNativeMonitor(state: ScreelState, resetUsed: boolean) {
 
 export function ScreelProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ScreelState>(() => loadState());
+  const stateRef = useRef(state);
   const [bankUnlocked, setBankUnlocked] = useState(false);
 
   useEffect(() => {
+    stateRef.current = state;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
   useEffect(() => {
     document.documentElement.dataset.font = state.fontTheme;
   }, [state.fontTheme]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    void checkPremium()
+      .then((active) => setState((s) => (s.isPremium === active ? s : { ...s, isPremium: active })))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const tick = () => {
@@ -264,6 +291,10 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           challenges: defaultChallenges(),
           streak: s.streak + 1,
           minutesEarnedToday: 0,
+          challengesUsedToday: 0,
+          challengeAdsUsedToday: 0,
+          bonusChallengesToday: 0,
+          minuteRescueUsedToday: false,
         };
       });
     };
@@ -300,6 +331,11 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
 
   const remaining = Math.max(0, state.minutesBank - state.minutesUsed);
   const earnLeftToday = Math.max(0, GAME_EARN_DAILY_CAP - state.minutesEarnedToday);
+  const challengeAllowance = FREE_CHALLENGES_PER_DAY + state.bonusChallengesToday;
+  const challengesLeftToday = state.isPremium
+    ? Number.POSITIVE_INFINITY
+    : Math.max(0, challengeAllowance - state.challengesUsedToday);
+  const challengeAdsLeftToday = Math.max(0, CHALLENGE_AD_DAILY_CAP - state.challengeAdsUsedToday);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
@@ -341,6 +377,8 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
       state,
       remaining,
       earnLeftToday,
+      challengesLeftToday,
+      challengeAdsLeftToday,
       setBaseLimit: (n) => {
         setState((s) => {
           const next = clampAllowance(n);
@@ -366,7 +404,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           };
         });
       },
-      setCommitMinutes: (n) => setState((s) => ({ ...s, commitMinutes: clampCommit(n) })),
       connectScreenTime: (opts) => {
         const source = opts?.source ?? 'simulated';
         setState((s) => {
@@ -387,79 +424,99 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => ({ ...s, connected: false, usageSource: 'none' })),
       syncUsageMinutes: (minutes) =>
         setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
-      settleRound: ({ game, delta: wanted, detail, result }) => {
-        let applied = 0;
-        let shouldClear = false;
-        let shouldShield = false;
-        setState((s) => {
-          const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
-          if (wanted > 0) {
-            applied = Math.min(wanted, room);
-          } else if (wanted < 0) {
-            applied = -Math.min(Math.abs(wanted), Math.max(0, s.minutesBank - s.minutesUsed));
-          } else {
-            applied = 0;
+      settleRound: ({ game, pot, kept, detail, result }) => {
+        const s = stateRef.current;
+        const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
+        const applied = kept ? Math.min(Math.max(0, Math.round(pot)), room) : 0;
+        const entry: HistoryEntry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          game,
+          delta: applied,
+          result: result ?? (kept ? 'win' : 'lose'),
+          detail,
+          at: Date.now(),
+        };
+        const challenges = s.challenges.map((c) => {
+          if (c.claimed) return c;
+          if (c.id === 'play-3') return { ...c, progress: Math.min(c.target, c.progress + 1) };
+          if (c.id === 'win-1' && kept) return { ...c, progress: Math.min(c.target, c.progress + 1) };
+          if (c.id === 'earn-15' && kept) {
+            return { ...c, progress: Math.min(c.target, c.progress + applied) };
           }
-
-          const nextBank = Math.max(0, s.minutesBank + applied);
-          const kept = applied > 0;
-          const missed = applied < 0;
-
-          const entry: HistoryEntry = {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            game,
-            delta: applied,
-            result: result ?? (kept ? 'win' : missed ? 'lose' : 'push'),
-            detail,
-            at: Date.now(),
-          };
-
-          const challenges = s.challenges.map((c) => {
-            if (c.claimed) return c;
-            if (c.id === 'play-3') return { ...c, progress: Math.min(c.target, c.progress + 1) };
-            if (c.id === 'win-1' && kept) {
-              return { ...c, progress: Math.min(c.target, c.progress + 1) };
-            }
-            if (c.id === 'earn-15' && kept) {
-              return { ...c, progress: Math.min(c.target, c.progress + applied) };
-            }
-            return c;
-          });
-
-          const xpGain = kept ? (result === 'blackjack' ? 35 : 22) : missed ? 4 : 6;
-          const nextRemaining = nextBank - s.minutesUsed;
-          shouldClear =
-            kept && s.usageSource === 'screenTime' && s.connected && nextRemaining > 0;
-          shouldShield =
-            missed && s.usageSource === 'screenTime' && s.connected && nextRemaining <= 0;
-
-          return {
-            ...s,
-            minutesBank: nextBank,
-            minutesEarnedToday: s.minutesEarnedToday + Math.max(0, applied),
-            totalWon: s.totalWon + Math.max(0, applied),
-            totalLost: s.totalLost + Math.max(0, -applied),
-            biggestWin: Math.max(s.biggestWin, Math.max(0, applied)),
-            gamesPlayed: s.gamesPlayed + 1,
-            winStreak: kept ? s.winStreak + 1 : missed ? 0 : s.winStreak,
-            xp: s.xp + xpGain,
-            level: Math.max(1, Math.floor((s.xp + xpGain) / 100) + 1),
-            history: [entry, ...s.history].slice(0, 40),
-            challenges,
-          };
+          return c;
         });
-        if (shouldClear) void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
-        if (shouldShield) void ScreelScreenTime.applyShieldWhenBroke({ broke: true });
+        const xpGain = kept ? (result === 'blackjack' ? 35 : 22) : 4;
+        const next: ScreelState = {
+          ...s,
+          minutesBank: s.minutesBank + applied,
+          minutesEarnedToday: s.minutesEarnedToday + applied,
+          totalWon: s.totalWon + applied,
+          biggestWin: Math.max(s.biggestWin, applied),
+          gamesPlayed: s.gamesPlayed + 1,
+          winStreak: kept ? s.winStreak + 1 : 0,
+          xp: s.xp + xpGain,
+          level: Math.max(1, Math.floor((s.xp + xpGain) / 100) + 1),
+          history: [entry, ...s.history].slice(0, 80),
+          challenges,
+        };
+        stateRef.current = next;
+        setState(next);
+        if (applied > 0 && next.usageSource === 'screenTime' && next.connected) {
+          void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
+        }
         return applied;
+      },
+      consumeChallenge: () => {
+        const s = stateRef.current;
+        if (s.isPremium) return true;
+        const allowance = FREE_CHALLENGES_PER_DAY + s.bonusChallengesToday;
+        if (s.challengesUsedToday >= allowance) return false;
+        const next = { ...s, challengesUsedToday: s.challengesUsedToday + 1 };
+        stateRef.current = next;
+        setState(next);
+        return true;
+      },
+      grantChallengeAdReward: () => {
+        const s = stateRef.current;
+        if (s.isPremium || s.challengeAdsUsedToday >= CHALLENGE_AD_DAILY_CAP) return false;
+        const next = {
+          ...s,
+          challengeAdsUsedToday: s.challengeAdsUsedToday + 1,
+          bonusChallengesToday: s.bonusChallengesToday + CHALLENGE_AD_REWARD,
+        };
+        stateRef.current = next;
+        setState(next);
+        return true;
+      },
+      grantMinuteRescue: () => {
+        const s = stateRef.current;
+        if (s.isPremium || s.minuteRescueUsedToday || s.minutesBank - s.minutesUsed > 0) return false;
+        const next = {
+          ...s,
+          minutesBank: s.minutesBank + MINUTE_RESCUE_REWARD,
+          minuteRescueUsedToday: true,
+        };
+        stateRef.current = next;
+        setState(next);
+        if (next.usageSource === 'screenTime' && next.connected) {
+          void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
+        }
+        return true;
+      },
+      setPremiumEntitlement: (active) => {
+        setState((s) => ({ ...s, isPremium: active }));
       },
       claimChallenge: (id) => {
         setState((s) => {
           const challenge = s.challenges.find((c) => c.id === id);
           if (!challenge || challenge.claimed || challenge.progress < challenge.target) return s;
+          const room = Math.max(0, GAME_EARN_DAILY_CAP - s.minutesEarnedToday);
+          const applied = Math.min(challenge.reward, room);
           return {
             ...s,
-            minutesBank: s.minutesBank + challenge.reward,
-            totalWon: s.totalWon + challenge.reward,
+            minutesBank: s.minutesBank + applied,
+            minutesEarnedToday: s.minutesEarnedToday + applied,
+            totalWon: s.totalWon + applied,
             challenges: s.challenges.map((c) => (c.id === id ? { ...c, claimed: true } : c)),
             xp: s.xp + 20,
           };
@@ -520,10 +577,21 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             timeZone,
             activePeriodId: periodId(new Date(), s.resetHour, s.resetMinute, timeZone),
             minutesEarnedToday: 0,
+            challengesUsedToday: 0,
+            challengeAdsUsedToday: 0,
+            bonusChallengesToday: 0,
+            minuteRescueUsedToday: false,
           };
         }),
     };
-  }, [state, remaining, earnLeftToday, bankUnlocked]);
+  }, [
+    state,
+    remaining,
+    earnLeftToday,
+    challengesLeftToday,
+    challengeAdsLeftToday,
+    bankUnlocked,
+  ]);
 
   return <ScreelContext.Provider value={value}>{children}</ScreelContext.Provider>;
 }

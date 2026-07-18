@@ -25,9 +25,8 @@ export function AgeGate() {
         </p>
         <div className="disclosure-box">
           <p>
-            Challenges build a bonus pot you can bank anytime. Pushing further can wipe the unbanked pot.
-            An optional commit can miss minutes from today’s allowance — that’s intentional focus friction,
-            not currency. No real money. Designed for self-directed screen-time management (ages{' '}
+            Challenges build a bonus pot you can bank anytime. Pushing further can wipe only the unbanked
+            bonus; your daily allowance never shrinks. No real money. Designed for self-directed screen-time management (ages{' '}
             {AGE_FLOOR}+).
           </p>
         </div>

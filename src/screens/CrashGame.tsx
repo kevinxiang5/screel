@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Rocket } from 'lucide-react';
-import { CommitSlider } from '../components/CommitSlider';
 import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
 import { crashPot, seedPot } from '../utils/potMath';
@@ -22,29 +21,29 @@ function multAt(ms: number): number {
 }
 
 export function CrashGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [mult, setMult] = useState(1);
   const [base, setBase] = useState(0);
-  const [commit, setCommit] = useState(0);
+  const [autoBank, setAutoBank] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
   const crashPointRef = useRef(1);
   const startRef = useRef(0);
   const rafRef = useRef(0);
   const stageRef = useRef<Stage>('ready');
   const baseRef = useRef(0);
-  const commitRef = useRef(0);
   stageRef.current = stage;
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
-  const pot = crashPot(base || seedPot('crash', state.commitMinutes), mult);
+  const pot = crashPot(base || seedPot('crash'), mult);
 
   const launch = () => {
-    const c = Math.min(state.commitMinutes, remaining);
-    setCommit(c);
-    commitRef.current = c;
-    const b = seedPot('crash', c);
+    if (!consumeChallenge()) {
+      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
+      return;
+    }
+    const b = seedPot('crash');
     setBase(b);
     baseRef.current = b;
     crashPointRef.current = rollCrashPoint();
@@ -59,18 +58,34 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
       if (m >= crashPointRef.current) {
         setMult(crashPointRef.current);
         setStage('done');
-        const applied = settleRound({
+        settleRound({
           game: 'crash',
-          delta: commitRef.current > 0 ? -commitRef.current : 0,
+          pot: 0,
+          kept: false,
           detail: `Popped at ×${crashPointRef.current.toFixed(2)}`,
           result: 'lose',
         });
         setBanner({
-          text:
-            commitRef.current > 0
-              ? `Popped · ${Math.abs(applied)}m missed`
-              : `Popped at ×${crashPointRef.current.toFixed(2)} — pot wiped.`,
+          text: `Popped at ×${crashPointRef.current.toFixed(2)} — unbanked pot wiped.`,
           kind: 'lose',
+        });
+        return;
+      }
+      if (autoBank !== null && m >= autoBank) {
+        cancelAnimationFrame(rafRef.current);
+        setMult(autoBank);
+        setStage('done');
+        const amount = Math.round(crashPot(baseRef.current, autoBank));
+        const applied = settleRound({
+          game: 'crash',
+          pot: amount,
+          kept: true,
+          detail: `Auto-banked at ×${autoBank.toFixed(2)}`,
+          result: 'win',
+        });
+        setBanner({
+          text: applied > 0 ? `Auto-banked at ×${autoBank.toFixed(2)} · +${applied}m` : 'Kept — daily keep cap full.',
+          kind: 'win',
         });
         return;
       }
@@ -89,7 +104,8 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
     const amount = Math.round(crashPot(baseRef.current, m));
     const applied = settleRound({
       game: 'crash',
-      delta: amount,
+      pot: amount,
+      kept: true,
       detail: `Banked at ×${m.toFixed(2)}`,
       result: 'win',
     });
@@ -111,14 +127,22 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {stage === 'ready' ? (
-        <CommitSlider
-          value={state.commitMinutes}
-          onChange={setCommitMinutes}
-          remaining={remaining}
-        />
-      ) : (
-        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
+      <PotTicker pot={pot} earnLeft={earnLeftToday} />
+
+      {(stage === 'ready' || stage === 'done') && (
+        <div className="option-strip">
+          <span className="hand-label">Auto-bank</span>
+          {[null, 1.5, 2, 3].map((target) => (
+            <button
+              type="button"
+              key={target ?? 'off'}
+              className={autoBank === target ? 'active' : ''}
+              onClick={() => setAutoBank(target)}
+            >
+              {target === null ? 'Off' : `×${target.toFixed(1)}`}
+            </button>
+          ))}
+        </div>
       )}
 
       <div className={`crash-stage ${stage}`}>

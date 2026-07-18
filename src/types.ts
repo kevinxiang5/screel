@@ -16,10 +16,7 @@ export type RoundResult = 'win' | 'lose' | 'push' | 'blackjack';
 export interface HistoryEntry {
   id: string;
   game: GameKind;
-  /**
-   * Signed minute change for the round.
-   * Positive = bonus kept; negative = committed minutes missed (or pot wiped).
-   */
+  /** Bonus minutes kept. A miss is always 0; challenges never subtract allowance. */
   delta: number;
   result: RoundResult;
   detail: string;
@@ -43,6 +40,7 @@ export type UsageSource = 'none' | 'simulated' | 'screenTime';
 export type FontTheme = 'felt' | 'editorial' | 'soft' | 'clean';
 
 export interface ScreelState {
+  schemaVersion: 3;
   displayName: string;
   connected: boolean;
   /** `screenTime` = Apple Family Controls; `simulated` = local demo (web / fallback). */
@@ -76,7 +74,7 @@ export interface ScreelState {
   level: number;
   /** Minutes kept from challenges (lifetime). */
   totalWon: number;
-  /** Minutes missed via commit mode (lifetime). */
+  /** Legacy migration field; new challenge rounds never subtract allowance. */
   totalLost: number;
   biggestWin: number;
   gamesPlayed: number;
@@ -86,11 +84,16 @@ export interface ScreelState {
   riskAlerts: boolean;
   /** Minutes earned from minigames in the current period. */
   minutesEarnedToday: number;
-  /**
-   * Default commit for the next challenge (0–COMMIT_MAX).
-   * 0 = press-your-luck only; nothing leaves the bank on a miss.
-   */
-  commitMinutes: number;
+  /** StoreKit entitlement. Refreshed from the store on native startup. */
+  isPremium: boolean;
+  /** Free-plan challenge quota consumed this period. */
+  challengesUsedToday: number;
+  /** Rewarded-ad challenge refills claimed this period. */
+  challengeAdsUsedToday: number;
+  /** Extra challenge starts granted by completed rewarded ads. */
+  bonusChallengesToday: number;
+  /** Whether the one-per-period +5m rescue has been claimed. */
+  minuteRescueUsedToday: boolean;
   /**
    * Optional SHA-256 hash of a 4-digit bank PIN.
    * When set, allowance / reset time / period reset need unlock first.
@@ -101,8 +104,10 @@ export interface ScreelState {
 /** Cap on minutes earned from minigames per day. */
 export const GAME_EARN_DAILY_CAP = 45;
 
-/** Max minutes a user can commit to a single challenge. */
-export const COMMIT_MAX = 10;
+export const FREE_CHALLENGES_PER_DAY = 20;
+export const CHALLENGE_AD_DAILY_CAP = 5;
+export const CHALLENGE_AD_REWARD = 2;
+export const MINUTE_RESCUE_REWARD = 5;
 
 /** Base minute pot seeds per game (before ladder / multiplier growth). */
 export const GAME_REWARDS: Record<GameKind, number> = {

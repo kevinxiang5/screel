@@ -5,12 +5,10 @@ import { GAME_EARN_DAILY_CAP } from '../types';
 export function PotTicker({
   pot,
   earnLeft,
-  commit = 0,
-  label = 'On the line',
+  label = 'Unbanked bonus',
 }: {
   pot: number;
   earnLeft: number;
-  commit?: number;
   label?: string;
 }) {
   const display = Math.max(0, Math.round(pot * 10) / 10);
@@ -28,7 +26,6 @@ export function PotTicker({
         </motion.strong>
       </div>
       <p>
-        {commit > 0 ? `${commit}m committed · ` : ''}
         {earnLeft <= 0
           ? `Daily keep cap reached (${GAME_EARN_DAILY_CAP}m).`
           : `${earnLeft}m still keepable today.`}

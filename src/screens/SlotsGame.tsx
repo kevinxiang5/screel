@@ -1,7 +1,6 @@
 ﻿import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { CommitSlider } from '../components/CommitSlider';
 import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
 import { seedPot } from '../utils/potMath';
@@ -17,7 +16,7 @@ const SYMBOLS: SlotSymbol[] = [
   { glyph: '\u{1F514}', weight: 20 },
   { glyph: '\u2B50', weight: 13 },
   { glyph: '\u{1F48E}', weight: 8 },
-  { glyph: '\u{1F514}', weight: 3 },
+  { glyph: '\u{1F340}', weight: 3 },
 ];
 
 const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
@@ -35,25 +34,25 @@ function draw(): SlotSymbol {
 type Stage = 'ready' | 'spinning' | 'choice' | 'done';
 
 export function SlotsGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
   const [reels, setReels] = useState<string[]>(['\u{1F352}', '\u{1F514}', '\u{1F48E}']);
   const [spinningReels, setSpinningReels] = useState([false, false, false]);
   const [stage, setStage] = useState<Stage>('ready');
   const [pot, setPot] = useState(0);
-  const [commit, setCommit] = useState(0);
+  const [spinSpeed, setSpinSpeed] = useState<'quick' | 'show'>('show');
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
   const spinTargets = useRef<(string | null)[]>([null, null, null]);
   const potRef = useRef(0);
-  const commitRef = useRef(0);
   const isDoubleRef = useRef(false);
 
   const spin = (forDouble: boolean) => {
     if (stage === 'spinning') return;
     if (!forDouble) {
-      const c = Math.min(state.commitMinutes, remaining);
-      setCommit(c);
-      commitRef.current = c;
-      const b = seedPot('slots', c);
+      if (!consumeChallenge()) {
+        setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
+        return;
+      }
+      const b = seedPot('slots');
       setPot(b);
       potRef.current = b;
       isDoubleRef.current = false;
@@ -73,7 +72,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
           spinTargets.current[i] === null ? SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].glyph : g,
         ),
       );
-    }, 70);
+    }, spinSpeed === 'quick' ? 45 : 70);
 
     result.forEach((sym, i) => {
       window.setTimeout(() => {
@@ -91,7 +90,8 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
               setPot(amount);
               const applied = settleRound({
                 game: 'slots',
-                delta: amount,
+                pot: amount,
+                kept: true,
                 detail: `Double keep · ${a.glyph} ${b.glyph} ${c.glyph}`,
                 result: 'win',
               });
@@ -105,30 +105,26 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
               setStage('choice');
             }
           } else {
-            const applied = settleRound({
+            settleRound({
               game: 'slots',
-              delta: commitRef.current > 0 ? -commitRef.current : 0,
+              pot: 0,
+              kept: false,
               detail: `${a.glyph} ${b.glyph} ${c.glyph}`,
               result: 'lose',
             });
-            setBanner({
-              text:
-                commitRef.current > 0
-                  ? `No match · ${Math.abs(applied)}m missed`
-                  : 'No match — pot wiped.',
-              kind: 'lose',
-            });
+            setBanner({ text: 'No match — unbanked pot wiped. Allowance unchanged.', kind: 'lose' });
             setStage('done');
           }
         }
-      }, SPIN_MS[i]);
+      }, SPIN_MS[i] * (spinSpeed === 'quick' ? 0.55 : 1));
     });
   };
 
   const bankIt = () => {
     const applied = settleRound({
       game: 'slots',
-      delta: Math.round(potRef.current),
+      pot: Math.round(potRef.current),
+      kept: true,
       detail: 'Banked match pot',
       result: 'win',
     });
@@ -151,14 +147,18 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {stage === 'ready' || stage === 'done' ? (
-        <CommitSlider
-          value={state.commitMinutes}
-          onChange={setCommitMinutes}
-          remaining={remaining}
-        />
-      ) : (
-        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
+      <PotTicker pot={pot || seedPot('slots')} earnLeft={earnLeftToday} />
+
+      {(stage === 'ready' || stage === 'done') && (
+        <div className="option-strip">
+          <span className="hand-label">Reel speed</span>
+          <button type="button" className={spinSpeed === 'quick' ? 'active' : ''} onClick={() => setSpinSpeed('quick')}>
+            Quick
+          </button>
+          <button type="button" className={spinSpeed === 'show' ? 'active' : ''} onClick={() => setSpinSpeed('show')}>
+            Full reveal
+          </button>
+        </div>
       )}
 
       <div className="slots-cabinet">

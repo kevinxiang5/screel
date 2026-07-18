@@ -1,11 +1,9 @@
-// Dev smoke test: seed a ready state, screenshot the new floor + games + ad rescue.
 import { chromium } from 'playwright';
 
 const BASE = process.env.SMOKE_URL ?? 'http://localhost:4173';
-const OUT = 'docs/store/screenshots/smoke';
-
 const seeded = {
-  displayName: 'High Roller',
+  schemaVersion: 3,
+  displayName: 'Focus Tester',
   connected: false,
   usageSource: 'none',
   ageVerified: true,
@@ -20,17 +18,23 @@ const seeded = {
   timeZone: 'America/Los_Angeles',
   activePeriodId: 'seeded',
   streak: 2,
+  winStreak: 0,
   xp: 120,
   level: 2,
   totalWon: 30,
-  totalLost: 12,
+  totalLost: 0,
   biggestWin: 18,
   gamesPlayed: 9,
   history: [],
   challenges: [],
   soundOn: true,
   riskAlerts: true,
-  adRescuesUsed: 0,
+  minutesEarnedToday: 0,
+  isPremium: false,
+  challengesUsedToday: 0,
+  challengeAdsUsedToday: 0,
+  bonusChallengesToday: 0,
+  minuteRescueUsedToday: false,
 };
 
 const browser = await chromium.launch();
@@ -38,34 +42,37 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
 async function boot(state) {
   await page.goto(BASE);
-  await page.evaluate((s) => localStorage.setItem('screel-v2', JSON.stringify(s)), state);
+  await page.evaluate((s) => localStorage.setItem('screel-v3', JSON.stringify(s)), state);
   await page.goto(BASE);
-  await page.waitForTimeout(3600); // loading screen
+  await page.waitForTimeout(3400);
 }
 
 await boot(seeded);
-await page.getByText('Enter the floor').click();
-await page.waitForTimeout(600);
-await page.screenshot({ path: `${OUT}/floor.png` });
+await page.getByRole('button', { name: 'Play', exact: true }).click();
+await page.getByText('20 challenges left').waitFor();
+await page.getByRole('button', { name: /Safe tiles/i }).click();
+await page.getByRole('button', { name: /7 · Intense/i }).click();
+await page.getByText('7 hazards').waitFor();
+await page.getByRole('button', { name: /Play/ }).click();
 
-for (const game of ['Mines', 'Crash', 'Slots', 'Hi-Lo', 'Dice']) {
-  await page.getByRole('button', { name: new RegExp(game, 'i') }).first().click();
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: `${OUT}/${game.toLowerCase().replace('-', '')}.png` });
-  await page.getByText('Floor').click();
-  await page.waitForTimeout(400);
+await page.getByRole('button', { name: /Color spin/i }).click();
+await page.getByRole('button', { name: /green · 8×/i }).waitFor();
+await page.getByRole('button', { name: /Cinematic/i }).waitFor();
+await page.getByRole('button', { name: /Play/ }).click();
+
+await page.getByRole('button', { name: 'You', exact: true }).click();
+await page.getByText('Screel Premium').waitFor();
+await page.getByRole('button', { name: 'Restore purchases' }).waitFor();
+
+const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('screel-v3')));
+await boot({ ...persisted, challengesUsedToday: 20, minutesBank: 0, minutesUsed: 0 });
+await page.getByText('Need five more minutes?').waitFor();
+await page.getByRole('button', { name: 'Play', exact: true }).click();
+await page.getByText('0 challenges left').waitFor();
+await page.getByRole('button', { name: /Watch ad · \+2/i }).waitFor();
+if (!(await page.getByRole('button', { name: /Twenty-one/i }).isDisabled())) {
+  throw new Error('Challenge cards should be disabled when Normal quota is exhausted.');
 }
-
-// Broke state → ad rescue card + player.
-// Reuse the app-written period id so the auto-reset doesn't refill the bank.
-const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('screel-v2')));
-await boot({ ...persisted, minutesBank: 2, minutesUsed: 0, adRescuesUsed: 0 });
-await page.getByText('Enter the floor').click();
-await page.waitForTimeout(600);
-await page.screenshot({ path: `${OUT}/floor-broke.png` });
-await page.getByText('Watch ad').click();
-await page.waitForTimeout(1200);
-await page.screenshot({ path: `${OUT}/ad-player.png` });
 
 await browser.close();
 console.log('smoke ok');

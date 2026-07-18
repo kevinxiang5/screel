@@ -13,9 +13,11 @@
     "open:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@capacitor/ios": "^8.4.1",
+    "@capgo/native-purchases": "^8.6.4",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
     "react": "^19.2.7",

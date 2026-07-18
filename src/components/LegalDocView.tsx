@@ -33,12 +33,9 @@ export function LegalDocView({ doc, onBack }: { doc: LegalDoc; onBack: () => voi
 function PrivacyBody() {
   return (
     <>
-      <p>
-        <em>Draft for counsel review. Host a copy at your public Privacy Policy URL for App Store Connect.
-        Last updated: 2026-07-13.</em>
-      </p>
+      <p><em>Last updated: July 17, 2026.</em></p>
       <h3>Who we are</h3>
-      <p>Screel (“we”) provides a screen-time helper app. Contact: support@screel.app (replace with your email).</p>
+      <p>Screel (“we”) provides a screen-time helper app. Contact: support@screel.app.</p>
       <h3>Data we store on your device</h3>
       <p>
         Display nickname, minute bank, focus goal and setup answers, challenge history, and settings (including
@@ -47,9 +44,10 @@ function PrivacyBody() {
       </p>
       <h3>Network</h3>
       <p>
-        The web build may load fonts from Google Fonts (googleapis / gstatic). No analytics or ad SDKs ship in
-        the current binary. Future iOS builds that use Apple Screen Time / Device Activity APIs will process
-        usage data on-device as described in App Store privacy nutrition labels.
+        The web build may load fonts from Google Fonts. Apple Screen Time data is processed on-device.
+        Normal users may choose non-personalized rewarded ads supplied by Google AdMob, which may process
+        device identifiers, IP address, ad interactions, diagnostics, and advertising data. Premium
+        subscriptions are processed by Apple; Screel receives entitlement status, not payment details.
       </p>
       <h3>Children</h3>
       <p>Screel is not directed to children under {AGE_FLOOR}. Do not use the app if you are under {AGE_FLOOR}.</p>
@@ -62,9 +60,7 @@ function PrivacyBody() {
 function TermsBody() {
   return (
     <>
-      <p>
-        <em>Draft for counsel review. Last updated: 2026-07-13. US-oriented. Not a substitute for legal advice.</em>
-      </p>
+      <p><em>Last updated: July 17, 2026.</em></p>
       <h3>Eligibility</h3>
       <p>
         Screel is for self-directed screen-time management by people {AGE_FLOOR} or older who can form a
@@ -74,6 +70,13 @@ function TermsBody() {
       <p>
         Screel is a screen-time helper. The only in-app unit is <strong>minutes</strong> of daily allowance.
         Minutes have no cash value and cannot be withdrawn, sold, or redeemed for money or prizes.
+      </p>
+      <h3>Premium subscription</h3>
+      <p>
+        Premium is an auto-renewable subscription billed by Apple. Payment is charged to your Apple ID after
+        confirmation. It renews unless canceled at least 24 hours before the current period ends. Manage or
+        cancel it in your App Store account settings. The price and billing period appear in Apple’s purchase
+        sheet before confirmation.
       </p>
       <h3>Not medical advice</h3>
       <p>
@@ -95,8 +98,8 @@ function OddsBody() {
     <>
       <div className="disclosure-box">
         <p>
-          Challenges build a bonus pot you can bank anytime. Pushing further can wipe the unbanked pot. An
-          optional commit can miss minutes from today’s allowance — intentional focus friction, not currency.
+          Challenges build a bonus pot you can bank anytime. Pushing further can wipe only that unbanked
+          bonus. Existing allowance is never staked, purchased, transferred, or reduced by a challenge.
         </p>
       </div>
       <h3>How keeping works</h3>
@@ -109,8 +112,8 @@ function OddsBody() {
         <li>Roll under — set your own target; harder = bigger pot</li>
       </ul>
       <p>
-        Daily keep from challenges is capped (45m by default). Commit defaults to 0m. Outcomes use the device
-        RNG for challenge play.
+        Daily keep from challenges is capped (45m by default). Normal includes 20 daily starts plus limited
+        rewarded-ad refills; Premium removes ads and start limits. Outcomes use the device RNG.
       </p>
     </>
   );

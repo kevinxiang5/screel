@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
-import { CommitSlider } from '../components/CommitSlider';
 import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
 import { hiloPot, seedPot } from '../utils/potMath';
@@ -15,30 +14,34 @@ function label(v: number): string {
   return LABELS[v] ?? String(v);
 }
 
-function drawValue(exclude?: number): number {
-  let v = 2 + Math.floor(Math.random() * 13);
-  while (v === exclude) v = 2 + Math.floor(Math.random() * 13);
+function drawValue(exclude?: number, tight = false): number {
+  const min = tight ? 5 : 2;
+  const spread = tight ? 7 : 13;
+  let v = min + Math.floor(Math.random() * spread);
+  while (v === exclude) v = min + Math.floor(Math.random() * spread);
   return v;
 }
 
 export function HiLoGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
+  const [deckMode, setDeckMode] = useState<'classic' | 'tight'>('classic');
   const [card, setCard] = useState(8);
   const [suit, setSuit] = useState('♠');
   const [streak, setStreak] = useState(0);
   const [base, setBase] = useState(0);
-  const [commit, setCommit] = useState(0);
   const [nearMiss, setNearMiss] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
 
-  const pot = hiloPot(base || seedPot('hilo', state.commitMinutes), streak);
+  const pot = hiloPot(base || seedPot('hilo') * (deckMode === 'tight' ? 1.5 : 1), streak);
 
   const start = () => {
-    const c = Math.min(state.commitMinutes, remaining);
-    setCommit(c);
-    setBase(seedPot('hilo', c));
-    setCard(drawValue());
+    if (!consumeChallenge()) {
+      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
+      return;
+    }
+    setBase(seedPot('hilo') * (deckMode === 'tight' ? 1.5 : 1));
+    setCard(drawValue(undefined, deckMode === 'tight'));
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     setStreak(0);
     setNearMiss(null);
@@ -51,7 +54,8 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
     const amount = Math.round(hiloPot(base, streak));
     const applied = settleRound({
       game: 'hilo',
-      delta: amount,
+      pot: amount,
+      kept: true,
       detail: `Banked after ${streak} correct calls`,
       result: 'win',
     });
@@ -64,26 +68,21 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
 
   const guess = (dir: 'higher' | 'lower') => {
     if (stage !== 'live') return;
-    const next = drawValue(card);
+    const next = drawValue(card, deckMode === 'tight');
     const won = dir === 'higher' ? next > card : next < card;
     setCard(next);
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     if (!won) {
       setNearMiss(`Would have been ${label(next)} — streak broken.`);
       setStage('done');
-      const applied = settleRound({
+      settleRound({
         game: 'hilo',
-        delta: commit > 0 ? -commit : 0,
+        pot: 0,
+        kept: false,
         detail: `Missed after ${streak} correct`,
         result: 'lose',
       });
-      setBanner({
-        text:
-          commit > 0
-            ? `${label(next)} — pot wiped · ${Math.abs(applied)}m missed.`
-            : `${label(next)} — pot wiped. Bank unchanged.`,
-        kind: 'lose',
-      });
+      setBanner({ text: `${label(next)} — unbanked pot wiped. Allowance unchanged.`, kind: 'lose' });
       return;
     }
     setStreak((s) => s + 1);
@@ -104,14 +103,18 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {stage === 'ready' ? (
-        <CommitSlider
-          value={state.commitMinutes}
-          onChange={setCommitMinutes}
-          remaining={remaining}
-        />
-      ) : (
-        <PotTicker pot={pot} earnLeft={earnLeftToday} commit={commit} />
+      <PotTicker pot={pot} earnLeft={earnLeftToday} />
+
+      {(stage === 'ready' || stage === 'done') && (
+        <div className="option-strip">
+          <span className="hand-label">Deck</span>
+          <button type="button" className={deckMode === 'classic' ? 'active' : ''} onClick={() => setDeckMode('classic')}>
+            Classic · 2–A
+          </button>
+          <button type="button" className={deckMode === 'tight' ? 'active' : ''} onClick={() => setDeckMode('tight')}>
+            Tight · 5–J · 1.5×
+          </button>
+        </div>
       )}
 
       <div className="hilo-stage">

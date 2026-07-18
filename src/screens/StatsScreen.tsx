@@ -26,8 +26,7 @@ export function StatsScreen() {
         <div className="eyebrow">Progress</div>
         <h1 className="display lg">Your run</h1>
         <p className="lede">
-          Minutes kept from challenges. Optional commit can miss minutes from today — that’s the point of the
-          focus tool.
+          Minutes kept from challenge bonus pots. Misses never subtract from your daily allowance.
         </p>
       </motion.div>
 
@@ -39,10 +38,8 @@ export function StatsScreen() {
           </div>
         </div>
         <div className="stat-tile">
-          <div className="label">Missed (commit)</div>
-          <div className="value" style={{ color: '#ff8a8a' }}>
-            −{state.totalLost}m
-          </div>
+          <div className="label">Plan</div>
+          <div className="value">{state.isPremium ? 'Premium' : 'Normal'}</div>
         </div>
         <div className="stat-tile">
           <div className="label">Keep rate</div>
@@ -64,6 +61,30 @@ export function StatsScreen() {
         </div>
       </div>
 
+      {state.isPremium && (
+        <section className="section">
+          <div className="section-head">
+            <h2>Per-game performance</h2>
+            <span className="pill gold">Premium</span>
+          </div>
+          <div className="premium-stats-grid">
+            {(Object.keys(GAME_META) as GameKind[]).map((game) => {
+              const rows = state.history.filter((entry) => entry.game === game);
+              const kept = rows.filter((entry) => entry.result === 'win' || entry.result === 'blackjack');
+              const minutes = rows.reduce((sum, entry) => sum + Math.max(0, entry.delta), 0);
+              const rate = rows.length ? Math.round((kept.length / rows.length) * 100) : 0;
+              return (
+                <div className="stat-tile" key={game}>
+                  <div className="label">{GAME_META[game].label}</div>
+                  <div className="value">{rate}%</div>
+                  <p>{rows.length} runs · +{minutes}m kept</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="section">
         <div className="section-head">
           <h2>Recent challenges</h2>
@@ -71,7 +92,7 @@ export function StatsScreen() {
         {state.history.length === 0 ? (
           <div className="empty">No rounds yet. Open Play and clear a challenge.</div>
         ) : (
-          state.history.map((h) => {
+          state.history.slice(0, state.isPremium ? 80 : 10).map((h) => {
             const meta = GAME_META[h.game] ?? GAME_META.blackjack;
             const Icon = meta.icon;
             return (

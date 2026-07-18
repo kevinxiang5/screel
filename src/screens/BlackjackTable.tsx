@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { CommitSlider } from '../components/CommitSlider';
 import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
 import {
@@ -54,21 +53,20 @@ function CardView({ card }: { card: Card }) {
 const MAX_RIDES = 3;
 
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
   const [phase, setPhase] = useState<Phase>('ready');
   const [shoe, setShoe] = useState<Card[]>(() => createShoe());
   const [dealer, setDealer] = useState<Card[]>([]);
   const [player, setPlayer] = useState<Card[]>([]);
   const [base, setBase] = useState(0);
-  const [commit, setCommit] = useState(0);
   const [pot, setPot] = useState(0);
   const [rides, setRides] = useState(0);
   const [canDouble, setCanDouble] = useState(false);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' | 'push' } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dealSpeed, setDealSpeed] = useState<'quick' | 'cinematic'>('cinematic');
   const shoeRef = useRef(shoe);
   const potRef = useRef(0);
-  const commitRef = useRef(0);
   const ridesRef = useRef(0);
   shoeRef.current = shoe;
 
@@ -88,10 +86,13 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     setPhase('playing');
 
     if (ridePot == null) {
-      const c = Math.min(state.commitMinutes, remaining);
-      setCommit(c);
-      commitRef.current = c;
-      const b = seedPot('blackjack', c);
+      if (!consumeChallenge()) {
+        setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
+        setPhase('result');
+        setBusy(false);
+        return;
+      }
+      const b = seedPot('blackjack');
       setBase(b);
       setPot(b);
       potRef.current = b;
@@ -107,11 +108,12 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     const p2 = pull();
     const d2 = { ...pull(), hidden: true };
     setPlayer([p1]);
-    await sleep(200);
+    const dealDelay = dealSpeed === 'quick' ? 90 : 200;
+    await sleep(dealDelay);
     setDealer([d1]);
-    await sleep(200);
+    await sleep(dealDelay);
     setPlayer([p1, p2]);
-    await sleep(200);
+    await sleep(dealDelay);
     setDealer([d1, d2]);
 
     if (isBlackjack([p1, p2])) {
@@ -175,7 +177,9 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     let success = false;
     let result: 'win' | 'lose' | 'push' | 'blackjack' = 'lose';
 
-    if (natural) {
+    if (natural && isBlackjack(dCards)) {
+      result = 'push';
+    } else if (natural) {
       success = true;
       result = 'blackjack';
     } else if (pv > 21) {
@@ -203,7 +207,8 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     if (result === 'push') {
       settleRound({
         game: 'blackjack',
-        delta: 0,
+        pot: 0,
+        kept: false,
         detail: `${handLabel(pCards)} vs ${handLabel(dCards)} · push`,
         result: 'push',
       });
@@ -213,19 +218,14 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       return;
     }
 
-    const applied = settleRound({
+    settleRound({
       game: 'blackjack',
-      delta: commitRef.current > 0 ? -commitRef.current : 0,
+      pot: 0,
+      kept: false,
       detail: `${handLabel(pCards)} vs ${handLabel(dCards)}`,
       result: 'lose',
     });
-    setBanner({
-      text:
-        commitRef.current > 0
-          ? `Miss · ${Math.abs(applied)}m gone`
-          : 'House hand wins — pot wiped. Bank unchanged.',
-      kind: 'lose',
-    });
+    setBanner({ text: 'House hand wins — unbanked pot wiped. Allowance unchanged.', kind: 'lose' });
     setPhase('result');
     setBusy(false);
   };
@@ -233,7 +233,8 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const bankIt = () => {
     const applied = settleRound({
       game: 'blackjack',
-      delta: Math.round(potRef.current),
+      pot: Math.round(potRef.current),
+      kept: true,
       detail: 'Banked the pot',
       result: 'win',
     });
@@ -271,14 +272,18 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {phase === 'ready' ? (
-        <CommitSlider
-          value={state.commitMinutes}
-          onChange={setCommitMinutes}
-          remaining={remaining}
-        />
-      ) : (
-        <PotTicker pot={pot || base} earnLeft={earnLeftToday} commit={commit} />
+      <PotTicker pot={pot || base || seedPot('blackjack')} earnLeft={earnLeftToday} />
+
+      {(phase === 'ready' || phase === 'result') && (
+        <div className="option-strip">
+          <span className="hand-label">Deal speed</span>
+          <button type="button" className={dealSpeed === 'quick' ? 'active' : ''} onClick={() => setDealSpeed('quick')}>
+            Quick
+          </button>
+          <button type="button" className={dealSpeed === 'cinematic' ? 'active' : ''} onClick={() => setDealSpeed('cinematic')}>
+            Cinematic
+          </button>
+        </div>
       )}
 
       <div className="bj-table">

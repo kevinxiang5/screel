@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Sparkles, Trophy, Zap } from 'lucide-react';
+import { Flame, PlayCircle, Sparkles, Trophy, Zap } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 import { GAME_EARN_DAILY_CAP, type GameId, type TabId } from '../types';
+import { showRewardedAd } from '../native/monetization';
 
 const GOAL_LINES: Record<string, string> = {
   scroll: 'Less scrolling, more living. Your budget keeps the feed in check.',
@@ -26,10 +28,28 @@ export function HomeScreen({
   onNavigate: (tab: TabId) => void;
   onPlay: (game: GameId) => void;
 }) {
-  const { state, remaining, earnLeftToday, claimChallenge } = useScreel();
+  const { state, remaining, earnLeftToday, claimChallenge, grantMinuteRescue } = useScreel();
   const { toast } = useScreelUI();
+  const [rescueBusy, setRescueBusy] = useState(false);
   const usedPct = Math.min(100, Math.round((state.minutesUsed / Math.max(1, state.minutesBank)) * 100));
   const firstName = state.displayName === 'Focus Mode' ? '' : state.displayName.split(' ')[0];
+  const watchRescueAd = async () => {
+    if (rescueBusy) return;
+    setRescueBusy(true);
+    try {
+      const rewarded = await showRewardedAd('rescue');
+      if (rewarded && grantMinuteRescue()) {
+        toast('+5 minutes added for today.', { title: 'Minute rescue', tone: 'success' });
+      }
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Ad unavailable. Try again later.', {
+        title: 'Could not load ad',
+        tone: 'info',
+      });
+    } finally {
+      setRescueBusy(false);
+    }
+  };
 
   return (
     <div className="screen">
@@ -44,6 +64,19 @@ export function HomeScreen({
             'Set a daily minute budget for the apps you choose. Clear short challenges to keep a bonus pot — bank anytime.'}
         </p>
       </motion.div>
+
+      {remaining <= 0 && !state.isPremium && !state.minuteRescueUsedToday && (
+        <section className="rescue-panel section">
+          <div>
+            <span className="hand-label">One daily rescue</span>
+            <h3>Need five more minutes?</h3>
+            <p>Watch one rewarded ad for +5m today. This does not reset your limit.</p>
+          </div>
+          <button type="button" className="btn btn-gold" onClick={() => void watchRescueAd()} disabled={rescueBusy}>
+            <PlayCircle size={17} /> {rescueBusy ? 'Loading…' : 'Watch ad · +5m'}
+          </button>
+        </section>
+      )}
 
       <motion.div
         className="hero-panel"

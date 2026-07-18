@@ -1,27 +1,28 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Dices } from 'lucide-react';
-import { CommitSlider } from '../components/CommitSlider';
 import { PotTicker } from '../components/PotTicker';
 import { useScreel } from '../context/ScreelContext';
 import { dicePot, seedPot } from '../utils/potMath';
 
 export function DiceGame({ onBack }: { onBack: () => void }) {
-  const { remaining, earnLeftToday, settleRound, state, setCommitMinutes } = useScreel();
+  const { remaining, earnLeftToday, settleRound, consumeChallenge } = useScreel();
+  const [mode, setMode] = useState<'under' | 'over'>('under');
   const [target, setTarget] = useState(50);
   const [rolling, setRolling] = useState(false);
   const [roll, setRoll] = useState<number | null>(null);
   const [history, setHistory] = useState<{ roll: number; won: boolean }[]>([]);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
-  const [lastCommit, setLastCommit] = useState(0);
-
-  const previewPot = dicePot(seedPot('dice', state.commitMinutes), target);
+  const chance = mode === 'under' ? target : 100 - target;
+  const previewPot = dicePot(seedPot('dice'), chance);
 
   const doRoll = () => {
     if (rolling) return;
-    const c = Math.min(state.commitMinutes, remaining);
-    setLastCommit(c);
-    const pot = Math.round(dicePot(seedPot('dice', c), target));
+    if (!consumeChallenge()) {
+      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
+      return;
+    }
+    const pot = Math.round(dicePot(seedPot('dice'), chance));
     setRolling(true);
     setBanner(null);
     let ticks = 0;
@@ -31,34 +32,30 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
       if (ticks >= 12) {
         window.clearInterval(spin);
         const result = Math.floor(Math.random() * 100);
-        const won = result < target;
+        const won = mode === 'under' ? result < target : result > target;
         setRoll(result);
         setHistory((h) => [{ roll: result, won }, ...h].slice(0, 12));
         if (won) {
           const applied = settleRound({
             game: 'dice',
-            delta: pot,
-            detail: `Rolled ${result} under ${target}`,
+            pot,
+            kept: true,
+            detail: `Rolled ${result} ${mode} ${target}`,
             result: 'win',
           });
           setBanner({
-            text: applied > 0 ? `${result} under ${target} · +${applied}m` : 'Hit — keep cap full.',
+            text: applied > 0 ? `${result} ${mode} ${target} · +${applied}m` : 'Hit — keep cap full.',
             kind: 'win',
           });
         } else {
-          const applied = settleRound({
+          settleRound({
             game: 'dice',
-            delta: c > 0 ? -c : 0,
-            detail: `Rolled ${result}, needed under ${target}`,
+            pot: 0,
+            kept: false,
+            detail: `Rolled ${result}, needed ${mode} ${target}`,
             result: 'lose',
           });
-          setBanner({
-            text:
-              c > 0
-                ? `${result} over ${target} · ${Math.abs(applied)}m missed`
-                : `${result} over ${target} — no keep.`,
-            kind: 'lose',
-          });
+          setBanner({ text: `${result} missed ${mode} ${target} — no bonus kept.`, kind: 'lose' });
         }
         setRolling(false);
       }
@@ -77,18 +74,27 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <CommitSlider
-        value={state.commitMinutes}
-        onChange={setCommitMinutes}
-        remaining={remaining}
-        disabled={rolling}
-      />
-      <PotTicker pot={previewPot} earnLeft={earnLeftToday} commit={lastCommit || state.commitMinutes} label="If you hit" />
+      <PotTicker pot={previewPot} earnLeft={earnLeftToday} label="If you hit" />
+
+      <div className="option-strip">
+        <span className="hand-label">Call</span>
+        {(['under', 'over'] as const).map((option) => (
+          <button
+            type="button"
+            key={option}
+            className={mode === option ? 'active' : ''}
+            disabled={rolling}
+            onClick={() => setMode(option)}
+          >
+            Roll {option}
+          </button>
+        ))}
+      </div>
 
       <div className="dice-stage">
-        <div className="commit-slider" style={{ marginBottom: 12 }}>
-          <div className="commit-slider-head">
-            <span className="hand-label">Roll under</span>
+        <div className="risk-slider" style={{ marginBottom: 12 }}>
+          <div className="risk-slider-head">
+            <span className="hand-label">Roll {mode}</span>
             <strong>{target}</strong>
           </div>
           <input
@@ -101,12 +107,12 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
             onChange={(e) => setTarget(Number(e.target.value))}
             aria-label="Target number"
           />
-          <p className="commit-slider-hint">
-            Lower target = harder roll, bigger pot. Chance ≈ {target}%.
+          <p className="risk-slider-hint">
+            Move the target to tune difficulty. Chance ≈ {chance}%.
           </p>
         </div>
 
-        <div className={`dice-readout ${roll !== null && !rolling ? (roll < target ? 'win' : 'lose') : ''}`}>
+        <div className={`dice-readout ${roll !== null && !rolling ? ((mode === 'under' ? roll < target : roll > target) ? 'win' : 'lose') : ''}`}>
           {roll === null ? <Dices size={44} /> : roll}
         </div>
         <div className="rl-history">

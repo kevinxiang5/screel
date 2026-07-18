@@ -1,8 +1,8 @@
 import { GAME_REWARDS, type GameKind } from '../types';
 
-/** Seed a challenge pot: base reward + optional committed minutes. */
-export function seedPot(game: GameKind, commit: number): number {
-  return GAME_REWARDS[game] + Math.max(0, commit);
+/** Seed an unearned bonus pot. Existing allowance is never part of a pot. */
+export function seedPot(game: GameKind): number {
+  return GAME_REWARDS[game];
 }
 
 /** Mines ladder multipliers after each safe tile (1-indexed). */
