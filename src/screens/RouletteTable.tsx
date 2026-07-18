@@ -94,7 +94,7 @@ function WheelGraphic({
 }
 
 export function RouletteTable({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [pick, setPick] = useState<number>(2);
   const [stage, setStage] = useState<Stage>('ready');
   const [rotation, setRotation] = useState(0);
@@ -114,11 +114,6 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
       return;
     }
-    if (!consumeChallenge()) {
-      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
-      return;
-    }
-
     const stake = Math.min(state.wagerMinutes, remaining);
     stakeRef.current = stake;
     spinLock.current = true;

@@ -53,7 +53,7 @@ function CardView({ card }: { card: Card }) {
 const MAX_RIDES = 3;
 
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [phase, setPhase] = useState<Phase>('ready');
   const [shoe, setShoe] = useState<Card[]>(() => createShoe());
   const [dealer, setDealer] = useState<Card[]>([]);
@@ -88,12 +88,6 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     if (ridePot == null) {
       if (remaining < 1) {
         setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
-        setPhase('result');
-        setBusy(false);
-        return;
-      }
-      if (!consumeChallenge()) {
-        setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
         setPhase('result');
         setBusy(false);
         return;

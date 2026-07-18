@@ -16,7 +16,7 @@ function pickMines(count: number): Set<number> {
 }
 
 export function MinesGame({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [hazardCount, setHazardCount] = useState(5);
   const [mines, setMines] = useState<Set<number>>(new Set());
@@ -31,10 +31,6 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
   const start = () => {
     if (remaining < 1) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
-      return;
-    }
-    if (!consumeChallenge()) {
-      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
     const nextStake = Math.min(state.wagerMinutes, remaining);

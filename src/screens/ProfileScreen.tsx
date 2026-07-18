@@ -1,11 +1,8 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Crown } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import type { LegalDoc } from '../components/LegalDocView';
 import { useScreel } from '../context/ScreelContext';
 import type { FontTheme } from '../types';
-import { getPremiumPrice, managePremium, purchasePremium, restorePremium } from '../native/monetization';
 
 const FONT_OPTIONS: { id: FontTheme; label: string; blurb: string }[] = [
   { id: 'felt', label: 'Felt', blurb: 'Bold Syne headlines (default)' },
@@ -15,34 +12,8 @@ const FONT_OPTIONS: { id: FontTheme; label: string; blurb: string }[] = [
 ];
 
 export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) => void }) {
-  const { state, updateProfile, setFontTheme, setPremiumEntitlement } = useScreel();
+  const { state, updateProfile, setFontTheme } = useScreel();
   const { toast } = useScreelUI();
-  const [purchaseBusy, setPurchaseBusy] = useState(false);
-  const [premiumPrice, setPremiumPrice] = useState<string | null>(null);
-
-  useEffect(() => {
-    void getPremiumPrice().then(setPremiumPrice).catch(() => undefined);
-  }, []);
-
-  const runPurchase = async (restore: boolean) => {
-    if (purchaseBusy) return;
-    setPurchaseBusy(true);
-    try {
-      const active = restore ? await restorePremium() : await purchasePremium();
-      setPremiumEntitlement(active);
-      toast(active ? 'Premium is active.' : 'No active Premium subscription found.', {
-        title: restore ? 'Purchases restored' : 'Premium',
-        tone: active ? 'success' : 'info',
-      });
-    } catch (error) {
-      toast(error instanceof Error ? error.message : 'The App Store could not complete this request.', {
-        title: 'Store unavailable',
-        tone: 'info',
-      });
-    } finally {
-      setPurchaseBusy(false);
-    }
-  };
 
   return (
     <div className="screen">
@@ -58,34 +29,6 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
           from today’s allowance. Minutes have no cash value.
         </p>
       </div>
-
-      <section className={`premium-panel section ${state.isPremium ? 'active' : ''}`}>
-        <div>
-          <span className="hand-label">{state.isPremium ? 'Premium active' : 'Screel Premium'}</span>
-          <h2><Crown size={20} /> {state.isPremium ? 'Unlimited focus challenges' : 'Go unlimited'}</h2>
-          <p>
-            Unlimited challenges, no ads, lifetime history, per-game breakdowns, and deeper progress stats.
-          </p>
-        </div>
-        {state.isPremium ? (
-          <button type="button" className="btn btn-secondary" onClick={() => void managePremium()}>
-            Manage subscription
-          </button>
-        ) : (
-          <div className="premium-actions">
-            <button type="button" className="btn btn-primary" onClick={() => void runPurchase(false)} disabled={purchaseBusy}>
-              {purchaseBusy ? 'Contacting App Store…' : `Start Premium${premiumPrice ? ` · ${premiumPrice}/month` : ''}`}
-            </button>
-            <button type="button" className="linkish" onClick={() => void runPurchase(true)} disabled={purchaseBusy}>
-              Restore purchases
-            </button>
-            <small>
-              Monthly auto-renewable subscription{premiumPrice ? ` at ${premiumPrice}/month` : ''}. Apple
-              confirms the price before purchase. Cancel anytime.
-            </small>
-          </div>
-        )}
-      </section>
 
       <div className="profile-hero section" style={{ marginTop: 18 }}>
         <div className="avatar">{state.displayName.slice(0, 1).toUpperCase()}</div>

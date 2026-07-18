@@ -6,7 +6,7 @@ import { useScreel } from '../context/ScreelContext';
 import { dicePot, seedPot } from '../utils/potMath';
 
 export function DiceGame({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [mode, setMode] = useState<'under' | 'over'>('under');
   const [target, setTarget] = useState(50);
   const [rolling, setRolling] = useState(false);
@@ -21,10 +21,6 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
     if (rolling) return;
     if (remaining < 1) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
-      return;
-    }
-    if (!consumeChallenge()) {
-      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
     const stake = Math.min(state.wagerMinutes, remaining);

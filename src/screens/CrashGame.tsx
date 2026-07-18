@@ -21,7 +21,7 @@ function multAt(ms: number): number {
 }
 
 export function CrashGame({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [mult, setMult] = useState(1);
   const [base, setBase] = useState(0);
@@ -42,10 +42,6 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
   const launch = () => {
     if (remaining < 1) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
-      return;
-    }
-    if (!consumeChallenge()) {
-      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
     const stake = Math.min(state.wagerMinutes, remaining);

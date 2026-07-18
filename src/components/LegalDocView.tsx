@@ -45,9 +45,6 @@ function PrivacyBody() {
       <h3>Network</h3>
       <p>
         The web build may load fonts from Google Fonts. Apple Screen Time data is processed on-device.
-        Normal users may choose non-personalized rewarded ads supplied by Google AdMob, which may process
-        device identifiers, IP address, ad interactions, diagnostics, and advertising data. Premium
-        subscriptions are processed by Apple; Screel receives entitlement status, not payment details.
       </p>
       <h3>Children</h3>
       <p>Screel is not directed to children under {AGE_FLOOR}. Do not use the app if you are under {AGE_FLOOR}.</p>
@@ -70,13 +67,6 @@ function TermsBody() {
       <p>
         Screel is a screen-time helper. The only in-app unit is <strong>minutes</strong> of daily allowance.
         Minutes have no cash value and cannot be withdrawn, sold, or redeemed for money or prizes.
-      </p>
-      <h3>Premium subscription</h3>
-      <p>
-        Premium is an auto-renewable subscription billed by Apple. Payment is charged to your Apple ID after
-        confirmation. It renews unless canceled at least 24 hours before the current period ends. Manage or
-        cancel it in your App Store account settings. The price and billing period appear in Apple’s purchase
-        sheet before confirmation.
       </p>
       <h3>Not medical advice</h3>
       <p>
@@ -111,10 +101,7 @@ function OddsBody() {
         <li>Match three — bank a match or one double-up respin</li>
         <li>Roll under — set your own target; harder = bigger payout</li>
       </ul>
-      <p>
-        Normal includes 20 daily starts plus limited rewarded-ad refills; Premium removes ads and start
-        limits. Outcomes use the device RNG.
-      </p>
+      <p>Challenges have no daily start limit. Outcomes use the device RNG.</p>
     </>
   );
 }

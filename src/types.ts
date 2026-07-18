@@ -86,16 +86,6 @@ export interface ScreelState {
   minutesEarnedToday: number;
   /** Default minute stake for the next challenge. */
   wagerMinutes: number;
-  /** StoreKit entitlement. Refreshed from the store on native startup. */
-  isPremium: boolean;
-  /** Free-plan challenge quota consumed this period. */
-  challengesUsedToday: number;
-  /** Rewarded-ad challenge refills claimed this period. */
-  challengeAdsUsedToday: number;
-  /** Extra challenge starts granted by completed rewarded ads. */
-  bonusChallengesToday: number;
-  /** Whether the one-per-period +5m rescue has been claimed. */
-  minuteRescueUsedToday: boolean;
   /**
    * Optional SHA-256 hash of a 4-digit bank PIN.
    * When set, allowance / reset time / period reset need unlock first.
@@ -103,10 +93,6 @@ export interface ScreelState {
   bankPinHash: string | null;
 }
 
-export const FREE_CHALLENGES_PER_DAY = 20;
-export const CHALLENGE_AD_DAILY_CAP = 5;
-export const CHALLENGE_AD_REWARD = 2;
-export const MINUTE_RESCUE_REWARD = 5;
 export const WAGER_MAX = 20;
 
 /** Base minute pot seeds per game (before ladder / multiplier growth). */

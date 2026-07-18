@@ -3259,71 +3259,14 @@ button {
   letter-spacing: -0.02em;
 }
 
-/* —— Plans, rewarded access, and Premium —— */
-.access-panel,
-.rescue-panel,
-.premium-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: rgba(246, 243, 234, 0.035);
-}
-
-.access-panel > div,
-.rescue-panel > div,
-.premium-panel > div:first-child {
-  display: grid;
-  gap: 5px;
-}
-
-.access-panel strong,
-.premium-panel h2 {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.access-panel p,
-.rescue-panel p,
-.premium-panel p,
-.premium-panel small,
-.premium-stats-grid p {
+.game-stats-grid p {
   margin: 0;
   color: var(--mute);
   font-size: 0.78rem;
   line-height: 1.45;
 }
 
-.rescue-panel {
-  border-color: rgba(240, 201, 77, 0.35);
-}
-
-.premium-panel {
-  align-items: flex-start;
-  background: rgba(200, 255, 46, 0.055);
-  border-color: rgba(200, 255, 46, 0.2);
-}
-
-.premium-panel.active {
-  border-color: rgba(200, 255, 46, 0.5);
-}
-
-.premium-actions {
-  min-width: 180px;
-  display: grid;
-  gap: 8px;
-  justify-items: stretch;
-}
-
-.premium-actions small {
-  max-width: 28ch;
-}
-
-.premium-stats-grid {
+.game-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
@@ -3435,15 +3378,3 @@ button {
   background: var(--gold);
 }
 
-@media (max-width: 520px) {
-  .access-panel,
-  .rescue-panel,
-  .premium-panel {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .premium-actions {
-    width: 100%;
-  }
-}

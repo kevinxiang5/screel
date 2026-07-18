@@ -23,7 +23,7 @@ function drawValue(exclude?: number, tight = false): number {
 }
 
 export function HiLoGame({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [deckMode, setDeckMode] = useState<'classic' | 'tight'>('classic');
   const [card, setCard] = useState(8);
@@ -42,10 +42,6 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
   const start = () => {
     if (remaining < 1) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
-      return;
-    }
-    if (!consumeChallenge()) {
-      setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
       return;
     }
     const nextStake = Math.min(state.wagerMinutes, remaining);

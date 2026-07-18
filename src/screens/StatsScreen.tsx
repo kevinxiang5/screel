@@ -58,29 +58,26 @@ export function StatsScreen() {
         </div>
       </div>
 
-      {state.isPremium && (
-        <section className="section">
-          <div className="section-head">
-            <h2>Per-game performance</h2>
-            <span className="pill gold">Premium</span>
-          </div>
-          <div className="premium-stats-grid">
-            {(Object.keys(GAME_META) as GameKind[]).map((game) => {
-              const rows = state.history.filter((entry) => entry.game === game);
-              const kept = rows.filter((entry) => entry.result === 'win' || entry.result === 'blackjack');
-              const minutes = rows.reduce((sum, entry) => sum + Math.max(0, entry.delta), 0);
-              const rate = rows.length ? Math.round((kept.length / rows.length) * 100) : 0;
-              return (
-                <div className="stat-tile" key={game}>
-                  <div className="label">{GAME_META[game].label}</div>
-                  <div className="value">{rate}%</div>
-                  <p>{rows.length} runs · +{minutes}m kept</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      <section className="section">
+        <div className="section-head">
+          <h2>Per-game performance</h2>
+        </div>
+        <div className="game-stats-grid">
+          {(Object.keys(GAME_META) as GameKind[]).map((game) => {
+            const rows = state.history.filter((entry) => entry.game === game);
+            const kept = rows.filter((entry) => entry.result === 'win' || entry.result === 'blackjack');
+            const minutes = rows.reduce((sum, entry) => sum + Math.max(0, entry.delta), 0);
+            const rate = rows.length ? Math.round((kept.length / rows.length) * 100) : 0;
+            return (
+              <div className="stat-tile" key={game}>
+                <div className="label">{GAME_META[game].label}</div>
+                <div className="value">{rate}%</div>
+                <p>{rows.length} runs · +{minutes}m kept</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="section">
         <div className="section-head">
@@ -89,7 +86,7 @@ export function StatsScreen() {
         {state.history.length === 0 ? (
           <div className="empty">No rounds yet. Open Play and clear a challenge.</div>
         ) : (
-          state.history.slice(0, state.isPremium ? 80 : 10).map((h) => {
+          state.history.slice(0, 80).map((h) => {
             const meta = GAME_META[h.game] ?? GAME_META.blackjack;
             const Icon = meta.icon;
             return (

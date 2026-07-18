@@ -34,7 +34,7 @@ function draw(): SlotSymbol {
 type Stage = 'ready' | 'spinning' | 'choice' | 'done';
 
 export function SlotsGame({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, consumeChallenge, state, setWagerMinutes } = useScreel();
+  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [reels, setReels] = useState<string[]>(['\u{1F352}', '\u{1F514}', '\u{1F48E}']);
   const [spinningReels, setSpinningReels] = useState([false, false, false]);
   const [stage, setStage] = useState<Stage>('ready');
@@ -51,10 +51,6 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
     if (!forDouble) {
       if (remaining < 1) {
         setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
-        return;
-      }
-      if (!consumeChallenge()) {
-        setBanner({ text: 'Daily challenges used — refill from the Play screen.', kind: 'lose' });
         return;
       }
       const stake = Math.min(state.wagerMinutes, remaining);

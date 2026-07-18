@@ -16,7 +16,7 @@
 | Parental Controls | **No** |
 | Unrestricted Web Access | **No** |
 | UGC / Social / Messaging | **No** |
-| Advertising | **Yes** (user-initiated Google rewarded ads on Normal only) |
+| Advertising | **No** |
 | Other mature content | **None** unless clearly present |
 
 Expected rating: Productivity / Lifestyle — **not** 17+ simulated gambling.
@@ -34,7 +34,7 @@ If you answer Simulated Gambling = Frequent/Infrequent on an Individual account,
 **Subtitle:** `Challenges for screen time`
 
 **Promotional text:**  
-Set a daily minute budget, build better habits, and clear optional focus challenges. Premium adds unlimited ad-free challenge play.
+Set a daily minute budget, build better habits, and clear optional focus challenges.
 
 **Description:**
 
@@ -46,9 +46,8 @@ Screel is a screen-time helper for iPhone.
 • Optional challenges: Safe tiles, Timing run, Multiplier wheel, Twenty-one, Match three, and more
 • Choose a minute stake before each challenge
 • Wins add the displayed payout; misses subtract the stake
-• Daily keep cap · optional PIN lock on allowance settings
-• Normal: 20 daily challenges with optional rewarded-ad refills
-• Premium subscription: unlimited challenges, no ads, and richer stats
+• Unlimited challenge starts and full progress stats
+• Optional PIN lock on allowance settings
 
 No real money. No deposits. No cash-out. Minutes are only your daily screen allowance.
 
@@ -58,7 +57,7 @@ Designed for self-directed screen-time management. United States only for v1.
 **Keywords:** `screen time,focus,habit,app limit,digital wellbeing,minutes,challenge`
 
 **What’s New (resubmit):**  
-Added Normal and Premium plans, minute stakes, challenge customization, and clearer progress stats.
+Added minute stakes, challenge customization, unlimited starts, and clearer progress stats.
 
 ## Review notes (paste)
 
@@ -70,7 +69,7 @@ Users set a daily minute allowance and may authorize Apple Family Controls / Dev
 Optional challenges:
 • Users choose a minute stake before each challenge. Wins add the displayed payout and misses subtract the stake from today’s allowance.
 
-Normal includes 20 daily challenge starts. Users may voluntarily complete up to five rewarded ads for +2 starts each and one rewarded ad for a +5-minute rescue when out of minutes. Premium is an auto-renewable subscription for unlimited starts, no ads, and richer statistics. Premium does not improve odds, raise minute rewards, or sell minutes.
+Challenge starts are unlimited. The app contains no ads or in-app purchases.
 
 No real money, deposits, withdrawals, chips, or IAP for minutes.
 
@@ -101,9 +100,8 @@ We declare Simulated Gambling = None, refresh metadata and screenshots to match 
 
 ## App Privacy
 
-- Advertising: **Yes**
-- Update the privacy nutrition label for Google Mobile Ads before submission. Review Device ID, Product Interaction, Advertising Data, Diagnostics, Third-Party Advertising, and Analytics against Google’s current SDK disclosure.
-- Ads request non-personalized treatment (`npa: true`); Screel does not request ATT permission or use IDFA.
+- Advertising: **No**
+- Purchases: **No**
 
 ## Family Controls (blocking)
 
@@ -118,8 +116,6 @@ Without distribution approval, App Store / TestFlight uploads that include the F
 
 ## Before Submit
 
-- [ ] Create auto-renewable subscription `com.screel.app.premium.monthly`, add localization/price, and attach it to the version
-- [ ] Create AdMob iOS app + rewarded units; replace Google sample IDs before release
 - [ ] Reassess Individual-account eligibility because the current binary contains minute staking and losses
 - [ ] Age ratings: Simulated Gambling = **None**
 - [ ] Listing copy matches above

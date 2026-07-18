@@ -1,12 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
-import { checkPremium } from '../native/monetization';
 import {
-  CHALLENGE_AD_DAILY_CAP,
-  CHALLENGE_AD_REWARD,
-  FREE_CHALLENGES_PER_DAY,
-  MINUTE_RESCUE_REWARD,
   WAGER_MAX,
   type DailyChallenge,
   type FontTheme,
@@ -100,11 +95,6 @@ const defaultState = (): ScreelState => {
     riskAlerts: true,
     minutesEarnedToday: 0,
     wagerMinutes: 5,
-    isPremium: false,
-    challengesUsedToday: 0,
-    challengeAdsUsedToday: 0,
-    bonusChallengesToday: 0,
-    minuteRescueUsedToday: false,
     bankPinHash: null,
   };
 };
@@ -178,14 +168,6 @@ function loadState(): ScreelState {
       minutesEarnedToday:
         typeof parsed.minutesEarnedToday === 'number' ? Math.max(0, parsed.minutesEarnedToday) : 0,
       wagerMinutes: clampWager(parsed.wagerMinutes ?? 5),
-      isPremium: Boolean(parsed.isPremium),
-      challengesUsedToday:
-        typeof parsed.challengesUsedToday === 'number' ? Math.max(0, parsed.challengesUsedToday) : 0,
-      challengeAdsUsedToday:
-        typeof parsed.challengeAdsUsedToday === 'number' ? Math.max(0, parsed.challengeAdsUsedToday) : 0,
-      bonusChallengesToday:
-        typeof parsed.bonusChallengesToday === 'number' ? Math.max(0, parsed.bonusChallengesToday) : 0,
-      minuteRescueUsedToday: Boolean(parsed.minuteRescueUsedToday),
       winStreak: typeof parsed.winStreak === 'number' ? Math.max(0, parsed.winStreak) : 0,
       bankPinHash: typeof parsed.bankPinHash === 'string' ? parsed.bankPinHash : null,
       history: migrateHistory(parsed.history),
@@ -199,8 +181,6 @@ function loadState(): ScreelState {
 interface ScreelContextValue {
   state: ScreelState;
   remaining: number;
-  challengesLeftToday: number;
-  challengeAdsLeftToday: number;
   setBaseLimit: (n: number) => void;
   setResetTime: (hour: number, minute: number) => void;
   setWagerMinutes: (n: number) => void;
@@ -216,10 +196,6 @@ interface ScreelContextValue {
     detail: string;
     result?: RoundResult;
   }) => number;
-  consumeChallenge: () => boolean;
-  grantChallengeAdReward: () => boolean;
-  grantMinuteRescue: () => boolean;
-  setPremiumEntitlement: (active: boolean) => void;
   claimChallenge: (id: string) => void;
   bankLocked: boolean;
   bankUnlocked: boolean;
@@ -276,13 +252,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
   }, [state.fontTheme]);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    void checkPremium()
-      .then((active) => setState((s) => (s.isPremium === active ? s : { ...s, isPremium: active })))
-      .catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
     const tick = () => {
       setState((s) => {
         const tz = s.timeZone || detectTimeZone();
@@ -297,10 +266,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           challenges: defaultChallenges(),
           streak: s.streak + 1,
           minutesEarnedToday: 0,
-          challengesUsedToday: 0,
-          challengeAdsUsedToday: 0,
-          bonusChallengesToday: 0,
-          minuteRescueUsedToday: false,
         };
       });
     };
@@ -336,11 +301,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
   }, [state.activePeriodId]);
 
   const remaining = Math.max(0, state.minutesBank - state.minutesUsed);
-  const challengeAllowance = FREE_CHALLENGES_PER_DAY + state.bonusChallengesToday;
-  const challengesLeftToday = state.isPremium
-    ? Number.POSITIVE_INFINITY
-    : Math.max(0, challengeAllowance - state.challengesUsedToday);
-  const challengeAdsLeftToday = Math.max(0, CHALLENGE_AD_DAILY_CAP - state.challengeAdsUsedToday);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || state.usageSource !== 'screenTime' || !state.connected) return;
@@ -381,8 +341,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
     return {
       state,
       remaining,
-      challengesLeftToday,
-      challengeAdsLeftToday,
       setBaseLimit: (n) => {
         setState((s) => {
           const next = clampAllowance(n);
@@ -479,46 +437,6 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         }
         return applied;
       },
-      consumeChallenge: () => {
-        const s = stateRef.current;
-        if (s.isPremium) return true;
-        const allowance = FREE_CHALLENGES_PER_DAY + s.bonusChallengesToday;
-        if (s.challengesUsedToday >= allowance) return false;
-        const next = { ...s, challengesUsedToday: s.challengesUsedToday + 1 };
-        stateRef.current = next;
-        setState(next);
-        return true;
-      },
-      grantChallengeAdReward: () => {
-        const s = stateRef.current;
-        if (s.isPremium || s.challengeAdsUsedToday >= CHALLENGE_AD_DAILY_CAP) return false;
-        const next = {
-          ...s,
-          challengeAdsUsedToday: s.challengeAdsUsedToday + 1,
-          bonusChallengesToday: s.bonusChallengesToday + CHALLENGE_AD_REWARD,
-        };
-        stateRef.current = next;
-        setState(next);
-        return true;
-      },
-      grantMinuteRescue: () => {
-        const s = stateRef.current;
-        if (s.isPremium || s.minuteRescueUsedToday || s.minutesBank - s.minutesUsed > 0) return false;
-        const next = {
-          ...s,
-          minutesBank: s.minutesBank + MINUTE_RESCUE_REWARD,
-          minuteRescueUsedToday: true,
-        };
-        stateRef.current = next;
-        setState(next);
-        if (next.usageSource === 'screenTime' && next.connected) {
-          void ScreelScreenTime.applyShieldWhenBroke({ broke: false });
-        }
-        return true;
-      },
-      setPremiumEntitlement: (active) => {
-        setState((s) => ({ ...s, isPremium: active }));
-      },
       claimChallenge: (id) => {
         setState((s) => {
           const challenge = s.challenges.find((c) => c.id === id);
@@ -589,20 +507,10 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
             timeZone,
             activePeriodId: periodId(new Date(), s.resetHour, s.resetMinute, timeZone),
             minutesEarnedToday: 0,
-            challengesUsedToday: 0,
-            challengeAdsUsedToday: 0,
-            bonusChallengesToday: 0,
-            minuteRescueUsedToday: false,
           };
         }),
     };
-  }, [
-    state,
-    remaining,
-    challengesLeftToday,
-    challengeAdsLeftToday,
-    bankUnlocked,
-  ]);
+  }, [state, remaining, bankUnlocked]);
 
   return <ScreelContext.Provider value={value}>{children}</ScreelContext.Provider>;
 }

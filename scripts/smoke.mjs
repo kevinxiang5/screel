@@ -31,11 +31,6 @@ const seeded = {
   riskAlerts: true,
   minutesEarnedToday: 0,
   wagerMinutes: 5,
-  isPremium: false,
-  challengesUsedToday: 0,
-  challengeAdsUsedToday: 0,
-  bonusChallengesToday: 0,
-  minuteRescueUsedToday: false,
 };
 
 const browser = await chromium.launch();
@@ -50,7 +45,6 @@ async function boot(state) {
 
 await boot(seeded);
 await page.getByRole('button', { name: 'Play', exact: true }).click();
-await page.getByText('20 challenges left').waitFor();
 await page.getByRole('button', { name: /Safe tiles/i }).click();
 await page.getByLabel('Minute stake').waitFor();
 await page.getByRole('button', { name: '10m' }).click();
@@ -72,18 +66,9 @@ await page.getByText('230m', { exact: true }).waitFor();
 await page.getByRole('button', { name: /Play/ }).click();
 
 await page.getByRole('button', { name: 'You', exact: true }).click();
-await page.getByText('Screel Premium').waitFor();
-await page.getByRole('button', { name: 'Restore purchases' }).waitFor();
-
-const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('screel-v3')));
-await boot({ ...persisted, challengesUsedToday: 20, minutesBank: 0, minutesUsed: 0 });
-await page.getByText('Need five more minutes?').waitFor();
-await page.getByRole('button', { name: 'Play', exact: true }).click();
-await page.getByText('0 challenges left').waitFor();
-await page.getByRole('button', { name: /Watch ad · \+2/i }).waitFor();
-if (!(await page.getByRole('button', { name: /Twenty-one/i }).isDisabled())) {
-  throw new Error('Challenge cards should be disabled when Normal quota is exhausted.');
-}
+await page.getByText('App typeface').waitFor();
+await page.getByRole('button', { name: 'Stats', exact: true }).click();
+await page.getByText('Per-game performance').waitFor();
 
 await browser.close();
 console.log('smoke ok');
