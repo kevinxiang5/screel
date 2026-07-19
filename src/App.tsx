@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AgeBlocked, AgeGate } from './components/AgeGate';
 import { LegalDocView, type LegalDoc } from './components/LegalDocView';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -14,6 +14,13 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import type { GameId, TabId } from './types';
 
+const tabMotion = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+};
+
 function ScreelApp() {
   const { state } = useScreel();
   const [ready, setReady] = useState(false);
@@ -22,6 +29,8 @@ function ScreelApp() {
   const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
 
   const finishLoading = useCallback(() => setReady(true), []);
+  const inGame = tab === 'play' && Boolean(activeGame);
+  const showTabs = !inGame && !legalDoc;
 
   const goPlay = (game: GameId) => {
     setActiveGame(game);
@@ -42,25 +51,58 @@ function ScreelApp() {
       {ready && !state.ageBlocked && !state.ageVerified && <AgeGate />}
       {ready && !state.ageBlocked && state.ageVerified && !state.setupComplete && <SetupFlow />}
       {ready && !state.ageBlocked && state.ageVerified && state.setupComplete && (
-        <div className="app-shell">
+        <div className={`app-shell ${inGame ? 'in-game' : ''}`}>
           {legalDoc ? (
             <LegalDocView doc={legalDoc} onBack={() => setLegalDoc(null)} />
           ) : (
-            <>
-              {tab === 'home' && <HomeScreen onNavigate={changeTab} onPlay={goPlay} />}
-              {tab === 'play' && (
-                <GamesScreen
-                  activeGame={activeGame}
-                  onSelect={setActiveGame}
-                  onBack={() => setActiveGame(null)}
-                />
-              )}
-              {tab === 'bank' && <BankScreen />}
-              {tab === 'stats' && <StatsScreen />}
-              {tab === 'you' && <ProfileScreen onOpenLegal={setLegalDoc} />}
-            </>
+            <div className="tab-route">
+              <AnimatePresence mode="wait" initial={false}>
+                {tab === 'home' && (
+                  <motion.div key="home" className="tab-page" {...tabMotion}>
+                    <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
+                  </motion.div>
+                )}
+                {tab === 'play' && (
+                  <motion.div key="play" className="tab-page" {...tabMotion}>
+                    <GamesScreen
+                      activeGame={activeGame}
+                      onSelect={setActiveGame}
+                      onBack={() => setActiveGame(null)}
+                    />
+                  </motion.div>
+                )}
+                {tab === 'bank' && (
+                  <motion.div key="bank" className="tab-page" {...tabMotion}>
+                    <BankScreen />
+                  </motion.div>
+                )}
+                {tab === 'stats' && (
+                  <motion.div key="stats" className="tab-page" {...tabMotion}>
+                    <StatsScreen />
+                  </motion.div>
+                )}
+                {tab === 'you' && (
+                  <motion.div key="you" className="tab-page" {...tabMotion}>
+                    <ProfileScreen onOpenLegal={setLegalDoc} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
-          {!(tab === 'play' && activeGame) && !legalDoc && <TabBar active={tab} onChange={changeTab} />}
+          <AnimatePresence>
+            {showTabs && (
+              <motion.div
+                key="tabs"
+                className="tab-bar-wrap"
+                initial={{ y: 28, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 36, opacity: 0 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <TabBar active={tab} onChange={changeTab} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </>

@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Rocket } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Rocket } from 'lucide-react';
+import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { crashPot, seedPot } from '../utils/potMath';
+import { crashPot, rollCrashPoint } from '../utils/potMath';
 
 const RATE = 0.00014;
 
 type Stage = 'ready' | 'running' | 'done';
-
-function rollCrashPoint(): number {
-  const u = Math.random();
-  if (u < 0.1) return 1 + Math.random() * 0.35;
-  if (u < 0.35) return 1.2 + Math.random() * 0.8;
-  return 1.5 + Math.random() * 4;
-}
 
 function multAt(ms: number): number {
   return Math.exp(RATE * ms);
@@ -24,20 +18,19 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
   const { remaining, settleRound, state, setWagerMinutes } = useScreel();
   const [stage, setStage] = useState<Stage>('ready');
   const [mult, setMult] = useState(1);
-  const [base, setBase] = useState(0);
   const [autoBank, setAutoBank] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
   const crashPointRef = useRef(1);
   const startRef = useRef(0);
   const rafRef = useRef(0);
   const stageRef = useRef<Stage>('ready');
-  const baseRef = useRef(0);
   const stakeRef = useRef(0);
   stageRef.current = stage;
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
-  const pot = crashPot(base || seedPot('crash', Math.min(state.wagerMinutes, remaining)), mult);
+  const stakePreview = stakeRef.current || Math.min(state.wagerMinutes, remaining);
+  const pot = crashPot(stakePreview, mult);
 
   const launch = () => {
     if (remaining < 1) {
@@ -46,9 +39,6 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
     }
     const stake = Math.min(state.wagerMinutes, remaining);
     stakeRef.current = stake;
-    const b = seedPot('crash', stake);
-    setBase(b);
-    baseRef.current = b;
     crashPointRef.current = rollCrashPoint();
     startRef.current = performance.now();
     setBanner(null);
@@ -79,7 +69,7 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
         cancelAnimationFrame(rafRef.current);
         setMult(autoBank);
         setStage('done');
-        const amount = Math.round(crashPot(baseRef.current, autoBank));
+        const amount = crashPot(stakeRef.current, autoBank);
         const applied = settleRound({
           game: 'crash',
           pot: amount,
@@ -103,7 +93,7 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
     cancelAnimationFrame(rafRef.current);
     setMult(m);
     setStage('done');
-    const amount = Math.round(crashPot(baseRef.current, m));
+    const amount = crashPot(stakeRef.current, m);
     const applied = settleRound({
       game: 'crash',
       pot: amount,
@@ -116,37 +106,55 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="screen game-stage">
-      <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={stage === 'running'}>
-          <ArrowLeft size={16} /> Play
-        </button>
-        <div className="bj-balance">
-          <span>Minutes left</span>
-          <strong>{remaining}m</strong>
-        </div>
-      </div>
-
-      {(stage === 'ready' || stage === 'done') && (
-        <WagerSelector value={state.wagerMinutes} remaining={remaining} onChange={setWagerMinutes} />
-      )}
-
-      {(stage === 'ready' || stage === 'done') && (
-        <div className="option-strip">
-          <span className="hand-label">Auto-bank</span>
-          {[null, 1.5, 2, 3].map((target) => (
-            <button
-              type="button"
-              key={target ?? 'off'}
-              className={autoBank === target ? 'active' : ''}
-              onClick={() => setAutoBank(target)}
-            >
-              {target === null ? 'Off' : `×${target.toFixed(1)}`}
+    <GameChrome
+      title="Timing run"
+      onBack={onBack}
+      backDisabled={stage === 'running'}
+      banner={banner}
+      setup={
+        <>
+          <WagerSelector
+            value={state.wagerMinutes}
+            remaining={remaining}
+            onChange={setWagerMinutes}
+            disabled={stage === 'running'}
+          />
+          <div className={`option-strip ${stage === 'running' ? 'locked' : ''}`}>
+            <span className="hand-label">Auto-bank</span>
+            {[null, 1.5, 2, 3].map((target) => (
+              <button
+                type="button"
+                key={target ?? 'off'}
+                className={autoBank === target ? 'active' : ''}
+                disabled={stage === 'running'}
+                onClick={() => setAutoBank(target)}
+              >
+                {target === null ? 'Off' : `×${target.toFixed(1)}`}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      dock={
+        <>
+          {stage === 'ready' && (
+            <button type="button" className="btn btn-primary btn-block" onClick={launch}>
+              Start
             </button>
-          ))}
-        </div>
-      )}
-
+          )}
+          {stage === 'running' && (
+            <button type="button" className="btn btn-gold btn-block" onClick={bankIt}>
+              Bank it (+{pot}m)
+            </button>
+          )}
+          {stage === 'done' && (
+            <button type="button" className="btn btn-primary btn-block" onClick={launch}>
+              Run again
+            </button>
+          )}
+        </>
+      }
+    >
       <div className={`crash-stage ${stage}`}>
         <motion.div
           className="crash-rocket"
@@ -155,48 +163,19 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
               ? { y: -12 - Math.min(80, (mult - 1) * 28), rotate: -8 }
               : stage === 'done' && banner?.kind === 'lose'
                 ? { y: 40, rotate: 65, opacity: 0.4 }
-                : { y: 0, rotate: 0 }
+                : { y: 0, rotate: 0, opacity: 1 }
           }
+          transition={{ type: 'spring', stiffness: 120, damping: 18 }}
         >
           <Rocket size={44} />
         </motion.div>
         <div className={`crash-mult ${stage}`}>×{mult.toFixed(2)}</div>
         <div className="crash-sub">
-          {stage === 'ready' && 'Bank before it pops to win the growing payout.'}
-          {stage === 'running' && 'Growing — bank it before the pop.'}
+          {stage === 'ready' && 'Bank before it pops. Payout = stake × (multiplier − 1).'}
+          {stage === 'running' && `+${pot}m if you bank now`}
           {stage === 'done' && 'Run over.'}
         </div>
       </div>
-
-      <AnimatePresence>
-        {banner && (
-          <motion.div
-            className={`result-banner ${banner.kind}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {banner.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="bj-dock">
-        {stage === 'ready' && (
-          <button type="button" className="btn btn-primary btn-block" onClick={launch}>
-            Start
-          </button>
-        )}
-        {stage === 'running' && (
-          <button type="button" className="btn btn-gold btn-block" onClick={bankIt}>
-            Bank it ({Math.round(pot)}m)
-          </button>
-        )}
-        {stage === 'done' && (
-          <button type="button" className="btn btn-primary btn-block" onClick={() => setStage('ready')}>
-            Try again
-          </button>
-        )}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

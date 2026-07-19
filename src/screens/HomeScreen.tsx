@@ -93,10 +93,10 @@ export function HomeScreen({
             <h3>Twenty-one</h3>
             <p>Beat the house. Bank or double.</p>
           </button>
-          <button type="button" className="game-card mines" onClick={() => onPlay('mines')}>
-            <span className="badge">ladder</span>
-            <h3>Safe tiles</h3>
-            <p>Choose a stake. Safe tiles grow your payout.</p>
+          <button type="button" className="game-card plinko" onClick={() => onPlay('plinko')}>
+            <span className="badge">drop</span>
+            <h3>Plinko</h3>
+            <p>Drop the ball. Edge bins pay more.</p>
           </button>
         </div>
         <p className="lede" style={{ marginTop: 10 }}>

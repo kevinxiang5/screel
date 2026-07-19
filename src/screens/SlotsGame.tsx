@@ -1,22 +1,22 @@
 ﻿import { useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { seedPot } from '../utils/potMath';
+import { slotsPot } from '../utils/potMath';
 
 interface SlotSymbol {
   glyph: string;
   weight: number;
 }
 
+/** Weights tuned so any-pair chance ≈ 42% (house edge via slotsPot). */
 const SYMBOLS: SlotSymbol[] = [
-  { glyph: '\u{1F352}', weight: 30 },
-  { glyph: '\u{1F34B}', weight: 26 },
-  { glyph: '\u{1F514}', weight: 20 },
-  { glyph: '\u2B50', weight: 13 },
-  { glyph: '\u{1F48E}', weight: 8 },
-  { glyph: '\u{1F340}', weight: 3 },
+  { glyph: '\u{1F352}', weight: 22 },
+  { glyph: '\u{1F34B}', weight: 20 },
+  { glyph: '\u{1F514}', weight: 18 },
+  { glyph: '\u2B50', weight: 16 },
+  { glyph: '\u{1F48E}', weight: 14 },
+  { glyph: '\u{1F340}', weight: 10 },
 ];
 
 const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
@@ -55,7 +55,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
       }
       const stake = Math.min(state.wagerMinutes, remaining);
       stakeRef.current = stake;
-      const b = seedPot('slots', stake);
+      const b = slotsPot(stake);
       setPot(b);
       potRef.current = b;
       isDoubleRef.current = false;
@@ -135,34 +135,63 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
     setStage('done');
   };
 
+  const locked = stage === 'spinning' || stage === 'choice';
+
   return (
-    <div className="screen game-stage">
-      <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={stage === 'spinning'}>
-          <ArrowLeft size={16} /> Play
-        </button>
-        <div className="bj-balance">
-          <span>Minutes left</span>
-          <strong>{remaining}m</strong>
-        </div>
-      </div>
-
-      {(stage === 'ready' || stage === 'done') && (
-        <WagerSelector value={state.wagerMinutes} remaining={remaining} onChange={setWagerMinutes} />
-      )}
-
-      {(stage === 'ready' || stage === 'done') && (
-        <div className="option-strip">
-          <span className="hand-label">Reel speed</span>
-          <button type="button" className={spinSpeed === 'quick' ? 'active' : ''} onClick={() => setSpinSpeed('quick')}>
-            Quick
-          </button>
-          <button type="button" className={spinSpeed === 'show' ? 'active' : ''} onClick={() => setSpinSpeed('show')}>
-            Full reveal
-          </button>
-        </div>
-      )}
-
+    <GameChrome
+      title="Match three"
+      onBack={onBack}
+      backDisabled={stage === 'spinning'}
+      banner={banner}
+      setup={
+        <>
+          <WagerSelector
+            value={state.wagerMinutes}
+            remaining={remaining}
+            onChange={setWagerMinutes}
+            disabled={locked}
+          />
+          <div className={`option-strip ${locked ? 'locked' : ''}`}>
+            <span className="hand-label">Reel speed</span>
+            <button
+              type="button"
+              className={spinSpeed === 'quick' ? 'active' : ''}
+              disabled={locked}
+              onClick={() => setSpinSpeed('quick')}
+            >
+              Quick
+            </button>
+            <button
+              type="button"
+              className={spinSpeed === 'show' ? 'active' : ''}
+              disabled={locked}
+              onClick={() => setSpinSpeed('show')}
+            >
+              Full reveal
+            </button>
+          </div>
+        </>
+      }
+      dock={
+        <>
+          {(stage === 'ready' || stage === 'done') && (
+            <button type="button" className="btn btn-primary btn-block" onClick={() => spin(false)}>
+              Spin
+            </button>
+          )}
+          {stage === 'choice' && (
+            <div className="bj-actions">
+              <button type="button" className="btn btn-gold" onClick={bankIt}>
+                Bank it (+{Math.round(pot)}m)
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => spin(true)}>
+                Double up
+              </button>
+            </div>
+          )}
+        </>
+      }
+    >
       <div className="slots-cabinet">
         <div className="slots-reels">
           {reels.map((g, i) => (
@@ -173,36 +202,6 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
         </div>
         <p className="slots-paytable">Any pair or triple wins. Take the payout — or try one double-up respin.</p>
       </div>
-
-      <AnimatePresence>
-        {banner && (
-          <motion.div
-            className={`result-banner ${banner.kind}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {banner.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="bj-dock">
-        {(stage === 'ready' || stage === 'done') && (
-          <button type="button" className="btn btn-primary btn-block" onClick={() => spin(false)}>
-            Spin
-          </button>
-        )}
-        {stage === 'choice' && (
-          <div className="bj-actions">
-            <button type="button" className="btn btn-gold" onClick={bankIt}>
-              Bank it ({Math.round(pot)}m)
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => spin(true)}>
-              Double up
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

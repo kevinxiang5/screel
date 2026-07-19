@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowDown, ArrowUp } from 'lucide-react';
+import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { hiloPot, seedPot } from '../utils/potMath';
+import { hiloPot } from '../utils/potMath';
 
 const LABELS: Record<number, string> = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -29,15 +30,13 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
   const [card, setCard] = useState(8);
   const [suit, setSuit] = useState('♠');
   const [streak, setStreak] = useState(0);
-  const [base, setBase] = useState(0);
   const [stake, setStake] = useState(0);
   const [nearMiss, setNearMiss] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
 
-  const pot = hiloPot(
-    base || seedPot('hilo', Math.min(state.wagerMinutes, remaining)) * (deckMode === 'tight' ? 1.5 : 1),
-    streak,
-  );
+  const activeStake = stake || Math.min(state.wagerMinutes, remaining);
+  const stakeFactor = deckMode === 'tight' ? 1.15 : 1;
+  const pot = Math.round(hiloPot(activeStake, streak) * stakeFactor * 10) / 10;
 
   const start = () => {
     if (remaining < 1) {
@@ -46,7 +45,6 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
     }
     const nextStake = Math.min(state.wagerMinutes, remaining);
     setStake(nextStake);
-    setBase(seedPot('hilo', nextStake) * (deckMode === 'tight' ? 1.5 : 1));
     setCard(drawValue(undefined, deckMode === 'tight'));
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     setStreak(0);
@@ -57,7 +55,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
 
   const bankIt = () => {
     if (stage !== 'live' || streak === 0) return;
-    const amount = Math.round(hiloPot(base, streak));
+    const amount = Math.round(hiloPot(stake, streak) * stakeFactor * 10) / 10;
     const applied = settleRound({
       game: 'hilo',
       pot: amount,
@@ -97,39 +95,88 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
   const red = suit === '♥' || suit === '♦';
 
   return (
-    <div className="screen game-stage">
-      <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={stage === 'live'}>
-          <ArrowLeft size={16} /> Play
-        </button>
-        <div className="bj-balance">
-          <span>Minutes left</span>
-          <strong>{remaining}m</strong>
-        </div>
-      </div>
-
-      {(stage === 'ready' || stage === 'done') && (
-        <WagerSelector value={state.wagerMinutes} remaining={remaining} onChange={setWagerMinutes} />
-      )}
-
-      {(stage === 'ready' || stage === 'done') && (
-        <div className="option-strip">
-          <span className="hand-label">Deck</span>
-          <button type="button" className={deckMode === 'classic' ? 'active' : ''} onClick={() => setDeckMode('classic')}>
-            Classic · 2–A
-          </button>
-          <button type="button" className={deckMode === 'tight' ? 'active' : ''} onClick={() => setDeckMode('tight')}>
-            Tight · 5–J · 1.5×
-          </button>
-        </div>
-      )}
-
+    <GameChrome
+      title="Higher / lower"
+      onBack={onBack}
+      backDisabled={stage === 'live'}
+      banner={banner}
+      setup={
+        <>
+          <WagerSelector
+            value={state.wagerMinutes}
+            remaining={remaining}
+            onChange={setWagerMinutes}
+            disabled={stage === 'live'}
+          />
+          <div className={`option-strip ${stage === 'live' ? 'locked' : ''}`}>
+            <span className="hand-label">Deck</span>
+            <button
+              type="button"
+              className={deckMode === 'classic' ? 'active' : ''}
+              disabled={stage === 'live'}
+              onClick={() => setDeckMode('classic')}
+            >
+              Classic · 2–A
+            </button>
+            <button
+              type="button"
+              className={deckMode === 'tight' ? 'active' : ''}
+              disabled={stage === 'live'}
+              onClick={() => setDeckMode('tight')}
+            >
+              Tight · 5–J · +15%
+            </button>
+          </div>
+        </>
+      }
+      dock={
+        <>
+          <p className="rl-hint">Correct calls grow the payout. Bank anytime — a miss loses your stake.</p>
+          {stage === 'ready' || stage === 'done' ? (
+            <button type="button" className="btn btn-primary btn-block" onClick={start}>
+              {stage === 'done' ? 'New run' : 'Start'}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-gold btn-block"
+                onClick={bankIt}
+                disabled={streak === 0}
+                style={{ marginBottom: 10 }}
+              >
+                Bank it (+{pot}m)
+              </button>
+              <div className="bj-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => guess('lower')}
+                  disabled={card === 2 || (deckMode === 'tight' && card === 5)}
+                >
+                  <ArrowDown size={16} /> Lower
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => guess('higher')}
+                  disabled={card === 14 || (deckMode === 'tight' && card === 11)}
+                >
+                  <ArrowUp size={16} /> Higher
+                </button>
+              </div>
+            </>
+          )}
+        </>
+      }
+    >
       <div className="hilo-stage">
         <motion.div
           key={`${card}-${suit}-${streak}`}
           className={`hilo-card ${red ? 'red' : ''}`}
           initial={{ rotateY: 90, opacity: 0 }}
           animate={{ rotateY: 0, opacity: 1 }}
+          transition={{ duration: 0.28 }}
         >
           <span className="hilo-rank">{label(card)}</span>
           <span className="hilo-suit">{suit}</span>
@@ -139,60 +186,13 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
             <div className="label">Streak</div>
             <div className="value">{streak}</div>
           </div>
+          <div className="stat-tile">
+            <div className="label">Payout</div>
+            <div className="value">{streak === 0 ? '—' : `+${pot}m`}</div>
+          </div>
         </div>
         {nearMiss && <p className="near-miss">{nearMiss}</p>}
       </div>
-
-      <AnimatePresence>
-        {banner && (
-          <motion.div
-            className={`result-banner ${banner.kind}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {banner.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="bj-dock">
-        <p className="rl-hint">Correct calls grow the payout. Bank anytime — a miss loses your stake.</p>
-        {stage === 'ready' || stage === 'done' ? (
-          <button type="button" className="btn btn-primary btn-block" onClick={start}>
-            {stage === 'done' ? 'New run' : 'Start'}
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="btn btn-gold btn-block"
-              onClick={bankIt}
-              disabled={streak === 0}
-              style={{ marginBottom: 10 }}
-            >
-              Bank it ({Math.round(pot)}m)
-            </button>
-            <div className="bj-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => guess('lower')}
-                disabled={card === 2}
-              >
-                <ArrowDown size={16} /> Lower
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => guess('higher')}
-                disabled={card === 14}
-              >
-                <ArrowUp size={16} /> Higher
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

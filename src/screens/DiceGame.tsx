@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Dices } from 'lucide-react';
+import { Dices } from 'lucide-react';
+import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { dicePot, seedPot } from '../utils/potMath';
+import { dicePot } from '../utils/potMath';
 
 export function DiceGame({ onBack }: { onBack: () => void }) {
   const { remaining, settleRound, state, setWagerMinutes } = useScreel();
@@ -13,9 +13,10 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
   const [roll, setRoll] = useState<number | null>(null);
   const [history, setHistory] = useState<{ roll: number; won: boolean }[]>([]);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
+
   const chance = mode === 'under' ? target : 100 - target;
   const selectedStake = Math.min(state.wagerMinutes, remaining);
-  const previewPot = dicePot(seedPot('dice', selectedStake), chance);
+  const previewPot = dicePot(selectedStake, chance);
 
   const doRoll = () => {
     if (rolling) return;
@@ -24,14 +25,14 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
       return;
     }
     const stake = Math.min(state.wagerMinutes, remaining);
-    const pot = Math.round(dicePot(seedPot('dice', stake), chance));
+    const pot = dicePot(stake, chance);
     setRolling(true);
     setBanner(null);
     let ticks = 0;
     const spin = window.setInterval(() => {
       ticks += 1;
       setRoll(Math.floor(Math.random() * 100));
-      if (ticks >= 12) {
+      if (ticks >= 14) {
         window.clearInterval(spin);
         const result = Math.floor(Math.random() * 100);
         const won = mode === 'under' ? result < target : result > target;
@@ -60,43 +61,45 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
         }
         setRolling(false);
       }
-    }, 60);
+    }, 55);
   };
 
   return (
-    <div className="screen game-stage">
-      <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={rolling}>
-          <ArrowLeft size={16} /> Play
-        </button>
-        <div className="bj-balance">
-          <span>Minutes left</span>
-          <strong>{remaining}m</strong>
-        </div>
-      </div>
-
-      <WagerSelector
-        value={state.wagerMinutes}
-        remaining={remaining}
-        onChange={setWagerMinutes}
-        disabled={rolling}
-      />
-
-      <div className="option-strip">
-        <span className="hand-label">Call</span>
-        {(['under', 'over'] as const).map((option) => (
-          <button
-            type="button"
-            key={option}
-            className={mode === option ? 'active' : ''}
+    <GameChrome
+      title="Roll under"
+      onBack={onBack}
+      backDisabled={rolling}
+      banner={banner}
+      setup={
+        <>
+          <WagerSelector
+            value={state.wagerMinutes}
+            remaining={remaining}
+            onChange={setWagerMinutes}
             disabled={rolling}
-            onClick={() => setMode(option)}
-          >
-            Roll {option}
-          </button>
-        ))}
-      </div>
-
+          />
+          <div className={`option-strip ${rolling ? 'locked' : ''}`}>
+            <span className="hand-label">Call</span>
+            {(['under', 'over'] as const).map((option) => (
+              <button
+                type="button"
+                key={option}
+                className={mode === option ? 'active' : ''}
+                disabled={rolling}
+                onClick={() => setMode(option)}
+              >
+                Roll {option}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      dock={
+        <button type="button" className="btn btn-primary btn-block" onClick={doRoll} disabled={rolling}>
+          {rolling ? 'Rolling…' : `Roll for +${Math.round(previewPot)}m`}
+        </button>
+      }
+    >
       <div className="dice-stage">
         <div className="risk-slider" style={{ marginBottom: 12 }}>
           <div className="risk-slider-head">
@@ -114,11 +117,23 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
             aria-label="Target number"
           />
           <p className="risk-slider-hint">
-            Move the target to tune difficulty. Chance ≈ {chance}%.
+            Chance ≈ {chance}% · fair payout with house edge built in.
           </p>
         </div>
 
-        <div className={`dice-readout ${roll !== null && !rolling ? ((mode === 'under' ? roll < target : roll > target) ? 'win' : 'lose') : ''}`}>
+        <div
+          className={`dice-readout ${
+            roll !== null && !rolling
+              ? mode === 'under'
+                ? roll < target
+                  ? 'win'
+                  : 'lose'
+                : roll > target
+                  ? 'win'
+                  : 'lose'
+              : ''
+          }`}
+        >
           {roll === null ? <Dices size={44} /> : roll}
         </div>
         <div className="rl-history">
@@ -133,24 +148,6 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {banner && (
-          <motion.div
-            className={`result-banner ${banner.kind}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {banner.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="bj-dock">
-        <button type="button" className="btn btn-primary btn-block" onClick={doRoll} disabled={rolling}>
-          {rolling ? 'Rolling…' : `Roll for ~${Math.round(previewPot)}m`}
-        </button>
-      </div>
-    </div>
+    </GameChrome>
   );
 }

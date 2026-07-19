@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
+import { wheelPot } from '../utils/potMath';
 import {
   WHEEL_ORDER,
   WHEEL_SLICE,
@@ -41,17 +41,16 @@ function wheelGradient() {
 
 function WheelGraphic({
   rotation,
-  size,
   resultIndex,
   spinning,
   duration,
 }: {
   rotation: number;
-  size: number;
   resultIndex: number | null;
   spinning: boolean;
   duration: number;
 }) {
+  const size = 260;
   const radius = size * 0.38;
   const resultMult = resultIndex === null ? null : WHEEL_ORDER[resultIndex];
 
@@ -107,6 +106,8 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
   const stakeRef = useRef(0);
 
   const busy = stage === 'spinning';
+  const selectedStake = Math.min(state.wagerMinutes, remaining);
+  const preview = wheelPot(selectedStake, pick);
 
   const start = async () => {
     if (spinLock.current) return;
@@ -139,7 +140,7 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
     if (landed === pick) {
       const applied = settleRound({
         game: 'roulette',
-        pot: stake * (pick - 1),
+        pot: wheelPot(stake, pick),
         kept: true,
         wager: stake,
         detail: `Bet ${pick}× · landed ${landed}×`,
@@ -162,24 +163,21 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="screen game-stage rl-screen">
-      <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={busy}>
-          <ArrowLeft size={16} /> Play
-        </button>
-        <div className="bj-balance">
-          <span>Minutes left</span>
-          <strong>{remaining}m</strong>
-        </div>
-      </div>
-
-      {(stage === 'ready' || stage === 'done') && (
-        <WagerSelector value={state.wagerMinutes} remaining={remaining} onChange={setWagerMinutes} />
-      )}
-
-      {(stage === 'ready' || stage === 'done') && (
-        <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
-          <div className="tier-row">
+    <GameChrome
+      title="Multiplier wheel"
+      onBack={onBack}
+      backDisabled={busy}
+      className="rl-screen"
+      banner={banner}
+      setup={
+        <>
+          <WagerSelector
+            value={state.wagerMinutes}
+            remaining={remaining}
+            onChange={setWagerMinutes}
+            disabled={busy}
+          />
+          <div className={`tier-row ${busy ? 'locked' : ''}`}>
             {WHEEL_TIERS.map((tier) => (
               <button
                 key={tier.mult}
@@ -194,7 +192,7 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
               </button>
             ))}
           </div>
-          <div className="option-strip">
+          <div className={`option-strip ${busy ? 'locked' : ''}`}>
             <span className="hand-label">Spin</span>
             {[
               { label: 'Quick', ms: 3000 },
@@ -204,22 +202,25 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
                 type="button"
                 key={option.ms}
                 className={spinDuration === option.ms ? 'active' : ''}
+                disabled={busy}
                 onClick={() => setSpinDuration(option.ms)}
               >
                 {option.label}
               </button>
             ))}
           </div>
-        </div>
-      )}
-
+        </>
+      }
+      dock={
+        <button type="button" className="btn btn-primary btn-block" onClick={() => void start()} disabled={busy}>
+          {busy ? 'Spinning…' : stage === 'done' ? 'Spin again' : `Spin · win +${preview}m on ${pick}×`}
+        </button>
+      }
+    >
       <div className={`rl-live-stage ${busy ? 'active' : ''}`}>
-        <div className="rl-live-status">
-          {busy ? 'Spinning…' : `Betting on ${pick}×`}
-        </div>
+        <div className="rl-live-status">{busy ? 'Spinning…' : `Betting on ${pick}×`}</div>
         <WheelGraphic
           rotation={rotation}
-          size={busy ? 280 : 240}
           resultIndex={resultIndex}
           spinning={busy}
           duration={spinDuration}
@@ -231,34 +232,12 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
         <div className="rl-history-row">
           {history.length === 0 && <span className="mute">—</span>}
           {history.map((mult, i) => (
-            <span
-              key={`${mult}-${i}`}
-              className="rl-hist"
-              style={{ background: colorFor(mult) }}
-            >
+            <span key={`${mult}-${i}`} className="rl-hist" style={{ background: colorFor(mult) }}>
               {mult}×
             </span>
           ))}
         </div>
       </div>
-
-      <AnimatePresence>
-        {banner && (
-          <motion.div
-            className={`result-banner ${banner.kind}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {banner.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="bj-dock">
-        <button type="button" className="btn btn-primary btn-block" onClick={() => void start()} disabled={busy}>
-          {busy ? 'Spinning…' : stage === 'done' ? 'Spin again' : `Spin for ${pick}×`}
-        </button>
-      </div>
-    </div>
+    </GameChrome>
   );
 }

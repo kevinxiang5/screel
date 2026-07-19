@@ -57,6 +57,10 @@ await page.getByRole('button', { name: /20×/ }).waitFor();
 await page.getByRole('button', { name: /Cinematic/i }).waitFor();
 await page.getByRole('button', { name: /Play/ }).click();
 
+await page.getByRole('button', { name: /Plinko/i }).click();
+await page.getByRole('button', { name: /Drop/i }).waitFor();
+await page.getByRole('button', { name: /Play/ }).click();
+
 await page.getByRole('button', { name: /Roll under/i }).click();
 await page.evaluate(() => {
   Math.random = () => 0.99;

@@ -99,9 +99,13 @@ function OddsBody() {
         <li>Multiplier wheel — bet a multiplier tier; land it to win stake × multiplier</li>
         <li>Twenty-one — double on first two cards, or bank / go again after a win</li>
         <li>Match three — bank a match or one double-up respin</li>
+        <li>Plinko — drop through the pegs; edge bins pay more, center pays less</li>
         <li>Roll under — set your own target; harder = bigger payout</li>
       </ul>
-      <p>Challenges have no daily start limit. Outcomes use the device RNG.</p>
+      <p>
+        Challenge payouts target about a 12% house edge so staking minutes stays a real risk. Outcomes use the
+        device RNG.
+      </p>
     </>
   );
 }

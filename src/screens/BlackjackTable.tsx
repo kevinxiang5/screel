@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
 import {
@@ -50,7 +49,8 @@ function CardView({ card }: { card: Card }) {
   );
 }
 
-const MAX_RIDES = 3;
+/** One optional double-or-nothing after a win keeps EV near fair. */
+const MAX_RIDES = 1;
 
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const { remaining, settleRound, state, setWagerMinutes } = useScreel();
@@ -260,35 +260,97 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   };
 
   const ridesLeft = Math.max(0, MAX_RIDES - rides);
+  const setupLocked = phase !== 'ready' && phase !== 'result';
 
   return (
-    <div className="screen game-stage bj-screen">
-      <div className="game-top">
-        <button type="button" className="back-btn" onClick={onBack} disabled={busy && phase !== 'result'}>
-          <ArrowLeft size={16} /> Play
-        </button>
-        <div className="bj-balance">
-          <span>Minutes left</span>
-          <strong>{remaining}m</strong>
-        </div>
-      </div>
-
-      {(phase === 'ready' || phase === 'result') && (
-        <WagerSelector value={state.wagerMinutes} remaining={remaining} onChange={setWagerMinutes} />
-      )}
-
-      {(phase === 'ready' || phase === 'result') && (
-        <div className="option-strip">
-          <span className="hand-label">Deal speed</span>
-          <button type="button" className={dealSpeed === 'quick' ? 'active' : ''} onClick={() => setDealSpeed('quick')}>
-            Quick
-          </button>
-          <button type="button" className={dealSpeed === 'cinematic' ? 'active' : ''} onClick={() => setDealSpeed('cinematic')}>
-            Cinematic
-          </button>
-        </div>
-      )}
-
+    <GameChrome
+      title="Twenty-one"
+      onBack={onBack}
+      backDisabled={busy && phase !== 'result'}
+      className="bj-screen"
+      banner={banner}
+      setup={
+        <>
+          <WagerSelector
+            value={state.wagerMinutes}
+            remaining={remaining}
+            onChange={setWagerMinutes}
+            disabled={setupLocked}
+          />
+          <div className={`option-strip ${setupLocked ? 'locked' : ''}`}>
+            <span className="hand-label">Deal speed</span>
+            <button
+              type="button"
+              className={dealSpeed === 'quick' ? 'active' : ''}
+              disabled={setupLocked}
+              onClick={() => setDealSpeed('quick')}
+            >
+              Quick
+            </button>
+            <button
+              type="button"
+              className={dealSpeed === 'cinematic' ? 'active' : ''}
+              disabled={setupLocked}
+              onClick={() => setDealSpeed('cinematic')}
+            >
+              Cinematic
+            </button>
+          </div>
+        </>
+      }
+      dock={
+        <>
+          <p className="rl-hint">
+            {phase === 'playing'
+              ? canDouble
+                ? 'Double doubles the payout and draws one card — then you hold.'
+                : 'Draw or hold. Win to bank or go again once.'
+              : phase === 'ride'
+                ? ridesLeft > 0
+                  ? 'Bank it, or go again once to double the payout.'
+                  : 'Bank your payout.'
+                : 'Even-money wins. Naturals pay 3:2. One optional go-again after a win.'}
+          </p>
+          <div className="bj-actions wrap">
+            {phase === 'ready' || phase === 'result' ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-block"
+                onClick={() => void beginRound()}
+                disabled={busy}
+              >
+                {phase === 'result' ? 'Play again' : 'Start'}
+              </button>
+            ) : phase === 'ride' ? (
+              <>
+                <button type="button" className="btn btn-gold" onClick={bankIt}>
+                  Bank it (+{Math.round(pot)}m)
+                </button>
+                {ridesLeft > 0 && (
+                  <button type="button" className="btn btn-primary" onClick={letItRide}>
+                    Go again (×2)
+                  </button>
+                )}
+              </>
+            ) : phase === 'playing' ? (
+              <>
+                <button type="button" className="btn btn-secondary" onClick={() => void hit()} disabled={busy}>
+                  Draw
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => void stand()} disabled={busy}>
+                  Hold
+                </button>
+                {canDouble && (
+                  <button type="button" className="btn btn-gold" onClick={() => void doubleDown()} disabled={busy}>
+                    Double (+{Math.round(pot * 2)}m)
+                  </button>
+                )}
+              </>
+            ) : null}
+          </div>
+        </>
+      }
+    >
       <div className="bj-table">
         <div className="bj-hand">
           <span className="hand-label">House · {dealer.length ? handLabel(dealer) : '—'}</span>
@@ -307,69 +369,6 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {banner && (
-          <motion.div
-            className={`result-banner ${banner.kind}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {banner.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="bj-dock">
-        <p className="rl-hint">
-          {phase === 'playing'
-            ? canDouble
-              ? 'Double doubles the payout and draws one card — then you hold.'
-              : 'Draw or hold. Win to bank or go again.'
-            : phase === 'ride'
-              ? ridesLeft > 0
-                ? `Bank it, or go again to double (${ridesLeft} double${ridesLeft === 1 ? '' : 's'} left).`
-                : 'Max doubles reached — bank your payout.'
-              : 'Win to grow the payout. Double on your first two cards, or go again after a win.'}
-        </p>
-        <div className="bj-actions wrap">
-          {phase === 'ready' || phase === 'result' ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              onClick={() => void beginRound()}
-              disabled={busy}
-            >
-              {phase === 'result' ? 'Play again' : 'Start'}
-            </button>
-          ) : phase === 'ride' ? (
-            <>
-              <button type="button" className="btn btn-gold" onClick={bankIt}>
-                Bank it ({Math.round(pot)}m)
-              </button>
-              {ridesLeft > 0 && (
-                <button type="button" className="btn btn-primary" onClick={letItRide}>
-                  Go again (×2)
-                </button>
-              )}
-            </>
-          ) : phase === 'playing' ? (
-            <>
-              <button type="button" className="btn btn-secondary" onClick={() => void hit()} disabled={busy}>
-                Draw
-              </button>
-              <button type="button" className="btn btn-primary" onClick={() => void stand()} disabled={busy}>
-                Hold
-              </button>
-              {canDouble && (
-                <button type="button" className="btn btn-gold" onClick={() => void doubleDown()} disabled={busy}>
-                  Double ({Math.round(pot * 2)}m)
-                </button>
-              )}
-            </>
-          ) : null}
-        </div>
-      </div>
-    </div>
+    </GameChrome>
   );
 }

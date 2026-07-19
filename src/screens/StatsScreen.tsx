@@ -11,6 +11,7 @@ const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
   slots: { label: 'Match three', icon: Cherry },
   hilo: { label: 'Higher / lower', icon: Layers },
   dice: { label: 'Roll under', icon: Dices },
+  plinko: { label: 'Plinko', icon: Target },
 };
 
 export function StatsScreen() {
