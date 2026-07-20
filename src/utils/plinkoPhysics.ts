@@ -1,6 +1,13 @@
-import { PLINKO_MULTS, PLINKO_ROWS } from './plinko';
+import { dropPlinko, type PlinkoRisk, PLINKO_MODES } from './plinko';
 
-export { PLINKO_MULTS, PLINKO_ROWS, plinkoChance, dropPlinko, plinkoExpectedMult } from './plinko';
+export {
+  dropPlinko,
+  formatPlinkoMult,
+  plinkoChance,
+  plinkoExpectedMult,
+  PLINKO_MODES,
+  type PlinkoRisk,
+} from './plinko';
 
 export interface Peg {
   x: number;
@@ -15,120 +22,126 @@ export interface PlinkoBallState {
   stake: number;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  trail: { x: number; y: number }[];
-  bin: number | null;
+  targetBin: number;
+  waypoints: { x: number; y: number }[];
+  segment: number;
+  t: number;
   settled: boolean;
+  bin: number | null;
 }
 
-const BALL_R = 7;
-const PEG_R = 4;
-const GRAVITY = 0.18;
-const RESTITUTION = 0.62;
-const FRICTION = 0.992;
+const SEGMENT_SPEED = 0.14;
 
-export function layoutPegs(width: number, height: number): Peg[] {
+export function pegPosition(
+  width: number,
+  height: number,
+  rows: number,
+  row: number,
+  col: number,
+): { x: number; y: number } {
+  const count = row + 1;
+  const top = height * 0.07;
+  const usableH = height * 0.7;
+  const y = top + (usableH * row) / Math.max(rows - 1, 1);
+  const gap = width / (count + 1);
+  const x = gap * (col + 1);
+  return { x, y };
+}
+
+export function layoutPegs(width: number, height: number, rows: number): Peg[] {
   const pegs: Peg[] = [];
-  const top = height * 0.08;
-  const usableH = height * 0.68;
-  for (let row = 0; row < PLINKO_ROWS; row += 1) {
+  for (let row = 0; row < rows; row += 1) {
     const count = row + 1;
-    const y = top + (usableH * row) / (PLINKO_ROWS - 1 || 1);
     for (let i = 0; i < count; i += 1) {
-      const gap = width / (count + 1);
-      pegs.push({ x: gap * (i + 1), y, row, index: i });
+      const { x, y } = pegPosition(width, height, rows, row, i);
+      pegs.push({ x, y, row, index: i });
     }
   }
   return pegs;
 }
 
+function buildWaypoints(
+  width: number,
+  height: number,
+  rows: number,
+  path: number[],
+  binCount: number,
+): { x: number; y: number }[] {
+  const points: { x: number; y: number }[] = [{ x: width / 2, y: 8 }];
+  for (let row = 0; row < rows; row += 1) {
+    const col = row === 0 ? 0 : path[row];
+    points.push(pegPosition(width, height, rows, row, col));
+  }
+  const bin = path[rows];
+  const binW = width / binCount;
+  points.push({ x: binW * (bin + 0.5), y: height - 26 });
+  return points;
+}
+
 export function spawnBall(
   width: number,
+  height: number,
+  rows: number,
+  binCount: number,
   stake: number,
   lockId: string,
 ): PlinkoBallState {
-  const jitter = (Math.random() - 0.5) * width * 0.08;
+  const { bin, path } = dropPlinko(rows);
+  const waypoints = buildWaypoints(width, height, rows, path, binCount);
+  const start = waypoints[0];
   return {
     id: `ball-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     lockId,
     stake,
-    x: width / 2 + jitter,
-    y: 14,
-    vx: (Math.random() - 0.5) * 1.4,
-    vy: 0.4,
-    trail: [],
-    bin: null,
+    x: start.x,
+    y: start.y,
+    targetBin: bin,
+    waypoints,
+    segment: 0,
+    t: 0,
     settled: false,
+    bin: null,
   };
 }
 
-function collidePeg(ball: PlinkoBallState, peg: Peg) {
-  const dx = ball.x - peg.x;
-  const dy = ball.y - peg.y;
-  const dist = Math.hypot(dx, dy) || 0.0001;
-  const minDist = BALL_R + PEG_R;
-  if (dist >= minDist) return;
-  const nx = dx / dist;
-  const ny = dy / dist;
-  // Separate
-  const overlap = minDist - dist;
-  ball.x += nx * overlap;
-  ball.y += ny * overlap;
-  // Reflect velocity
-  const vn = ball.vx * nx + ball.vy * ny;
-  if (vn < 0) {
-    ball.vx = (ball.vx - 2 * vn * nx) * RESTITUTION;
-    ball.vy = (ball.vy - 2 * vn * ny) * RESTITUTION;
-    // Peg kick + slight randomness so paths diverge
-    ball.vx += nx * (0.35 + Math.random() * 0.55) + (Math.random() - 0.5) * 0.4;
-    ball.vy += Math.abs(ny) * 0.15;
-  }
-}
-
-export function stepBall(
-  ball: PlinkoBallState,
-  pegs: Peg[],
-  width: number,
-  height: number,
-): PlinkoBallState {
+export function stepBall(ball: PlinkoBallState): PlinkoBallState {
   if (ball.settled) return ball;
 
-  const next = { ...ball, trail: ball.trail.slice(-10) };
-  next.vy += GRAVITY;
-  next.vx *= FRICTION;
-  next.x += next.vx;
-  next.y += next.vy;
-
-  // Walls
-  if (next.x < BALL_R) {
-    next.x = BALL_R;
-    next.vx = Math.abs(next.vx) * RESTITUTION;
-  } else if (next.x > width - BALL_R) {
-    next.x = width - BALL_R;
-    next.vx = -Math.abs(next.vx) * RESTITUTION;
+  let { segment, t } = ball;
+  t += SEGMENT_SPEED;
+  if (t >= 1) {
+    segment += 1;
+    t = 0;
   }
 
-  for (const peg of pegs) collidePeg(next, peg);
-
-  next.trail = [...next.trail, { x: next.x, y: next.y }];
-
-  const binLine = height * 0.82;
-  if (next.y >= binLine) {
-    const binW = width / PLINKO_MULTS.length;
-    const bin = Math.max(0, Math.min(PLINKO_MULTS.length - 1, Math.floor(next.x / binW)));
-    next.bin = bin;
-    next.settled = true;
-    next.y = height - 22;
-    next.x = binW * (bin + 0.5);
-    next.vx = 0;
-    next.vy = 0;
+  if (segment >= ball.waypoints.length - 1) {
+    const last = ball.waypoints[ball.waypoints.length - 1];
+    return {
+      ...ball,
+      segment: ball.waypoints.length - 1,
+      t: 1,
+      x: last.x,
+      y: last.y,
+      settled: true,
+      bin: ball.targetBin,
+    };
   }
 
-  return next;
+  const a = ball.waypoints[segment];
+  const b = ball.waypoints[segment + 1];
+  return {
+    ...ball,
+    segment,
+    t,
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+  };
 }
 
-export function binReturn(stake: number, bin: number): number {
-  const mult = PLINKO_MULTS[bin] ?? 0;
+export function binReturn(stake: number, mult: number): number {
   return Math.max(0, Math.round(stake * mult));
+}
+
+export function multsForRisk(risk: PlinkoRisk): readonly number[] {
+  return PLINKO_MODES[risk].mults;
 }

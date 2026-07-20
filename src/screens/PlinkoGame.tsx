@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { PLINKO_MULTS, PLINKO_ROWS } from '../utils/plinko';
+import { formatPlinkoMult, PLINKO_MODES, type PlinkoRisk } from '../utils/plinko';
 import {
   binReturn,
   layoutPegs,
+  multsForRisk,
   spawnBall,
   stepBall,
   type Peg,
@@ -16,6 +17,7 @@ const MAX_BALLS = 10;
 
 export function PlinkoGame({ onBack }: { onBack: () => void }) {
   const { remaining, state, setWagerMinutes, lockStake, resolveLock, forfeitAllLocks } = useScreel();
+  const [risk, setRisk] = useState<PlinkoRisk>('medium');
   const [balls, setBalls] = useState<PlinkoBallState[]>([]);
   const [pegs, setPegs] = useState<Peg[]>([]);
   const [history, setHistory] = useState<{ mult: number; net: number }[]>([]);
@@ -25,16 +27,21 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
   const ballsRef = useRef<PlinkoBallState[]>([]);
   const pegsRef = useRef<Peg[]>([]);
   const rafRef = useRef(0);
+  const riskRef = useRef(risk);
   const resolveRef = useRef(resolveLock);
   const forfeitRef = useRef(forfeitAllLocks);
   resolveRef.current = resolveLock;
   forfeitRef.current = forfeitAllLocks;
+  riskRef.current = risk;
+
+  const mode = PLINKO_MODES[risk];
+  const mults = mode.mults;
 
   useEffect(() => {
     const measure = () => {
       const board = boardRef.current;
       if (!board) return;
-      const next = layoutPegs(board.clientWidth, board.clientHeight);
+      const next = layoutPegs(board.clientWidth, board.clientHeight, mode.rows);
       pegsRef.current = next;
       setPegs(next);
     };
@@ -46,44 +53,44 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       ro?.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, []);
+  }, [mode.rows]);
 
   useEffect(() => {
     const tick = () => {
-      const board = boardRef.current;
-      if (!board) {
+      const prev = ballsRef.current;
+      if (prev.length === 0) {
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
-      const w = board.clientWidth;
-      const h = board.clientHeight;
+
       let changed = false;
-      const prev = ballsRef.current;
+      const activeMults = multsForRisk(riskRef.current);
       const nextBalls = prev.map((ball) => {
         if (ball.settled) return ball;
         changed = true;
-        return stepBall(ball, pegsRef.current, w, h);
+        return stepBall(ball);
       });
 
       for (let i = 0; i < nextBalls.length; i += 1) {
         const ball = nextBalls[i];
         if (!ball.settled || prev[i]?.settled || ball.bin == null) continue;
-        const credited = binReturn(ball.stake, ball.bin);
+        const mult = activeMults[ball.bin] ?? 0;
+        const credited = binReturn(ball.stake, mult);
         const net = resolveRef.current({
           lockId: ball.lockId,
           returnMinutes: credited,
-          detail: `Landed ${PLINKO_MULTS[ball.bin]}×`,
+          detail: `Landed ${formatPlinkoMult(mult)}`,
           result: credited > ball.stake ? 'win' : credited < ball.stake ? 'lose' : 'push',
         });
         setLastBin(ball.bin);
-        setHistory((rows) => [{ mult: PLINKO_MULTS[ball.bin!], net }, ...rows].slice(0, 12));
+        setHistory((rows) => [{ mult, net }, ...rows].slice(0, 12));
         setBanner({
           text:
             net > 0
-              ? `Landed ${PLINKO_MULTS[ball.bin]}× · +${net}m`
+              ? `Landed ${formatPlinkoMult(mult)} · +${net}m`
               : net < 0
-                ? `Landed ${PLINKO_MULTS[ball.bin]}× · ${net}m`
-                : `Landed ${PLINKO_MULTS[ball.bin]}× · even`,
+                ? `Landed ${formatPlinkoMult(mult)} · ${net}m`
+                : `Landed ${formatPlinkoMult(mult)} · even`,
           kind: net > 0 ? 'win' : net < 0 ? 'lose' : 'push',
         });
         changed = true;
@@ -107,6 +114,7 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
 
   const selectedStake = Math.min(state.wagerMinutes, remaining);
   const inFlight = balls.filter((b) => !b.settled).length;
+  const locked = inFlight > 0;
 
   const drop = () => {
     const board = boardRef.current;
@@ -115,16 +123,24 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       setBanner({ text: `Max ${MAX_BALLS} balls in the air.`, kind: 'lose' });
       return;
     }
-    const locked = lockStake(state.wagerMinutes, 'plinko');
-    if (!locked) {
+    const stakeLock = lockStake(state.wagerMinutes, 'plinko');
+    if (!stakeLock) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
       return;
     }
+    const current = PLINKO_MODES[riskRef.current];
     if (pegsRef.current.length === 0) {
-      pegsRef.current = layoutPegs(board.clientWidth, board.clientHeight);
+      pegsRef.current = layoutPegs(board.clientWidth, board.clientHeight, current.rows);
       setPegs(pegsRef.current);
     }
-    const ball = spawnBall(board.clientWidth, locked.amount, locked.id);
+    const ball = spawnBall(
+      board.clientWidth,
+      board.clientHeight,
+      current.rows,
+      current.mults.length,
+      stakeLock.amount,
+      stakeLock.id,
+    );
     const next = [...ballsRef.current, ball];
     ballsRef.current = next;
     setBalls(next);
@@ -141,12 +157,28 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       onBack={onBack}
       banner={banner}
       setup={
-        <WagerSelector
-          value={state.wagerMinutes}
-          remaining={remaining}
-          onChange={setWagerMinutes}
-          disabled={remaining < 1}
-        />
+        <>
+          <WagerSelector
+            value={state.wagerMinutes}
+            remaining={remaining}
+            onChange={setWagerMinutes}
+            disabled={remaining < 1 || locked}
+          />
+          <div className={`option-strip ${locked ? 'locked' : ''}`} aria-label="Plinko risk">
+            <span className="hand-label">Risk</span>
+            {(Object.keys(PLINKO_MODES) as PlinkoRisk[]).map((key) => (
+              <button
+                type="button"
+                key={key}
+                className={risk === key ? 'active' : ''}
+                disabled={locked}
+                onClick={() => setRisk(key)}
+              >
+                {PLINKO_MODES[key].label}
+              </button>
+            ))}
+          </div>
+        </>
       }
       dock={
         <div className="bj-actions wrap">
@@ -171,11 +203,15 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
     >
       <div className="plinko-meta">
         <span>
-          {inFlight} in air · {PLINKO_ROWS} rows
+          {inFlight} in air · {mode.rows} rows · {mode.blurb}
         </span>
         <span>Stake locks on drop</span>
       </div>
-      <div className="plinko-board" ref={boardRef}>
+      <div
+        className="plinko-board"
+        ref={boardRef}
+        style={{ '--plinko-bins': mults.length } as React.CSSProperties}
+      >
         {pegs.map((peg) => (
           <span
             key={`${peg.row}-${peg.index}`}
@@ -184,31 +220,19 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
           />
         ))}
         {balls.map((ball) => (
-          <div key={ball.id}>
-            {ball.trail.map((p, i) => (
-              <span
-                key={`${ball.id}-t${i}`}
-                className="plinko-trail"
-                style={{
-                  left: p.x,
-                  top: p.y,
-                  opacity: ((i + 1) / (ball.trail.length + 1)) * 0.55,
-                }}
-              />
-            ))}
-            <div
-              className={`plinko-ball ${ball.settled ? 'settled' : ''}`}
-              style={{ left: ball.x, top: ball.y }}
-            />
-          </div>
+          <div
+            key={ball.id}
+            className={`plinko-ball ${ball.settled ? 'settled' : ''}`}
+            style={{ left: ball.x, top: ball.y }}
+          />
         ))}
         <div className="plinko-bins">
-          {PLINKO_MULTS.map((mult, i) => (
+          {mults.map((mult, i) => (
             <div
               key={i}
               className={`plinko-bin ${lastBin === i ? 'hit' : ''} ${mult >= 2 ? 'hot' : mult < 1 ? 'cold' : ''}`}
             >
-              <strong>{mult}×</strong>
+              <strong>{formatPlinkoMult(mult).replace('×', '')}</strong>
             </div>
           ))}
         </div>
@@ -223,7 +247,7 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
               key={`${h.mult}-${i}`}
               className={`rl-hist ${h.net > 0 ? 'green' : h.net < 0 ? 'red' : 'black'}`}
             >
-              {h.mult}×
+              {formatPlinkoMult(h.mult).replace('×', '')}
             </span>
           ))}
         </div>

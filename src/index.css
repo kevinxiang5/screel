@@ -2622,8 +2622,8 @@ button {
   right: 4px;
   bottom: 8px;
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  gap: 3px;
+  grid-template-columns: repeat(var(--plinko-bins, 9), minmax(0, 1fr));
+  gap: 2px;
   z-index: 4;
 }
 
@@ -2631,7 +2631,8 @@ button {
   display: grid;
   justify-items: center;
   gap: 1px;
-  padding: 6px 2px;
+  padding: 5px 1px;
+  min-width: 0;
   border-radius: 8px;
   background: rgba(246, 243, 234, 0.06);
   border: 1px solid rgba(246, 243, 234, 0.1);
@@ -2640,7 +2641,10 @@ button {
 }
 
 .plinko-bin strong {
-  font-size: 0.68rem;
+  font-size: clamp(0.48rem, 2.2vw, 0.68rem);
+  line-height: 1.1;
+  text-align: center;
+  word-break: break-all;
   color: var(--snow);
 }
 
