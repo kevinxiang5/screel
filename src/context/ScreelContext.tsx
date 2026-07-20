@@ -17,6 +17,7 @@ import {
   periodId,
 } from '../utils/dayPeriod';
 import { hashBankPin, isValidPin, pinsMatch } from '../utils/bankPin';
+import { ensureFontTheme } from '../utils/fonts';
 
 const STORAGE_KEY = 'screel-v3';
 
@@ -264,8 +265,15 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     stateRef.current = state;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const id = window.setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }, 400);
+    return () => window.clearTimeout(id);
   }, [state]);
+
+  useEffect(() => {
+    ensureFontTheme(state.fontTheme);
+  }, [state.fontTheme]);
 
   useEffect(() => {
     document.documentElement.dataset.font = state.fontTheme;
@@ -613,7 +621,10 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           usageSource: 'none',
         })),
       completeSetup: () => setState((s) => ({ ...s, setupComplete: true })),
-      setFontTheme: (theme) => setState((s) => ({ ...s, fontTheme: theme })),
+      setFontTheme: (theme) => {
+        ensureFontTheme(theme);
+        setState((s) => ({ ...s, fontTheme: theme }));
+      },
       resetDay: () =>
         setState((s) => {
           const timeZone = detectTimeZone();

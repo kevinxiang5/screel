@@ -1,6 +1,5 @@
-import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { BellOff, Clock, Gamepad2, Link2, MessageCircle, Moon, Play, Radio, ShieldCheck, Sparkles, Target, Timer, Tv } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useScreel } from '../context/ScreelContext';
 import { connectScreenTimeFlow } from '../native/connectScreenTimeFlow';
 import {
@@ -32,45 +31,8 @@ const DISTRACTIONS = [
   { id: 'browsing', label: 'Browsing', icon: Clock },
 ] as const;
 
-const chipList: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
-};
-
-const chipItem: Variants = {
-  hidden: { opacity: 0, y: 14, scale: 0.96 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 320, damping: 24 } },
-};
-
 function toTimeInputValue(hour: number, minute: number): string {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-}
-
-/** Animated count-up number for the savings projection. */
-function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
-  const [value, setValue] = useState(0);
-  const rafRef = useRef(0);
-
-  useEffect(() => {
-    const start = performance.now();
-    const from = 0;
-    const dur = 900;
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / dur);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValue(Math.round(from + (to - from) * eased));
-      if (t < 1) rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [to]);
-
-  return (
-    <span className="count-num">
-      {value}
-      {suffix}
-    </span>
-  );
 }
 
 /**
@@ -87,10 +49,15 @@ export function SetupFlow() {
   const [goal, setGoal] = useState<string | null>(state.focusGoal);
   const [apps, setApps] = useState<string[]>(state.distractions);
   const [hoursADay, setHoursADay] = useState(4);
+  const [budgetDraft, setBudgetDraft] = useState(state.baseLimit);
 
   const step = STEPS[stepIdx];
   const firstName = (name.trim() || 'friend').split(' ')[0];
   const resetLabel = formatResetClock(state.resetHour, state.resetMinute);
+
+  useEffect(() => {
+    if (step === 'budget') setBudgetDraft(state.baseLimit);
+  }, [step, state.baseLimit]);
 
   const go = (delta: 1 | -1) => {
     setDir(delta);
@@ -115,7 +82,6 @@ export function SetupFlow() {
     next();
   };
 
-  // Suggest ~60% of their current usage, snapped to the slider step.
   const suggestedBudget = Math.max(
     ALLOWANCE_MIN,
     Math.min(ALLOWANCE_MAX, Math.round((hoursADay * 60 * 0.6) / 15) * 15),
@@ -123,6 +89,11 @@ export function SetupFlow() {
 
   const suggestBudgetAndNext = () => {
     setBaseLimit(suggestedBudget);
+    next();
+  };
+
+  const saveBudgetAndNext = () => {
+    setBaseLimit(budgetDraft);
     next();
   };
 
@@ -176,306 +147,273 @@ export function SetupFlow() {
 
   return (
     <div className="age-gate setup-flow">
-      <motion.div
-        className="age-gate-card setup-card"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <div className="age-gate-card setup-card setup-card-enter">
         <div className="setup-progress">
-          <motion.div
+          <div
             className="setup-progress-fill"
-            animate={{ width: `${((stepIdx + 1) / STEPS.length) * 100}%` }}
-            transition={{ type: 'spring', stiffness: 160, damping: 24 }}
+            style={{ width: `${((stepIdx + 1) / STEPS.length) * 100}%` }}
           />
         </div>
 
-        <AnimatePresence mode="wait" custom={dir}>
-          <motion.div
-            key={step}
-            custom={dir}
-            initial={{ opacity: 0, x: 44 * dir }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -44 * dir }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          >
-            {step === 'welcome' && (
-              <>
-                <motion.div
-                  className="setup-mark"
-                  initial={{ scale: 0.5, rotate: -14 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 240, damping: 15, delay: 0.05 }}
-                >
-                  S
-                </motion.div>
-                <h1 className="display lg">Let’s take your time back</h1>
-                <p className="lede">A couple of quick questions so Screel fits how you actually use your phone.</p>
-                <motion.div className="feature-list" variants={chipList} initial="hidden" animate="show">
-                  {[
-                    { icon: Timer, text: 'Set a daily minute budget for chosen apps' },
-                    { icon: ShieldCheck, text: 'Apps can lock when the budget runs out' },
-                    { icon: Sparkles, text: 'Stake minutes on challenges to win more' },
-                  ].map(({ icon: Icon, text }) => (
-                    <motion.div className="feature-row" key={text} variants={chipItem}>
-                      <span className="feature-icon">
-                        <Icon size={17} />
-                      </span>
-                      <span>{text}</span>
-                    </motion.div>
-                  ))}
-                </motion.div>
-                <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 18 }} onClick={next}>
-                  Get started
-                </button>
-              </>
-            )}
-
-            {step === 'name' && (
-              <>
-                <h1 className="display lg">What should we call you?</h1>
-                <p className="lede">Just a first name is perfect. It stays on this device.</p>
-                <motion.input
-                  className="name-input setup-name"
-                  placeholder="Your name"
-                  value={name}
-                  maxLength={20}
-                  autoFocus
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && saveNameAndNext()}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.12 }}
-                />
-                <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
-                  <button type="button" className="btn btn-secondary" onClick={back}>
-                    Back
-                  </button>
-                  <button type="button" className="btn btn-primary" onClick={saveNameAndNext}>
-                    {name.trim() ? `Continue as ${firstName}` : 'Skip'}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {step === 'goal' && (
-              <>
-                <h1 className="display lg">Why are you here, {firstName}?</h1>
-                <p className="lede">We’ll shape Screel around what matters to you.</p>
-                <motion.div className="chip-grid" variants={chipList} initial="hidden" animate="show">
-                  {GOALS.map(({ id, label, icon: Icon }) => (
-                    <motion.button
-                      key={id}
-                      type="button"
-                      className={`chip ${goal === id ? 'selected' : ''}`}
-                      variants={chipItem}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => setGoal(id)}
-                    >
-                      <Icon size={18} />
-                      <span>{label}</span>
-                    </motion.button>
-                  ))}
-                </motion.div>
-                <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
-                  <button type="button" className="btn btn-secondary" onClick={back}>
-                    Back
-                  </button>
-                  <button type="button" className="btn btn-primary" onClick={saveGoalAndNext} disabled={!goal}>
-                    Continue
-                  </button>
-                </div>
-              </>
-            )}
-
-            {step === 'apps' && (
-              <>
-                <h1 className="display lg">What eats your time?</h1>
-                <p className="lede">Pick everything that applies — you’ll choose the exact apps later.</p>
-                <motion.div className="chip-grid" variants={chipList} initial="hidden" animate="show">
-                  {DISTRACTIONS.map(({ id, label, icon: Icon }) => (
-                    <motion.button
-                      key={id}
-                      type="button"
-                      className={`chip ${apps.includes(id) ? 'selected' : ''}`}
-                      variants={chipItem}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => toggleApp(id)}
-                    >
-                      <Icon size={18} />
-                      <span>{label}</span>
-                    </motion.button>
-                  ))}
-                </motion.div>
-                <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
-                  <button type="button" className="btn btn-secondary" onClick={back}>
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={saveAppsAndNext}
-                    disabled={apps.length === 0}
-                  >
-                    Continue
-                  </button>
-                </div>
-              </>
-            )}
-
-            {step === 'estimate' && (
-              <>
-                <h1 className="display lg">How much time do they take?</h1>
-                <p className="lede">Rough guess for an average day — be honest, {firstName}.</p>
-
-                <div className="limit-control panel-box setup-stable" style={{ marginTop: 14 }}>
-                  <label>
-                    <span>On those apps</span>
-                    <strong className="tabular">{hoursADay}h / day</strong>
-                  </label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    step={1}
-                    value={hoursADay}
-                    onChange={(e) => setHoursADay(Number(e.target.value))}
-                  />
-                </div>
-
-                <motion.div
-                  className="savings-card"
-                  key={hoursADay}
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <p>
-                    That’s about <CountUp to={monthlyHours} suffix="h" /> a month.
-                  </p>
-                  <p className="savings-line">
-                    A tighter budget could hand you back <CountUp to={savedPerMonth} suffix="h" /> every
-                    month.
-                  </p>
-                </motion.div>
-
-                <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
-                  <button type="button" className="btn btn-secondary" onClick={back}>
-                    Back
-                  </button>
-                  <button type="button" className="btn btn-primary" onClick={suggestBudgetAndNext}>
-                    Build my budget
-                  </button>
-                </div>
-              </>
-            )}
-
-            {step === 'budget' && (
-              <>
-                <h1 className="display lg">Your daily budget</h1>
-                <p className="lede">
-                  We suggest <strong>{formatMinutes(state.baseLimit)}</strong> based on your answers. Tune it
-                  however you like.
-                </p>
-
-                <div className="limit-control panel-box setup-stable">
-                  <label>
-                    <span>Allowance</span>
-                    <strong className="tabular">{formatMinutes(state.baseLimit)}</strong>
-                  </label>
-                  <input
-                    type="range"
-                    min={ALLOWANCE_MIN}
-                    max={ALLOWANCE_MAX}
-                    step={15}
-                    value={state.baseLimit}
-                    onChange={(e) => setBaseLimit(Number(e.target.value))}
-                  />
-                  <div className="preset-row">
-                    {ALLOWANCE_PRESETS.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        className={`btn btn-sm ${state.baseLimit === p ? 'btn-gold' : 'btn-secondary'}`}
-                        onClick={() => setBaseLimit(p)}
-                      >
-                        {formatMinutes(p)}
-                      </button>
-                    ))}
+        <div key={step} className="setup-step" data-dir={dir}>
+          {step === 'welcome' && (
+            <>
+              <div className="setup-mark">S</div>
+              <h1 className="display lg">Let’s take your time back</h1>
+              <p className="lede">A couple of quick questions so Screel fits how you actually use your phone.</p>
+              <div className="feature-list">
+                {[
+                  { icon: Timer, text: 'Set a daily minute budget for chosen apps' },
+                  { icon: ShieldCheck, text: 'Apps can lock when the budget runs out' },
+                  { icon: Sparkles, text: 'Stake minutes on challenges to win more' },
+                ].map(({ icon: Icon, text }) => (
+                  <div className="feature-row" key={text}>
+                    <span className="feature-icon">
+                      <Icon size={17} />
+                    </span>
+                    <span>{text}</span>
                   </div>
-                </div>
+                ))}
+              </div>
+              <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 18 }} onClick={next}>
+                Get started
+              </button>
+            </>
+          )}
 
-                <div className="panel-box reset-time-box setup-stable" style={{ marginTop: 14 }}>
-                  <div className="reset-time-head">
-                    <span>Daily reset time</span>
-                    <strong className="tabular">{resetLabel}</strong>
-                  </div>
-                  <div className="reset-time-field">
-                    <input
-                      type="time"
-                      className="time-input"
-                      value={toTimeInputValue(state.resetHour, state.resetMinute)}
-                      onChange={(e) => onResetTimeChange(e.target.value)}
-                    />
-                  </div>
-                  <p className="lede reset-time-hint">Timezone: {state.timeZone}</p>
-                </div>
-
-                <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
-                  <button type="button" className="btn btn-secondary" onClick={back}>
-                    Back
-                  </button>
-                  <button type="button" className="btn btn-primary" onClick={next}>
-                    Continue
-                  </button>
-                </div>
-              </>
-            )}
-
-            {step === 'connect' && (
-              <>
-                <h1 className="display lg">Last step, {firstName}</h1>
-                <p className="lede">
-                  Link Apple Screen Time so limits actually stick. We’ll start a{' '}
-                  <strong>fresh {formatMinutes(state.minutesBank)}</strong> budget — not the hours already in
-                  Settings.
-                </p>
-                <div className="disclosure-box">
-                  <p>
-                    Tip: don’t select every category. Only pick apps you actually want limited. You can skip
-                    and connect later from Bank.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-block"
-                  style={{ marginTop: 18 }}
-                  disabled={busy}
-                  onClick={() => void onConnect()}
-                >
-                  <Link2 size={16} /> {busy ? 'Connecting…' : 'Connect Screen Time'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-block"
-                  style={{ marginTop: 10 }}
-                  disabled={busy}
-                  onClick={completeSetup}
-                >
-                  Skip for now
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-block"
-                  style={{ marginTop: 8 }}
-                  disabled={busy}
-                  onClick={back}
-                >
+          {step === 'name' && (
+            <>
+              <h1 className="display lg">What should we call you?</h1>
+              <p className="lede">Just a first name is perfect. It stays on this device.</p>
+              <input
+                className="name-input setup-name"
+                placeholder="Your name"
+                value={name}
+                maxLength={20}
+                autoFocus
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveNameAndNext()}
+              />
+              <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
+                <button type="button" className="btn btn-secondary" onClick={back}>
                   Back
                 </button>
-              </>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </motion.div>
+                <button type="button" className="btn btn-primary" onClick={saveNameAndNext}>
+                  {name.trim() ? `Continue as ${firstName}` : 'Skip'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 'goal' && (
+            <>
+              <h1 className="display lg">Why are you here, {firstName}?</h1>
+              <p className="lede">We’ll shape Screel around what matters to you.</p>
+              <div className="chip-grid">
+                {GOALS.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`chip ${goal === id ? 'selected' : ''}`}
+                    onClick={() => setGoal(id)}
+                  >
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
+                <button type="button" className="btn btn-secondary" onClick={back}>
+                  Back
+                </button>
+                <button type="button" className="btn btn-primary" onClick={saveGoalAndNext} disabled={!goal}>
+                  Continue
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 'apps' && (
+            <>
+              <h1 className="display lg">What eats your time?</h1>
+              <p className="lede">Pick everything that applies — you’ll choose the exact apps later.</p>
+              <div className="chip-grid">
+                {DISTRACTIONS.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`chip ${apps.includes(id) ? 'selected' : ''}`}
+                    onClick={() => toggleApp(id)}
+                  >
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
+                <button type="button" className="btn btn-secondary" onClick={back}>
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={saveAppsAndNext}
+                  disabled={apps.length === 0}
+                >
+                  Continue
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 'estimate' && (
+            <>
+              <h1 className="display lg">How much time do they take?</h1>
+              <p className="lede">Rough guess for an average day — be honest, {firstName}.</p>
+
+              <div className="limit-control panel-box setup-stable" style={{ marginTop: 14 }}>
+                <label>
+                  <span>On those apps</span>
+                  <strong className="tabular">{hoursADay}h / day</strong>
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={hoursADay}
+                  onChange={(e) => setHoursADay(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="savings-card">
+                <p>
+                  That’s about <span className="count-num">{monthlyHours}h</span> a month.
+                </p>
+                <p className="savings-line">
+                  A tighter budget could hand you back <span className="count-num">{savedPerMonth}h</span> every
+                  month.
+                </p>
+              </div>
+
+              <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
+                <button type="button" className="btn btn-secondary" onClick={back}>
+                  Back
+                </button>
+                <button type="button" className="btn btn-primary" onClick={suggestBudgetAndNext}>
+                  Build my budget
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 'budget' && (
+            <>
+              <h1 className="display lg">Your daily budget</h1>
+              <p className="lede">
+                We suggest <strong>{formatMinutes(suggestedBudget)}</strong> based on your answers. Tune it
+                however you like.
+              </p>
+
+              <div className="limit-control panel-box setup-stable">
+                <label>
+                  <span>Allowance</span>
+                  <strong className="tabular">{formatMinutes(budgetDraft)}</strong>
+                </label>
+                <input
+                  type="range"
+                  min={ALLOWANCE_MIN}
+                  max={ALLOWANCE_MAX}
+                  step={15}
+                  value={budgetDraft}
+                  onChange={(e) => setBudgetDraft(Number(e.target.value))}
+                />
+                <div className="preset-row">
+                  {ALLOWANCE_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`btn btn-sm ${budgetDraft === p ? 'btn-gold' : 'btn-secondary'}`}
+                      onClick={() => setBudgetDraft(p)}
+                    >
+                      {formatMinutes(p)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="panel-box reset-time-box setup-stable" style={{ marginTop: 14 }}>
+                <div className="reset-time-head">
+                  <span>Daily reset time</span>
+                  <strong className="tabular">{resetLabel}</strong>
+                </div>
+                <div className="reset-time-field">
+                  <input
+                    type="time"
+                    className="time-input"
+                    value={toTimeInputValue(state.resetHour, state.resetMinute)}
+                    onChange={(e) => onResetTimeChange(e.target.value)}
+                  />
+                </div>
+                <p className="lede reset-time-hint">Timezone: {state.timeZone}</p>
+              </div>
+
+              <div className="bj-actions" style={{ marginTop: 18, gridTemplateColumns: '1fr 2fr' }}>
+                <button type="button" className="btn btn-secondary" onClick={back}>
+                  Back
+                </button>
+                <button type="button" className="btn btn-primary" onClick={saveBudgetAndNext}>
+                  Continue
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 'connect' && (
+            <>
+              <h1 className="display lg">Last step, {firstName}</h1>
+              <p className="lede">
+                Link Apple Screen Time so limits actually stick. We’ll start a{' '}
+                <strong>fresh {formatMinutes(state.minutesBank)}</strong> budget — not the hours already in
+                Settings.
+              </p>
+              <div className="disclosure-box">
+                <p>
+                  Tip: don’t select every category. Only pick apps you actually want limited. You can skip
+                  and connect later from Bank.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-block"
+                style={{ marginTop: 18 }}
+                disabled={busy}
+                onClick={() => void onConnect()}
+              >
+                <Link2 size={16} /> {busy ? 'Connecting…' : 'Connect Screen Time'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-block"
+                style={{ marginTop: 10 }}
+                disabled={busy}
+                onClick={completeSetup}
+              >
+                Skip for now
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-block"
+                style={{ marginTop: 8 }}
+                disabled={busy}
+                onClick={back}
+              >
+                Back
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

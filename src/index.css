@@ -3296,6 +3296,52 @@ button {
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--lime), var(--gold));
+  transition: width 0.28s ease;
+}
+
+.setup-card-enter {
+  animation: setupCardIn 0.35s ease-out both;
+}
+
+.setup-step {
+  animation: setupStepIn 0.22s ease-out both;
+}
+
+.setup-step[data-dir='-1'] {
+  animation-name: setupStepInBack;
+}
+
+@keyframes setupCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes setupStepIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes setupStepInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .setup-mark {

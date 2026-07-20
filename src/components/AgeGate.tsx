@@ -1,10 +1,5 @@
-import { motion } from 'framer-motion';
 import { useScreel } from '../context/ScreelContext';
 
-/**
- * Welcome gate for self-directed screen-time management.
- * Kept as a soft age disclosure (not a casino 18+ gate) for App Store framing.
- */
 export const AGE_FLOOR = 13;
 
 export function AgeGate() {
@@ -12,11 +7,7 @@ export function AgeGate() {
 
   return (
     <div className="age-gate">
-      <motion.div
-        className="age-gate-card"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <div className="age-gate-card setup-card-enter">
         <div className="eyebrow">Welcome</div>
         <h1 className="display lg">Ready to focus?</h1>
         <p className="lede">
@@ -42,7 +33,7 @@ export function AgeGate() {
           By continuing you confirm Screel fits your needs and you accept Terms &amp; Privacy (You tab).
           Choosing under {AGE_FLOOR} locks Screel on this device.
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -50,11 +41,7 @@ export function AgeGate() {
 export function AgeBlocked() {
   return (
     <div className="age-gate">
-      <motion.div
-        className="age-gate-card"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <div className="age-gate-card setup-card-enter">
         <div className="eyebrow">Screel</div>
         <h1 className="display lg">Come back later</h1>
         <p className="lede">
@@ -67,7 +54,7 @@ export function AgeBlocked() {
             check honestly.
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
