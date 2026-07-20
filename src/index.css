@@ -2663,23 +2663,59 @@ button {
 }
 
 /* —— Mines —— */
+.mines-screen .game-top {
+  margin-bottom: 10px;
+}
+
+.mines-screen .game-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: visible;
+}
+
+.mines-lede {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  text-align: center;
+  max-width: 280px;
+}
+
 .mines-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  width: min(100%, 248px);
+  margin: 0 auto 8px;
+}
+
+.mines-screen .mines-meta .stat-tile {
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.mines-screen .mines-meta .stat-tile .label {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.mines-screen .mines-meta .stat-tile .value {
+  margin-top: 2px;
+  font-size: 1.05rem;
 }
 
 .mines-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 5px;
+  width: min(100%, 248px);
+  margin: 0 auto;
 }
 
 .mine-tile {
   aspect-ratio: 1;
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid var(--line);
   background: linear-gradient(160deg, rgba(246, 243, 234, 0.08), rgba(246, 243, 234, 0.02));
   color: var(--snow);
@@ -3221,13 +3257,6 @@ button {
   border-color: #0f8a3c;
 }
 
-.mines-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-/* —— Multiplier wheel —— */
 .tier-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

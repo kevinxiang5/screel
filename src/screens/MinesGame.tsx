@@ -79,6 +79,7 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
   return (
     <GameChrome
       title="Safe tiles"
+      className="mines-screen"
       onBack={onBack}
       backDisabled={stage === 'live'}
       banner={banner}
@@ -108,16 +109,6 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       }
       dock={
         <>
-          <div className="mines-meta" style={{ marginBottom: 10 }}>
-            <div className="stat-tile">
-              <div className="label">Payout now</div>
-              <div className="value">{revealed.size === 0 ? '—' : `+${pot}m`}</div>
-            </div>
-            <div className="stat-tile">
-              <div className="label">Next tile</div>
-              <div className="value">+{nextPot}m</div>
-            </div>
-          </div>
           {stage === 'live' && (
             <button type="button" className="btn btn-gold btn-block" onClick={bankIt} disabled={revealed.size === 0}>
               Bank it (+{pot}m)
@@ -131,10 +122,19 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
         </>
       }
     >
-      <p className="lede" style={{ marginTop: 0 }}>
-        <strong>{hazardCount} hazards</strong> hidden in {GRID} tiles. Reveal safe tiles to grow the payout.
-        Bank anytime — hit a hazard and you lose your stake.
+      <p className="lede mines-lede">
+        {hazardCount} hazards in {GRID} tiles — reveal safe spots, bank anytime.
       </p>
+      <div className="mines-meta">
+        <div className="stat-tile">
+          <div className="label">Payout now</div>
+          <div className="value">{revealed.size === 0 ? '—' : `+${pot}m`}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="label">Next tile</div>
+          <div className="value">+{nextPot}m</div>
+        </div>
+      </div>
       <div className={`mines-grid ${stage === 'done' ? 'over' : ''}`}>
         {Array.from({ length: GRID }, (_, i) => {
           const isMine = mines.has(i);
@@ -149,7 +149,7 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
               onClick={() => reveal(i)}
               disabled={stage !== 'live' || isOpen}
             >
-              {isOpen ? <Gem size={20} /> : showMine ? <Bomb size={20} /> : ''}
+              {isOpen ? <Gem size={15} /> : showMine ? <Bomb size={15} /> : ''}
             </button>
           );
         })}
