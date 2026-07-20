@@ -213,7 +213,7 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
       }
       dock={
         <button type="button" className="btn btn-primary btn-block" onClick={() => void start()} disabled={busy}>
-          {busy ? 'Spinning…' : stage === 'done' ? 'Spin again' : `Spin · win +${preview}m on ${pick}×`}
+          {busy ? 'Spinning…' : stage === 'done' ? 'Spin again' : `Spin · +${Math.round(preview)}m on ${pick}×`}
         </button>
       }
     >

@@ -7,8 +7,7 @@ export interface WheelTier {
 
 /**
  * Bandit-style multiplier wheel. Rarer tiers pay more.
- * Counts sum to 24 segments; each tier keeps a house edge of ~12–17%
- * (probability × multiplier < 1), so staking screen time is a real risk.
+ * Payout on a hit uses fairNet(chance) — ~12% house edge on every tier.
  */
 export const WHEEL_TIERS: WheelTier[] = [
   { mult: 2, count: 10, color: '#2f6fed', label: '2×' },

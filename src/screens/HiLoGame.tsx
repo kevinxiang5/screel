@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp } from 'lucide-react';
 import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { hiloPot } from '../utils/potMath';
+import { hiloPot, hiloWinChance } from '../utils/potMath';
 
 const LABELS: Record<number, string> = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -30,13 +30,13 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
   const [card, setCard] = useState(8);
   const [suit, setSuit] = useState('♠');
   const [streak, setStreak] = useState(0);
+  const [winOdds, setWinOdds] = useState(1);
   const [stake, setStake] = useState(0);
   const [nearMiss, setNearMiss] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
 
   const activeStake = stake || Math.min(state.wagerMinutes, remaining);
-  const stakeFactor = deckMode === 'tight' ? 1.15 : 1;
-  const pot = Math.round(hiloPot(activeStake, streak) * stakeFactor * 10) / 10;
+  const pot = hiloPot(activeStake, winOdds);
 
   const start = () => {
     if (remaining < 1) {
@@ -48,6 +48,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
     setCard(drawValue(undefined, deckMode === 'tight'));
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     setStreak(0);
+    setWinOdds(1);
     setNearMiss(null);
     setBanner(null);
     setStage('live');
@@ -55,7 +56,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
 
   const bankIt = () => {
     if (stage !== 'live' || streak === 0) return;
-    const amount = Math.round(hiloPot(stake, streak) * stakeFactor * 10) / 10;
+    const amount = hiloPot(stake, winOdds);
     const applied = settleRound({
       game: 'hilo',
       pot: amount,
@@ -70,6 +71,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
 
   const guess = (dir: 'higher' | 'lower') => {
     if (stage !== 'live') return;
+    const chance = hiloWinChance(card, dir, deckMode === 'tight');
     const next = drawValue(card, deckMode === 'tight');
     const won = dir === 'higher' ? next > card : next < card;
     setCard(next);
@@ -88,6 +90,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
       setBanner({ text: `${label(next)} missed · lost ${stake}m`, kind: 'lose' });
       return;
     }
+    setWinOdds((odds) => odds * chance);
     setStreak((s) => s + 1);
     setNearMiss(null);
   };
@@ -124,7 +127,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
               disabled={stage === 'live'}
               onClick={() => setDeckMode('tight')}
             >
-              Tight · 5–J · +15%
+              Tight · 5–J
             </button>
           </div>
         </>

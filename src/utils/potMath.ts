@@ -1,3 +1,4 @@
+import { chanceFor } from './wheel';
 import { GAME_REWARDS, type GameKind } from '../types';
 
 /**
@@ -38,10 +39,30 @@ export function minesPot(stake: number, safeCount: number, hazards = 5): number 
   return fairNet(stake, minesSurviveChance(hazards, safeCount));
 }
 
-/** Hi-Lo: each correct call ~50% (ignoring edges). Net after `streak` corrects. */
-export function hiloPot(stake: number, streak: number): number {
-  if (streak <= 0) return 0;
-  return fairNet(stake, Math.pow(0.5, streak));
+/** Rank values for Hi-Lo deck modes. */
+export function hiloRankValues(tight: boolean): number[] {
+  const min = tight ? 5 : 2;
+  const spread = tight ? 7 : 13;
+  return Array.from({ length: spread }, (_, i) => min + i);
+}
+
+/** Win chance for one Hi-Lo call given the current card and direction. */
+export function hiloWinChance(
+  card: number,
+  direction: 'higher' | 'lower',
+  tight: boolean,
+): number {
+  const values = hiloRankValues(tight);
+  const others = values.filter((v) => v !== card);
+  if (others.length === 0) return 0.5;
+  const wins = others.filter((v) => (direction === 'higher' ? v > card : v < card)).length;
+  return wins / others.length;
+}
+
+/** Hi-Lo net payout after a streak of correct calls (pass cumulative win probability). */
+export function hiloPot(stake: number, cumulativeWinChance: number): number {
+  if (cumulativeWinChance <= 0) return 0;
+  return fairNet(stake, cumulativeWinChance);
 }
 
 /**
@@ -65,17 +86,41 @@ export function dicePot(stake: number, chancePercent: number): number {
   return fairNet(stake, chancePercent / 100);
 }
 
-/** Slots pair/triple net payout (~slightly under even money). */
-export function slotsPot(stake: number): number {
-  return fairNet(stake, 0.42);
+/** Match-three symbol weights (must match SlotsGame). */
+export const SLOTS_WEIGHTS = [22, 20, 18, 16, 14, 10] as const;
+
+/** Chance any pair or triple on three reels. */
+export function slotsPairChance(weights: readonly number[] = SLOTS_WEIGHTS): number {
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  const n = weights.length;
+  let hit = 0;
+  for (let a = 0; a < n; a += 1) {
+    for (let b = 0; b < n; b += 1) {
+      for (let c = 0; c < n; c += 1) {
+        const p = (weights[a] * weights[b] * weights[c]) / total ** 3;
+        if (new Set([a, b, c]).size <= 2) hit += p;
+      }
+    }
+  }
+  return hit;
 }
 
-/** Wheel / color-style: stake * (mult - 1) when you hit your tier. */
+/** Slots first-spin net payout. */
+export function slotsPot(stake: number, pairChance = slotsPairChance()): number {
+  return fairNet(stake, pairChance);
+}
+
+/** Slots double-up net payout after two winning spins. */
+export function slotsDoublePot(stake: number, pairChance = slotsPairChance()): number {
+  return fairNet(stake, pairChance * pairChance);
+}
+
+/** Multiplier wheel: payout matches displayed hit chance for the picked tier. */
 export function wheelPot(stake: number, mult: number): number {
-  return Math.max(0, Math.round(stake * Math.max(0, mult - 1) * 10) / 10);
+  return fairNet(stake, chanceFor(mult) / 100);
 }
 
-/** Plinko: net from a display multiplier (1.0 = break-even). */
+/** Plinko: net from a total-return multiplier (1.0 = break-even). */
 export function plinkoNet(stake: number, mult: number): number {
   return Math.round(stake * (mult - 1) * 10) / 10;
 }

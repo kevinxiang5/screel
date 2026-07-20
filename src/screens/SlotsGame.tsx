@@ -2,14 +2,14 @@
 import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { slotsPot } from '../utils/potMath';
+import { slotsDoublePot, slotsPot } from '../utils/potMath';
 
 interface SlotSymbol {
   glyph: string;
   weight: number;
 }
 
-/** Weights tuned so any-pair chance ≈ 42% (house edge via slotsPot). */
+/** Weights tuned for ~46% any-pair rate; payout uses exact pair probability. */
 const SYMBOLS: SlotSymbol[] = [
   { glyph: '\u{1F352}', weight: 22 },
   { glyph: '\u{1F34B}', weight: 20 },
@@ -88,7 +88,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
           const success = a.glyph === b.glyph || b.glyph === c.glyph || a.glyph === c.glyph;
           if (success) {
             if (isDoubleRef.current) {
-              const amount = Math.round(potRef.current * 2);
+              const amount = slotsDoublePot(stakeRef.current);
               potRef.current = amount;
               setPot(amount);
               const applied = settleRound({
