@@ -292,23 +292,43 @@ button {
 }
 
 .app-shell.in-game .screen.game-in {
-  padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+.screen.game-in {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 12px;
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
 }
 
 .game-setup-slot {
   display: grid;
-  gap: 8px;
-  margin-bottom: 8px;
-  min-height: 0;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
 }
 
 .game-body {
   flex: 1;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+
+.game-dock.bj-dock,
+.game-in .bj-dock {
+  flex-shrink: 0;
+  margin-top: 8px;
+  padding: 10px;
 }
 
 .game-title-chip {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1432,9 +1452,10 @@ button {
 .bj-table {
   position: relative;
   flex: 1;
-  min-height: 360px;
-  padding: 14px 12px 18px;
-  border-radius: 28px;
+  min-height: 200px;
+  max-height: 42vh;
+  padding: 10px 10px 12px;
+  border-radius: 22px;
   background:
     radial-gradient(ellipse at 50% 20%, rgba(200, 255, 46, 0.08), transparent 50%),
     radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.35), transparent 55%),
@@ -1619,8 +1640,8 @@ button {
 }
 
 .pcard-scene {
-  width: 58px;
-  height: 84px;
+  width: 48px;
+  height: 70px;
   perspective: 900px;
   animation: cardDealIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -2595,11 +2616,20 @@ button {
 }
 
 /* —— Plinko board —— */
+.plinko-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.68rem;
+  color: var(--mute);
+}
+
 .plinko-board {
   position: relative;
-  height: min(52vh, 420px);
-  min-height: 280px;
-  border-radius: 22px;
+  height: min(48vh, 380px);
+  min-height: 240px;
+  border-radius: 18px;
   border: 1px solid var(--line);
   background:
     radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12), transparent 55%),
@@ -2608,39 +2638,46 @@ button {
   margin-bottom: 4px;
 }
 
-.plinko-pegs {
-  position: absolute;
-  inset: 0 8% 18% 8%;
-}
-
-.plinko-peg-row {
-  position: absolute;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-evenly;
-  transform: translateY(-50%);
-}
-
 .plinko-peg {
+  position: absolute;
   width: 8px;
   height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
   border-radius: 50%;
   background: #d7e6f2;
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+  z-index: 1;
 }
 
 .plinko-ball {
   position: absolute;
-  width: 16px;
-  height: 16px;
-  margin-left: -8px;
-  margin-top: -8px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  margin-top: -7px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff, #38bdf8 45%, #0284c7);
   box-shadow: 0 2px 10px rgba(56, 189, 248, 0.55);
   z-index: 3;
   pointer-events: none;
+  will-change: left, top;
+}
+
+.plinko-ball.settled {
+  box-shadow: 0 0 12px rgba(200, 255, 46, 0.55);
+}
+
+.plinko-trail {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.55);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .plinko-bins {
@@ -2651,6 +2688,7 @@ button {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   gap: 3px;
+  z-index: 4;
 }
 
 .plinko-bin {
@@ -2682,11 +2720,6 @@ button {
   border-color: var(--lime);
   background: rgba(200, 255, 46, 0.14);
   transform: translateY(-2px);
-}
-
-.screen.game-in {
-  display: flex;
-  flex-direction: column;
 }
 
 /* —— Mines —— */
@@ -3214,14 +3247,14 @@ button {
 .rl-live-stage {
   display: grid;
   place-items: center;
-  gap: 10px;
-  margin: 8px 0 12px;
-  min-height: 240px;
-  transition: min-height 0.35s ease;
+  gap: 6px;
+  margin: 4px 0 6px;
+  min-height: 0;
+  transition: none;
 }
 
 .rl-live-stage.active {
-  min-height: 300px;
+  min-height: 0;
 }
 
 .pick-row {
@@ -3258,15 +3291,15 @@ button {
 .tier-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  gap: 5px;
 }
 
 .tier-chip {
   display: grid;
   justify-items: center;
-  gap: 2px;
-  padding: 10px 4px;
-  border-radius: 12px;
+  gap: 1px;
+  padding: 6px 2px;
+  border-radius: 10px;
   border: 2px solid rgba(246, 243, 234, 0.14);
   background: rgba(246, 243, 234, 0.04);
   color: var(--snow);
@@ -3470,10 +3503,10 @@ button {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 7px;
-  margin: 10px 0 12px;
-  padding: 9px;
-  border-radius: 14px;
+  gap: 5px;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 12px;
   border: 1px solid var(--line);
   background: rgba(246, 243, 234, 0.025);
 }
@@ -3501,11 +3534,28 @@ button {
 }
 
 .wager-selector {
-  margin: 10px 0 14px;
-  padding: 14px 16px;
-  border: 1px solid rgba(240, 201, 77, 0.35);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(240, 201, 77, 0.09), rgba(246, 243, 234, 0.025));
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(240, 201, 77, 0.28);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(240, 201, 77, 0.08), rgba(246, 243, 234, 0.02));
+}
+
+.wager-selector.compact .wager-selector-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.wager-selector.compact .wager-selector-head .hand-label {
+  margin: 0;
+}
+
+.wager-selector.compact .wager-cap {
+  margin-left: auto;
+  color: var(--mute);
+  font-size: 0.65rem;
 }
 
 .wager-selector.disabled {
@@ -3513,50 +3563,35 @@ button {
   pointer-events: none;
 }
 
-.wager-selector-head,
-.wager-selector-head > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.wager-selector-head > div {
-  align-items: baseline;
-}
-
 .wager-selector-head strong {
   color: var(--gold);
   font-family: var(--font-accent);
-  font-size: 1.3rem;
-}
-
-.wager-selector-head > span {
-  color: var(--mute);
-  font-size: 0.7rem;
-  text-align: right;
+  font-size: 1rem;
 }
 
 .wager-selector input[type='range'] {
   width: 100%;
-  margin: 12px 0 8px;
+  margin: 4px 0 4px;
   accent-color: var(--gold);
+  height: 18px;
 }
 
 .wager-presets {
   display: flex;
-  gap: 7px;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
 .wager-presets button {
   flex: 1;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 7px 8px;
+  padding: 4px 6px;
   color: var(--mute);
   background: transparent;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 800;
 }
 

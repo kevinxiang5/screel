@@ -1,172 +1,229 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
-import { plinkoNet } from '../utils/potMath';
-import { PLINKO_MULTS, PLINKO_ROWS, dropPlinko, plinkoChance } from '../utils/plinko';
+import { PLINKO_MULTS, PLINKO_ROWS } from '../utils/plinko';
+import {
+  binReturn,
+  layoutPegs,
+  spawnBall,
+  stepBall,
+  type Peg,
+  type PlinkoBallState,
+} from '../utils/plinkoPhysics';
 
-type Stage = 'ready' | 'dropping' | 'done';
-
-const PEG_ROWS = Array.from({ length: PLINKO_ROWS }, (_, row) =>
-  Array.from({ length: row + 1 }, (_, i) => ({ row, i })),
-);
+const MAX_BALLS = 10;
 
 export function PlinkoGame({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
-  const [stage, setStage] = useState<Stage>('ready');
-  const [ball, setBall] = useState<{ x: number; y: number } | null>(null);
-  const [landed, setLanded] = useState<number | null>(null);
-  const [history, setHistory] = useState<number[]>([]);
-  const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' } | null>(null);
+  const { remaining, state, setWagerMinutes, lockStake, resolveLock, forfeitAllLocks } = useScreel();
+  const [balls, setBalls] = useState<PlinkoBallState[]>([]);
+  const [pegs, setPegs] = useState<Peg[]>([]);
+  const [history, setHistory] = useState<{ mult: number; net: number }[]>([]);
+  const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' | 'push' } | null>(null);
+  const [lastBin, setLastBin] = useState<number | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef(0);
+  const ballsRef = useRef<PlinkoBallState[]>([]);
+  const pegsRef = useRef<Peg[]>([]);
+  const rafRef = useRef(0);
+  const resolveRef = useRef(resolveLock);
+  const forfeitRef = useRef(forfeitAllLocks);
+  resolveRef.current = resolveLock;
+  forfeitRef.current = forfeitAllLocks;
 
-  useEffect(() => () => cancelAnimationFrame(animRef.current), []);
+  useEffect(() => {
+    const measure = () => {
+      const board = boardRef.current;
+      if (!board) return;
+      const next = layoutPegs(board.clientWidth, board.clientHeight);
+      pegsRef.current = next;
+      setPegs(next);
+    };
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (boardRef.current && ro) ro.observe(boardRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  useEffect(() => {
+    const tick = () => {
+      const board = boardRef.current;
+      if (!board) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      const w = board.clientWidth;
+      const h = board.clientHeight;
+      let changed = false;
+      const prev = ballsRef.current;
+      const nextBalls = prev.map((ball) => {
+        if (ball.settled) return ball;
+        changed = true;
+        return stepBall(ball, pegsRef.current, w, h);
+      });
+
+      for (let i = 0; i < nextBalls.length; i += 1) {
+        const ball = nextBalls[i];
+        if (!ball.settled || prev[i]?.settled || ball.bin == null) continue;
+        const credited = binReturn(ball.stake, ball.bin);
+        const net = resolveRef.current({
+          lockId: ball.lockId,
+          returnMinutes: credited,
+          detail: `Landed ${PLINKO_MULTS[ball.bin]}×`,
+          result: credited > ball.stake ? 'win' : credited < ball.stake ? 'lose' : 'push',
+        });
+        setLastBin(ball.bin);
+        setHistory((rows) => [{ mult: PLINKO_MULTS[ball.bin!], net }, ...rows].slice(0, 12));
+        setBanner({
+          text:
+            net > 0
+              ? `Landed ${PLINKO_MULTS[ball.bin]}× · +${net}m`
+              : net < 0
+                ? `Landed ${PLINKO_MULTS[ball.bin]}× · ${net}m`
+                : `Landed ${PLINKO_MULTS[ball.bin]}× · even`,
+          kind: net > 0 ? 'win' : net < 0 ? 'lose' : 'push',
+        });
+        changed = true;
+      }
+
+      const live = nextBalls.filter((b) => !b.settled);
+      const settledKeep = nextBalls.filter((b) => b.settled).slice(-4);
+      const pruned = [...live, ...settledKeep];
+      if (changed || pruned.length !== prev.length) {
+        ballsRef.current = pruned;
+        setBalls(pruned);
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      forfeitRef.current();
+    };
+  }, []);
 
   const selectedStake = Math.min(state.wagerMinutes, remaining);
-  const busy = stage === 'dropping';
+  const inFlight = balls.filter((b) => !b.settled).length;
 
   const drop = () => {
-    if (busy) return;
-    if (remaining < 1) {
+    const board = boardRef.current;
+    if (!board) return;
+    if (ballsRef.current.filter((b) => !b.settled).length >= MAX_BALLS) {
+      setBanner({ text: `Max ${MAX_BALLS} balls in the air.`, kind: 'lose' });
+      return;
+    }
+    const locked = lockStake(state.wagerMinutes, 'plinko');
+    if (!locked) {
       setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
       return;
     }
-    const stake = Math.min(state.wagerMinutes, remaining);
-    const { bin, path } = dropPlinko();
-    const board = boardRef.current;
-    if (!board) return;
-
-    const width = board.clientWidth;
-    const height = board.clientHeight;
-    const rowH = height / (PLINKO_ROWS + 1.6);
-    const points = path.map((pos, row) => {
-      const slots = row + 1;
-      const gap = width / (slots + 1);
-      return { x: gap * (pos + 1), y: rowH * (row + 0.35) };
-    });
-    // Final bin center
-    const binGap = width / (PLINKO_MULTS.length + 1);
-    points.push({ x: binGap * (bin + 1), y: height - 28 });
-
+    if (pegsRef.current.length === 0) {
+      pegsRef.current = layoutPegs(board.clientWidth, board.clientHeight);
+      setPegs(pegsRef.current);
+    }
+    const ball = spawnBall(board.clientWidth, locked.amount, locked.id);
+    const next = [...ballsRef.current, ball];
+    ballsRef.current = next;
+    setBalls(next);
     setBanner(null);
-    setLanded(null);
-    setStage('dropping');
-    setBall(points[0]);
+  };
 
-    const start = performance.now();
-    const duration = 2200;
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 2.4);
-      const scaled = eased * (points.length - 1);
-      const i = Math.min(points.length - 2, Math.floor(scaled));
-      const local = scaled - i;
-      const a = points[i];
-      const b = points[i + 1];
-      // Slight horizontal wobble between pegs
-      const wobble = Math.sin(local * Math.PI) * 6 * (i % 2 === 0 ? 1 : -1);
-      setBall({
-        x: a.x + (b.x - a.x) * local + wobble * (1 - local) * local * 4,
-        y: a.y + (b.y - a.y) * local,
-      });
-      if (t < 1) {
-        animRef.current = requestAnimationFrame(tick);
-        return;
-      }
-      setBall(points[points.length - 1]);
-      setLanded(bin);
-      setHistory((h) => [bin, ...h].slice(0, 10));
-      const mult = PLINKO_MULTS[bin];
-      const net = plinkoNet(stake, mult);
-      if (net >= 0) {
-        const applied = settleRound({
-          game: 'plinko',
-          pot: net,
-          kept: true,
-          wager: stake,
-          detail: `Landed ${mult}×`,
-          result: 'win',
-        });
-        setBanner({
-          text: net === 0 ? `Landed ${mult}× · even` : `Landed ${mult}× · +${applied}m`,
-          kind: 'win',
-        });
-      } else {
-        const loss = Math.min(stake, Math.abs(net));
-        settleRound({
-          game: 'plinko',
-          pot: 0,
-          kept: false,
-          wager: loss,
-          detail: `Landed ${mult}×`,
-          result: 'lose',
-        });
-        setBanner({ text: `Landed ${mult}× · lost ${loss}m`, kind: 'lose' });
-      }
-      setStage('done');
-    };
-    animRef.current = requestAnimationFrame(tick);
+  const dropMany = (count: number) => {
+    for (let i = 0; i < count; i += 1) drop();
   };
 
   return (
     <GameChrome
       title="Plinko"
       onBack={onBack}
-      backDisabled={busy}
       banner={banner}
       setup={
         <WagerSelector
           value={state.wagerMinutes}
           remaining={remaining}
           onChange={setWagerMinutes}
-          disabled={busy}
+          disabled={remaining < 1}
         />
       }
       dock={
-        <button type="button" className="btn btn-primary btn-block" onClick={drop} disabled={busy}>
-          {busy ? 'Dropping…' : stage === 'done' ? 'Drop again' : `Drop · ${selectedStake}m stake`}
-        </button>
+        <div className="bj-actions wrap">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={drop}
+            disabled={remaining < 1 || inFlight >= MAX_BALLS}
+          >
+            Drop · {selectedStake}m
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => dropMany(3)}
+            disabled={remaining < 1 || inFlight >= MAX_BALLS}
+          >
+            Drop 3
+          </button>
+        </div>
       }
     >
+      <div className="plinko-meta">
+        <span>
+          {inFlight} in air · {PLINKO_ROWS} rows
+        </span>
+        <span>Stake locks on drop</span>
+      </div>
       <div className="plinko-board" ref={boardRef}>
-        <div className="plinko-pegs">
-          {PEG_ROWS.map((row, ri) => (
-            <div key={ri} className="plinko-peg-row" style={{ top: `${((ri + 0.35) / (PLINKO_ROWS + 1.6)) * 100}%` }}>
-              {row.map((peg) => (
-                <span key={`${peg.row}-${peg.i}`} className="plinko-peg" />
-              ))}
-            </div>
-          ))}
-        </div>
-        {ball && (
-          <motion.div
-            className="plinko-ball"
-            style={{ left: ball.x, top: ball.y }}
-            initial={false}
+        {pegs.map((peg) => (
+          <span
+            key={`${peg.row}-${peg.index}`}
+            className="plinko-peg"
+            style={{ left: peg.x, top: peg.y }}
           />
-        )}
+        ))}
+        {balls.map((ball) => (
+          <div key={ball.id}>
+            {ball.trail.map((p, i) => (
+              <span
+                key={`${ball.id}-t${i}`}
+                className="plinko-trail"
+                style={{
+                  left: p.x,
+                  top: p.y,
+                  opacity: ((i + 1) / (ball.trail.length + 1)) * 0.55,
+                }}
+              />
+            ))}
+            <div
+              className={`plinko-ball ${ball.settled ? 'settled' : ''}`}
+              style={{ left: ball.x, top: ball.y }}
+            />
+          </div>
+        ))}
         <div className="plinko-bins">
           {PLINKO_MULTS.map((mult, i) => (
             <div
               key={i}
-              className={`plinko-bin ${landed === i ? 'hit' : ''} ${mult >= 2 ? 'hot' : mult < 1 ? 'cold' : ''}`}
+              className={`plinko-bin ${lastBin === i ? 'hit' : ''} ${mult >= 2 ? 'hot' : mult < 1 ? 'cold' : ''}`}
             >
               <strong>{mult}×</strong>
-              <span>{Math.round(plinkoChance(i))}%</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rl-history" style={{ marginTop: 12 }}>
+      <div className="rl-history" style={{ marginTop: 8 }}>
         <span className="hand-label">Last</span>
         <div className="rl-history-row">
           {history.length === 0 && <span className="mute">—</span>}
-          {history.map((bin, i) => (
-            <span key={`${bin}-${i}`} className={`rl-hist ${PLINKO_MULTS[bin] >= 2 ? 'green' : PLINKO_MULTS[bin] < 1 ? 'red' : 'black'}`}>
-              {PLINKO_MULTS[bin]}×
+          {history.map((h, i) => (
+            <span
+              key={`${h.mult}-${i}`}
+              className={`rl-hist ${h.net > 0 ? 'green' : h.net < 0 ? 'red' : 'black'}`}
+            >
+              {h.mult}×
             </span>
           ))}
         </div>

@@ -85,7 +85,7 @@ export interface ScreelState {
   riskAlerts: boolean;
   /** Minutes earned from minigames in the current period. */
   minutesEarnedToday: number;
-  /** Default minute stake for the next challenge. */
+  /** Default minute stake for the next challenge (capped at remaining minutes when played). */
   wagerMinutes: number;
   /**
    * Optional SHA-256 hash of a 4-digit bank PIN.
@@ -93,8 +93,6 @@ export interface ScreelState {
    */
   bankPinHash: string | null;
 }
-
-export const WAGER_MAX = 20;
 
 /** Base minute pot seeds per game (before ladder / multiplier growth). */
 export const GAME_REWARDS: Record<GameKind, number> = {

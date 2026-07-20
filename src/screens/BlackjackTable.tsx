@@ -68,6 +68,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const potRef = useRef(0);
   const stakeRef = useRef(0);
   const ridesRef = useRef(0);
+  const roundIdRef = useRef('');
   shoeRef.current = shoe;
 
   const pull = () => {
@@ -94,6 +95,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       }
       const stake = Math.min(state.wagerMinutes, remaining);
       stakeRef.current = stake;
+      roundIdRef.current = `bj-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const b = seedPot('blackjack', stake);
       setPot(b);
       potRef.current = b;
@@ -213,6 +215,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
         wager: stakeRef.current,
         detail: `${handLabel(pCards)} vs ${handLabel(dCards)} · push`,
         result: 'push',
+        roundId: `${roundIdRef.current}-push`,
       });
       setBanner({ text: 'Push — no minutes won or lost.', kind: 'push' });
       setPhase('result');
@@ -227,6 +230,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       wager: stakeRef.current,
       detail: `${handLabel(pCards)} vs ${handLabel(dCards)}`,
       result: 'lose',
+      roundId: `${roundIdRef.current}-lose`,
     });
     setBanner({ text: `House hand wins · lost ${stakeRef.current}m`, kind: 'lose' });
     setPhase('result');
@@ -241,7 +245,13 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
       wager: stakeRef.current,
       detail: 'Banked the pot',
       result: 'win',
+      roundId: `${roundIdRef.current}-bank`,
     });
+    if (applied === 0 && potRef.current > 0) {
+      // Already settled this round — ignore double-tap
+      setPhase('result');
+      return;
+    }
     setBanner({ text: `Won +${applied}m`, kind: 'win' });
     setPhase('result');
   };

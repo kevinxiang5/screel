@@ -50,7 +50,7 @@ function WheelGraphic({
   spinning: boolean;
   duration: number;
 }) {
-  const size = 260;
+  const size = 200;
   const radius = size * 0.38;
   const resultMult = resultIndex === null ? null : WHEEL_ORDER[resultIndex];
 

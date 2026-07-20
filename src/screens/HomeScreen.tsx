@@ -100,8 +100,9 @@ export function HomeScreen({
           </button>
         </div>
         <p className="lede" style={{ marginTop: 10 }}>
-          {state.winStreak > 0
-            ? `${state.winStreak} win streak — keep it going.`
+          {state.winStreak > 0 ? `${state.winStreak} win streak · ` : ''}
+          {state.connected
+            ? 'Screen Time usage lowers minutes left automatically.'
             : 'Stake minutes from your allowance. Win the round, grow the bank.'}
         </p>
       </section>

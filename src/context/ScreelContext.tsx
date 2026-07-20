@@ -2,7 +2,6 @@ import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
 import {
-  WAGER_MAX,
   type DailyChallenge,
   type FontTheme,
   type GameKind,
@@ -56,7 +55,7 @@ function clampAllowance(n: number): number {
 }
 
 function clampWager(n: number): number {
-  return Math.max(1, Math.min(WAGER_MAX, Math.round(n)));
+  return Math.max(1, Math.round(n));
 }
 
 const defaultState = (): ScreelState => {
@@ -195,7 +194,24 @@ interface ScreelContextValue {
     wager?: number;
     detail: string;
     result?: RoundResult;
+    /** Optional idempotency key — duplicate IDs are ignored (anti-dupe). */
+    roundId?: string;
   }) => number;
+  /**
+   * Escrow stake immediately (deducts from bank). Used for in-flight Plinko balls
+   * so concurrent drops cannot overspend or double-count.
+   * Returns the locked amount (may be clamped to what remains).
+   */
+  lockStake: (amount: number, game: GameKind) => { id: string; amount: number } | null;
+  /** Resolve an escrow: credit `returnMinutes` (0 = total loss). Idempotent per lockId. */
+  resolveLock: (payload: {
+    lockId: string;
+    returnMinutes: number;
+    detail: string;
+    result?: RoundResult;
+  }) => number;
+  /** Forfeit every open lock (e.g. leaving Plinko mid-drop). */
+  forfeitAllLocks: () => void;
   claimChallenge: (id: string) => void;
   bankLocked: boolean;
   bankUnlocked: boolean;
@@ -241,6 +257,10 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ScreelState>(() => loadState());
   const stateRef = useRef(state);
   const [bankUnlocked, setBankUnlocked] = useState(false);
+  const locksRef = useRef(
+    new Map<string, { amount: number; game: GameKind }>(),
+  );
+  const settledRoundIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     stateRef.current = state;
@@ -387,7 +407,15 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
         setState((s) => ({ ...s, connected: false, usageSource: 'none' })),
       syncUsageMinutes: (minutes) =>
         setState((s) => ({ ...s, minutesUsed: Math.max(0, Math.round(minutes)) })),
-      settleRound: ({ game, pot, kept, wager = 0, detail, result }) => {
+      settleRound: ({ game, pot, kept, wager = 0, detail, result, roundId }) => {
+        if (roundId) {
+          if (settledRoundIdsRef.current.has(roundId)) return 0;
+          settledRoundIdsRef.current.add(roundId);
+          if (settledRoundIdsRef.current.size > 240) {
+            const first = settledRoundIdsRef.current.values().next().value;
+            if (first) settledRoundIdsRef.current.delete(first);
+          }
+        }
         const s = stateRef.current;
         const isPush = result === 'push';
         const available = Math.max(0, s.minutesBank - s.minutesUsed);
@@ -409,7 +437,7 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           if (c.id === 'play-3') return { ...c, progress: Math.min(c.target, c.progress + 1) };
           if (c.id === 'win-1' && kept) return { ...c, progress: Math.min(c.target, c.progress + 1) };
           if (c.id === 'earn-15' && kept) {
-            return { ...c, progress: Math.min(c.target, c.progress + applied) };
+            return { ...c, progress: Math.min(c.target, c.progress + Math.max(0, applied)) };
           }
           return c;
         });
@@ -436,6 +464,97 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           });
         }
         return applied;
+      },
+      lockStake: (amount, game) => {
+        const s = stateRef.current;
+        const available = Math.max(0, s.minutesBank - s.minutesUsed);
+        const stake = Math.min(Math.max(0, Math.round(amount)), available);
+        if (stake < 1) return null;
+        const id = `lock-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        locksRef.current.set(id, { amount: stake, game });
+        const next = { ...s, minutesBank: s.minutesBank - stake };
+        stateRef.current = next;
+        setState(next);
+        if (next.usageSource === 'screenTime' && next.connected) {
+          void ScreelScreenTime.applyShieldWhenBroke({
+            broke: next.minutesBank - next.minutesUsed <= 0,
+          });
+        }
+        return { id, amount: stake };
+      },
+      resolveLock: ({ lockId, returnMinutes, detail, result }) => {
+        const lock = locksRef.current.get(lockId);
+        if (!lock) return 0;
+        locksRef.current.delete(lockId);
+        const s = stateRef.current;
+        const credited = Math.max(0, Math.round(returnMinutes));
+        const net = credited - lock.amount;
+        const entry: HistoryEntry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          game: lock.game,
+          delta: net,
+          result: result ?? (net > 0 ? 'win' : net < 0 ? 'lose' : 'push'),
+          detail,
+          at: Date.now(),
+        };
+        const challenges = s.challenges.map((c) => {
+          if (c.claimed) return c;
+          if (c.id === 'play-3') return { ...c, progress: Math.min(c.target, c.progress + 1) };
+          if (c.id === 'win-1' && net > 0) return { ...c, progress: Math.min(c.target, c.progress + 1) };
+          if (c.id === 'earn-15' && net > 0) {
+            return { ...c, progress: Math.min(c.target, c.progress + net) };
+          }
+          return c;
+        });
+        const xpGain = net > 0 ? 22 : 4;
+        const next: ScreelState = {
+          ...s,
+          minutesBank: s.minutesBank + credited,
+          minutesEarnedToday: s.minutesEarnedToday + Math.max(0, net),
+          totalWon: s.totalWon + Math.max(0, net),
+          totalLost: s.totalLost + Math.max(0, -net),
+          biggestWin: Math.max(s.biggestWin, Math.max(0, net)),
+          gamesPlayed: s.gamesPlayed + 1,
+          winStreak: net > 0 ? s.winStreak + 1 : net === 0 ? s.winStreak : 0,
+          xp: s.xp + xpGain,
+          level: Math.max(1, Math.floor((s.xp + xpGain) / 100) + 1),
+          history: [entry, ...s.history].slice(0, 80),
+          challenges,
+        };
+        stateRef.current = next;
+        setState(next);
+        if (next.usageSource === 'screenTime' && next.connected) {
+          void ScreelScreenTime.applyShieldWhenBroke({
+            broke: next.minutesBank - next.minutesUsed <= 0,
+          });
+        }
+        return net;
+      },
+      forfeitAllLocks: () => {
+        const ids = [...locksRef.current.keys()];
+        for (const lockId of ids) {
+          const lock = locksRef.current.get(lockId);
+          if (!lock) continue;
+          locksRef.current.delete(lockId);
+          const s = stateRef.current;
+          const entry: HistoryEntry = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            game: lock.game,
+            delta: -lock.amount,
+            result: 'lose',
+            detail: 'Left while stake was in play',
+            at: Date.now(),
+          };
+          const next: ScreelState = {
+            ...s,
+            totalLost: s.totalLost + lock.amount,
+            gamesPlayed: s.gamesPlayed + 1,
+            winStreak: 0,
+            history: [entry, ...s.history].slice(0, 80),
+          };
+          stateRef.current = next;
+          setState(next);
+        }
       },
       claimChallenge: (id) => {
         setState((s) => {
