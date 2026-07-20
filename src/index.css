@@ -145,12 +145,13 @@ button {
 
 .loading-bar {
   position: absolute;
-  left: 28px;
-  right: 28px;
-  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
-  height: 2px;
+  left: 50%;
+  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  width: 50%;
+  height: 3px;
+  transform: translateX(-50%);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.22);
   overflow: hidden;
 }
 
@@ -159,7 +160,8 @@ button {
   height: 100%;
   width: 0%;
   border-radius: inherit;
-  background: #c8ff2e;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.45);
   animation: loadFill 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
