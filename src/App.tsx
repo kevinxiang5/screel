@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AgeBlocked, AgeGate } from './components/AgeGate';
 import type { LegalDoc } from './components/LegalDocView';
@@ -25,6 +25,14 @@ const tabMotion = {
   transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
 };
 
+function TabFallback() {
+  return <div className="tab-fallback" aria-hidden />;
+}
+
+function TabPane({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<TabFallback />}>{children}</Suspense>;
+}
+
 function ScreelApp() {
   const { state } = useScreel();
   const [ready, setReady] = useState(false);
@@ -35,6 +43,15 @@ function ScreelApp() {
   const finishLoading = useCallback(() => setReady(true), []);
   const inGame = tab === 'play' && Boolean(activeGame);
   const showTabs = !inGame && !legalDoc;
+
+  // Warm the Play chunk so the first tab click doesn't blank the shell.
+  useEffect(() => {
+    if (!ready || !state.setupComplete) return;
+    const id = window.setTimeout(() => {
+      void import('./screens/GamesScreen');
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [ready, state.setupComplete]);
 
   const goPlay = (game: GameId) => {
     setActiveGame(game);
@@ -55,61 +72,71 @@ function ScreelApp() {
       {ready && !state.ageBlocked && !state.ageVerified && <AgeGate />}
       {ready && !state.ageBlocked && state.ageVerified && !state.setupComplete && <SetupFlow />}
       {ready && !state.ageBlocked && state.ageVerified && state.setupComplete && (
-        <Suspense fallback={null}>
-          <div className={`app-shell ${inGame ? 'in-game' : ''}`}>
-            {legalDoc ? (
+        <div className={`app-shell ${inGame ? 'in-game' : ''}`}>
+          {legalDoc ? (
+            <TabPane>
               <LegalDocView doc={legalDoc} onBack={() => setLegalDoc(null)} />
-            ) : (
-              <div className="tab-route">
-                <AnimatePresence mode="wait" initial={false}>
-                  {tab === 'home' && (
-                    <motion.div key="home" className="tab-page" {...tabMotion}>
+            </TabPane>
+          ) : (
+            <div className="tab-route">
+              <AnimatePresence mode="wait" initial={false}>
+                {tab === 'home' && (
+                  <motion.div key="home" className="tab-page" {...tabMotion}>
+                    <TabPane>
                       <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
-                    </motion.div>
-                  )}
-                  {tab === 'play' && (
-                    <motion.div key="play" className="tab-page" {...tabMotion}>
+                    </TabPane>
+                  </motion.div>
+                )}
+                {tab === 'play' && (
+                  <motion.div key="play" className="tab-page" {...tabMotion}>
+                    <TabPane>
                       <GamesScreen
                         activeGame={activeGame}
                         onSelect={setActiveGame}
                         onBack={() => setActiveGame(null)}
                       />
-                    </motion.div>
-                  )}
-                  {tab === 'bank' && (
-                    <motion.div key="bank" className="tab-page" {...tabMotion}>
+                    </TabPane>
+                  </motion.div>
+                )}
+                {tab === 'bank' && (
+                  <motion.div key="bank" className="tab-page" {...tabMotion}>
+                    <TabPane>
                       <BankScreen />
-                    </motion.div>
-                  )}
-                  {tab === 'stats' && (
-                    <motion.div key="stats" className="tab-page" {...tabMotion}>
+                    </TabPane>
+                  </motion.div>
+                )}
+                {tab === 'stats' && (
+                  <motion.div key="stats" className="tab-page" {...tabMotion}>
+                    <TabPane>
                       <StatsScreen />
-                    </motion.div>
-                  )}
-                  {tab === 'you' && (
-                    <motion.div key="you" className="tab-page" {...tabMotion}>
+                    </TabPane>
+                  </motion.div>
+                )}
+                {tab === 'you' && (
+                  <motion.div key="you" className="tab-page" {...tabMotion}>
+                    <TabPane>
                       <ProfileScreen onOpenLegal={setLegalDoc} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                    </TabPane>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+          <AnimatePresence>
+            {showTabs && (
+              <motion.div
+                key="tabs"
+                className="tab-bar-wrap"
+                initial={{ y: 28, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 36, opacity: 0 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <TabBar active={tab} onChange={changeTab} />
+              </motion.div>
             )}
-            <AnimatePresence>
-              {showTabs && (
-                <motion.div
-                  key="tabs"
-                  className="tab-bar-wrap"
-                  initial={{ y: 28, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 36, opacity: 0 }}
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <TabBar active={tab} onChange={changeTab} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </Suspense>
+          </AnimatePresence>
+        </div>
       )}
     </>
   );

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Flame, Sparkles, Trophy, Zap } from 'lucide-react';
+import { Flame, Sparkles, Trophy } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 import type { GameId, TabId } from '../types';
@@ -193,12 +193,6 @@ export function HomeScreen({
             </div>
           );
         })}
-      </section>
-
-      <section className="section">
-        <button type="button" className="btn btn-primary btn-block" onClick={() => onNavigate('play')}>
-          <Zap size={18} /> Play challenges
-        </button>
       </section>
     </div>
   );

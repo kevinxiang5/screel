@@ -5,12 +5,12 @@ import { useScreel } from '../context/ScreelContext';
 import { formatPlinkoMult, PLINKO_MODES, type PlinkoRisk } from '../utils/plinko';
 import {
   binReturn,
-  layoutPegs,
+  buildLayout,
   multsForRisk,
   spawnBall,
   stepBall,
-  type Peg,
   type PlinkoBallState,
+  type PlinkoLayout,
 } from '../utils/plinkoPhysics';
 
 const MAX_BALLS = 10;
@@ -19,13 +19,13 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
   const { remaining, state, setWagerMinutes, lockStake, resolveLock, forfeitAllLocks } = useScreel();
   const [risk, setRisk] = useState<PlinkoRisk>('medium');
   const [balls, setBalls] = useState<PlinkoBallState[]>([]);
-  const [pegs, setPegs] = useState<Peg[]>([]);
+  const [layout, setLayout] = useState<PlinkoLayout | null>(null);
   const [history, setHistory] = useState<{ mult: number; net: number }[]>([]);
   const [banner, setBanner] = useState<{ text: string; kind: 'win' | 'lose' | 'push' } | null>(null);
   const [lastBin, setLastBin] = useState<number | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const ballsRef = useRef<PlinkoBallState[]>([]);
-  const pegsRef = useRef<Peg[]>([]);
+  const layoutRef = useRef<PlinkoLayout | null>(null);
   const rafRef = useRef(0);
   const riskRef = useRef(risk);
   const resolveRef = useRef(resolveLock);
@@ -41,9 +41,9 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
     const measure = () => {
       const board = boardRef.current;
       if (!board) return;
-      const next = layoutPegs(board.clientWidth, board.clientHeight, mode.rows);
-      pegsRef.current = next;
-      setPegs(next);
+      const next = buildLayout(board.clientWidth, board.clientHeight, mode.rows);
+      layoutRef.current = next;
+      setLayout(next);
     };
     measure();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
@@ -116,6 +116,12 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
   const inFlight = balls.filter((b) => !b.settled).length;
   const locked = inFlight > 0;
 
+  const changeRisk = (next: PlinkoRisk) => {
+    if (locked || next === risk) return;
+    setRisk(next);
+    setLastBin(null);
+  };
+
   const drop = () => {
     const board = boardRef.current;
     if (!board) return;
@@ -129,18 +135,13 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       return;
     }
     const current = PLINKO_MODES[riskRef.current];
-    if (pegsRef.current.length === 0) {
-      pegsRef.current = layoutPegs(board.clientWidth, board.clientHeight, current.rows);
-      setPegs(pegsRef.current);
+    let boardLayout = layoutRef.current;
+    if (!boardLayout || boardLayout.rows !== current.rows) {
+      boardLayout = buildLayout(board.clientWidth, board.clientHeight, current.rows);
+      layoutRef.current = boardLayout;
+      setLayout(boardLayout);
     }
-    const ball = spawnBall(
-      board.clientWidth,
-      board.clientHeight,
-      current.rows,
-      current.mults.length,
-      stakeLock.amount,
-      stakeLock.id,
-    );
+    const ball = spawnBall(boardLayout, stakeLock.amount, stakeLock.id);
     const next = [...ballsRef.current, ball];
     ballsRef.current = next;
     setBalls(next);
@@ -150,6 +151,10 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
   const dropMany = (count: number) => {
     for (let i = 0; i < count; i += 1) drop();
   };
+
+  const pegs = layout?.pegs ?? [];
+  const boardHeight =
+    mode.rows <= 8 ? 'min(46vh, 340px)' : mode.rows <= 12 ? 'min(52vh, 400px)' : 'min(58vh, 460px)';
 
   return (
     <GameChrome
@@ -172,7 +177,7 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
                 key={key}
                 className={risk === key ? 'active' : ''}
                 disabled={locked}
-                onClick={() => setRisk(key)}
+                onClick={() => changeRisk(key)}
               >
                 {PLINKO_MODES[key].label}
               </button>
@@ -210,7 +215,13 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       <div
         className="plinko-board"
         ref={boardRef}
-        style={{ '--plinko-bins': mults.length } as React.CSSProperties}
+        style={
+          {
+            height: boardHeight,
+            minHeight: mode.rows <= 8 ? 260 : mode.rows <= 12 ? 300 : 340,
+            '--plinko-bins': mults.length,
+          } as React.CSSProperties
+        }
       >
         {pegs.map((peg) => (
           <span
@@ -226,15 +237,29 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
             style={{ left: ball.x, top: ball.y }}
           />
         ))}
-        <div className="plinko-bins">
-          {mults.map((mult, i) => (
-            <div
-              key={i}
-              className={`plinko-bin ${lastBin === i ? 'hit' : ''} ${mult >= 2 ? 'hot' : mult < 1 ? 'cold' : ''}`}
-            >
-              <strong>{formatPlinkoMult(mult).replace('×', '')}</strong>
-            </div>
-          ))}
+        <div className={`plinko-bins ${layout ? 'placed' : ''}`}>
+          {mults.map((mult, i) => {
+            const left = layout ? layout.binCenters[i] - layout.binWidth / 2 + 1 : undefined;
+            const width = layout ? layout.binWidth - 2 : undefined;
+            return (
+              <div
+                key={i}
+                className={`plinko-bin ${lastBin === i ? 'hit' : ''} ${mult >= 2 ? 'hot' : mult < 1 ? 'cold' : ''}`}
+                style={
+                  layout
+                    ? {
+                        left,
+                        width,
+                        bottom: 6,
+                        height: layout.binHeight,
+                      }
+                    : undefined
+                }
+              >
+                <strong>{formatPlinkoMult(mult).replace('×', '')}</strong>
+              </div>
+            );
+          })}
         </div>
       </div>
 
