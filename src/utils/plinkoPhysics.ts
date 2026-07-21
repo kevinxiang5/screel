@@ -1,4 +1,4 @@
-import { dropPlinko, type PlinkoRisk, PLINKO_MODES } from './plinko';
+import { type PlinkoRisk, PLINKO_MODES } from './plinko';
 
 export {
   formatPlinkoMult,
@@ -39,12 +39,10 @@ export interface PlinkoBallState {
   y: number;
   vx: number;
   vy: number;
-  /** Fair binomial outcome — payout uses this, not raw physics landing. */
-  targetBin: number;
-  /** Ideal x after each row (path[row+1] rights → peg gap). */
-  pathXs: number[];
-  lastPegKey: string | null;
-  pegCooldown: number;
+  /** Right deflections so far — maps to landing bin (classic Plinko). */
+  rights: number;
+  /** Highest peg row that already triggered a bounce. */
+  lastRowHit: number;
   settled: boolean;
   bin: number | null;
 }
@@ -52,14 +50,12 @@ export interface PlinkoBallState {
 export const BALL_R = 6;
 export const PEG_R = 3.5;
 
-const GRAVITY = 0.26;
-const RESTITUTION = 0.42;
-const FRICTION = 0.94;
-const MAX_SPEED = 7;
-const SUBSTEPS = 3;
-const PEG_COOLDOWN = 5;
-/** How hard we steer toward the fair path (keeps gravity look, locks odds). */
-const STEER = 0.085;
+const GRAVITY = 0.38;
+const AIR_DRAG = 0.992;
+const RESTITUTION = 0.35;
+const MAX_SPEED = 9;
+const SUBSTEPS = 4;
+const MIN_FALL = 1.15;
 
 export function pegsInRow(row: number): number {
   return row + 3;
@@ -106,51 +102,17 @@ export function buildLayout(width: number, height: number, rows: number): Plinko
   };
 }
 
-/** Peg column for a ball that has taken `rights` rights so far on this row. */
-function pegIndexForPath(row: number, rights: number): number {
-  return Math.max(0, Math.min(pegsInRow(row) - 1, rights + 1));
-}
-
-function pegX(layout: PlinkoLayout, row: number, index: number): number {
-  const count = pegsInRow(row);
-  const span = (count - 1) * layout.pegSpacing;
-  const startX = (layout.width - span) / 2;
-  return startX + index * layout.pegSpacing;
-}
-
-/**
- * Ideal center-line for each step of a fair path.
- * path[0]=0 … path[rows]=bin. After bounce at row r, rights = path[r+1].
- */
-function pathGuideXs(layout: PlinkoLayout, path: number[]): number[] {
-  const xs: number[] = [];
-  // Start above center peg of row 0.
-  xs.push(pegX(layout, 0, 1));
-  for (let row = 0; row < layout.rows; row += 1) {
-    const rights = path[row];
-    xs.push(pegX(layout, row, pegIndexForPath(row, rights)));
-  }
-  xs.push(layout.binCenters[path[layout.rows]] ?? layout.width / 2);
-  return xs;
-}
-
 export function spawnBall(layout: PlinkoLayout, stake: number, lockId: string): PlinkoBallState {
-  const { bin, path } = dropPlinko(layout.rows);
-  const pathXs = pathGuideXs(layout, path);
-  const startX = pathXs[0] + (Math.random() - 0.5) * 2;
-
   return {
     id: `ball-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     lockId,
     stake,
-    x: startX,
-    y: Math.max(10, layout.topY - layout.rowSpacing * 0.65),
-    vx: (Math.random() - 0.5) * 0.35,
-    vy: 0.55 + Math.random() * 0.25,
-    targetBin: bin,
-    pathXs,
-    lastPegKey: null,
-    pegCooldown: 0,
+    x: layout.width / 2 + (Math.random() - 0.5) * layout.pegSpacing * 0.15,
+    y: Math.max(8, layout.topY - layout.rowSpacing * 0.55),
+    vx: (Math.random() - 0.5) * 0.25,
+    vy: 0.35,
+    rights: 0,
+    lastRowHit: -1,
     settled: false,
     bin: null,
   };
@@ -165,126 +127,119 @@ function clampSpeed(ball: PlinkoBallState) {
   }
 }
 
-function collidePeg(ball: PlinkoBallState, peg: Peg, pegKey: string, pegSpacing: number): boolean {
+function pushOut(ball: PlinkoBallState, nx: number, ny: number, minDist: number, dist: number) {
+  const overlap = minDist - dist + 0.6;
+  ball.x += nx * overlap;
+  ball.y += ny * overlap;
+}
+
+function binFromRights(layout: PlinkoLayout, rights: number): number {
+  return Math.max(0, Math.min(layout.bins - 1, rights));
+}
+
+function binFromX(layout: PlinkoLayout, x: number): number {
+  const rel = x - layout.sidePad;
+  const idx = Math.round(rel / layout.pegSpacing - 0.5);
+  return Math.max(0, Math.min(layout.bins - 1, idx));
+}
+
+/** One peg bounce per row — 50/50 left/right like standard Plinko boards. */
+function bouncePeg(ball: PlinkoBallState, peg: Peg, layout: PlinkoLayout): boolean {
   const dx = ball.x - peg.x;
   const dy = ball.y - peg.y;
   const dist = Math.hypot(dx, dy) || 0.0001;
   const minDist = BALL_R + PEG_R;
   if (dist >= minDist) return false;
 
-  const samePeg = ball.lastPegKey === pegKey && ball.pegCooldown > 0;
   const nx = dx / dist;
   const ny = dy / dist;
-  const overlap = minDist - dist + 0.35;
-  ball.x += nx * overlap;
-  ball.y += ny * overlap;
+  pushOut(ball, nx, ny, minDist, dist);
 
-  if (samePeg) return true;
+  // Already bounced this row — only separate, no second impulse (prevents pin-stick).
+  if (peg.row <= ball.lastRowHit) return true;
 
-  const vn = ball.vx * nx + ball.vy * ny;
-  if (vn < 0) {
-    ball.vx -= (1 + RESTITUTION) * vn * nx;
-    ball.vy -= (1 + RESTITUTION) * vn * ny;
-  }
+  // Only register a row bounce while falling onto the peg from above.
+  if (ball.vy < 0.15) return true;
 
-  // Small replace-style kick scaled to spacing — does NOT accumulate fat tails.
-  const side = Math.random() < 0.5 ? -1 : 1;
-  const kick = (0.35 + Math.random() * 0.35) * (pegSpacing / 28);
-  ball.vx = side * kick + nx * 0.08;
-  ball.vy = Math.max(ball.vy, 0.5 + Math.random() * 0.35);
+  ball.lastRowHit = peg.row;
+  const goRight = Math.random() < 0.5;
+  if (goRight) ball.rights += 1;
 
-  ball.lastPegKey = pegKey;
-  ball.pegCooldown = PEG_COOLDOWN;
+  const kickScale = layout.pegSpacing / 30;
+  ball.vx = (goRight ? 1 : -1) * (1.1 + Math.random() * 0.65) * kickScale;
+  ball.vy = MIN_FALL + Math.random() * 0.55;
+
+  // Tiny outward normal so the ball clears the peg immediately.
+  ball.x += nx * 0.4;
+  ball.y += Math.abs(ny) * 0.25;
+
   clampSpeed(ball);
   return true;
 }
 
 function collideWalls(ball: PlinkoBallState, layout: PlinkoLayout) {
-  const left = layout.sidePad + BALL_R * 0.5;
-  const right = layout.width - layout.sidePad - BALL_R * 0.5;
+  const left = layout.sidePad + BALL_R;
+  const right = layout.width - layout.sidePad - BALL_R;
   if (ball.x < left) {
     ball.x = left;
-    ball.vx = Math.abs(ball.vx) * RESTITUTION + 0.1;
+    ball.vx = Math.abs(ball.vx) * RESTITUTION;
   } else if (ball.x > right) {
     ball.x = right;
-    ball.vx = -Math.abs(ball.vx) * RESTITUTION - 0.1;
+    ball.vx = -Math.abs(ball.vx) * RESTITUTION;
   }
 }
 
-/** Progress 0..1 down the board → blend guide point along pathXs. */
-function guideX(ball: PlinkoBallState, layout: PlinkoLayout): number {
-  const startY = Math.max(8, layout.topY - layout.rowSpacing * 0.65);
-  const endY = layout.binTop;
-  const t = Math.max(0, Math.min(1, (ball.y - startY) / Math.max(1, endY - startY)));
-  const slots = ball.pathXs.length - 1;
-  const f = t * slots;
-  const i = Math.min(slots - 1, Math.floor(f));
-  const u = f - i;
-  return ball.pathXs[i] + (ball.pathXs[i + 1] - ball.pathXs[i]) * u;
+function settleBall(ball: PlinkoBallState, layout: PlinkoLayout): PlinkoBallState {
+  const bin =
+    ball.lastRowHit >= layout.rows - 1 ? binFromRights(layout, ball.rights) : binFromX(layout, ball.x);
+  return {
+    ...ball,
+    bin,
+    settled: true,
+    x: layout.binCenters[bin],
+    y: layout.binTop + layout.binHeight * 0.42,
+    vx: 0,
+    vy: 0,
+  };
 }
 
 export function stepBall(ball: PlinkoBallState, layout: PlinkoLayout): PlinkoBallState {
   if (ball.settled) return ball;
 
-  const next: PlinkoBallState = {
-    ...ball,
-    pegCooldown: Math.max(0, ball.pegCooldown - 1),
-  };
+  const next: PlinkoBallState = { ...ball };
 
   const dt = 1 / SUBSTEPS;
   for (let step = 0; step < SUBSTEPS; step += 1) {
     next.vy += GRAVITY * dt;
-    next.vx *= Math.pow(FRICTION, dt);
-
-    // Steer toward the fair path so gravity looks real but odds stay binomial.
-    const targetX = guideX(next, layout);
-    const err = targetX - next.x;
-    next.vx += err * STEER * dt;
+    next.vx *= AIR_DRAG;
+    next.vy *= Math.pow(AIR_DRAG, dt);
 
     next.x += next.vx * dt;
     next.y += next.vy * dt;
 
     collideWalls(next, layout);
 
+    // Closest peg first — avoids fighting multiple overlaps in one substep.
+    let hitPeg: Peg | null = null;
+    let hitDist = Infinity;
     for (const peg of layout.pegs) {
-      if (Math.abs(peg.y - next.y) > layout.rowSpacing * 1.2 + BALL_R + PEG_R) continue;
-      if (Math.abs(peg.x - next.x) > layout.pegSpacing * 1.2 + BALL_R + PEG_R) continue;
-      collidePeg(next, peg, `${peg.row}:${peg.index}`, layout.pegSpacing);
-    }
-
-    // Near bins: lock into the predetermined fair slot.
-    if (next.y >= layout.binTop - 14) {
-      const cx = layout.binCenters[next.targetBin];
-      const left = cx - layout.binWidth / 2 + BALL_R;
-      const right = cx + layout.binWidth / 2 - BALL_R;
-      if (next.x < left) {
-        next.x = left;
-        next.vx = Math.abs(next.vx) * 0.2;
-      } else if (next.x > right) {
-        next.x = right;
-        next.vx = -Math.abs(next.vx) * 0.2;
+      if (Math.abs(peg.y - next.y) > layout.rowSpacing + BALL_R + PEG_R + 2) continue;
+      if (Math.abs(peg.x - next.x) > layout.pegSpacing + BALL_R + PEG_R + 2) continue;
+      const d = Math.hypot(next.x - peg.x, next.y - peg.y);
+      if (d < BALL_R + PEG_R && d < hitDist) {
+        hitDist = d;
+        hitPeg = peg;
       }
-      next.vx += (cx - next.x) * 0.12;
     }
+    if (hitPeg) bouncePeg(next, hitPeg, layout);
 
-    if (next.y >= layout.binTop + layout.binHeight * 0.25) {
-      next.bin = next.targetBin;
-      next.settled = true;
-      next.x = layout.binCenters[next.targetBin];
-      next.y = layout.binTop + layout.binHeight * 0.45;
-      next.vx = 0;
-      next.vy = 0;
-      break;
+    if (next.y >= layout.binTop + layout.binHeight * 0.2) {
+      return settleBall(next, layout);
     }
   }
 
-  if (!next.settled && next.y > layout.height + 40) {
-    next.bin = next.targetBin;
-    next.settled = true;
-    next.x = layout.binCenters[next.targetBin];
-    next.y = layout.binTop + layout.binHeight * 0.45;
-    next.vx = 0;
-    next.vy = 0;
+  if (next.y > layout.height + 48) {
+    return settleBall(next, layout);
   }
 
   clampSpeed(next);
