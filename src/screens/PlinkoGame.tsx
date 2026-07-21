@@ -37,6 +37,12 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
   const mode = PLINKO_MODES[risk];
   const mults = mode.mults;
 
+  const clearBalls = () => {
+    ballsRef.current = [];
+    setBalls([]);
+    setLastBin(null);
+  };
+
   useEffect(() => {
     const measure = () => {
       const board = boardRef.current;
@@ -45,6 +51,8 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       layoutRef.current = next;
       setLayout(next);
     };
+    // Board shape changed — wipe leftover balls from the previous risk layout.
+    clearBalls();
     measure();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
     if (boardRef.current && ro) ro.observe(boardRef.current);
@@ -58,7 +66,8 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     const tick = () => {
       const prev = ballsRef.current;
-      if (prev.length === 0) {
+      const boardLayout = layoutRef.current;
+      if (prev.length === 0 || !boardLayout) {
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
@@ -68,7 +77,7 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       const nextBalls = prev.map((ball) => {
         if (ball.settled) return ball;
         changed = true;
-        return stepBall(ball);
+        return stepBall(ball, boardLayout);
       });
 
       for (let i = 0; i < nextBalls.length; i += 1) {
@@ -96,8 +105,9 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
         changed = true;
       }
 
+      // Keep live balls + briefly show the last few settled ones, then fade them out of state.
       const live = nextBalls.filter((b) => !b.settled);
-      const settledKeep = nextBalls.filter((b) => b.settled).slice(-4);
+      const settledKeep = nextBalls.filter((b) => b.settled).slice(-3);
       const pruned = [...live, ...settledKeep];
       if (changed || pruned.length !== prev.length) {
         ballsRef.current = pruned;
@@ -118,8 +128,9 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
 
   const changeRisk = (next: PlinkoRisk) => {
     if (locked || next === risk) return;
+    clearBalls();
+    setBanner(null);
     setRisk(next);
-    setLastBin(null);
   };
 
   const drop = () => {
