@@ -8,7 +8,8 @@ export type GameKind =
   | 'slots'
   | 'hilo'
   | 'dice'
-  | 'plinko';
+  | 'plinko'
+  | 'ridethebus';
 
 export type GameId = GameKind | null;
 
@@ -104,4 +105,5 @@ export const GAME_REWARDS: Record<GameKind, number> = {
   hilo: 3,
   dice: 4,
   plinko: 4,
+  ridethebus: 4,
 };

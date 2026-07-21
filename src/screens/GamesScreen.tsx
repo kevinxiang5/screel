@@ -7,6 +7,7 @@ import { DiceGame } from './DiceGame';
 import { HiLoGame } from './HiLoGame';
 import { MinesGame } from './MinesGame';
 import { PlinkoGame } from './PlinkoGame';
+import { RideBusGame } from './RideBusGame';
 import { RouletteTable } from './RouletteTable';
 import { SlotsGame } from './SlotsGame';
 import { useScreel } from '../context/ScreelContext';
@@ -74,6 +75,11 @@ export function GamesScreen({
                   <h3>Higher / lower</h3>
                   <p>Correct calls grow your payout. Bank between calls.</p>
                 </button>
+                <button type="button" className="game-card bus" onClick={() => onSelect('ridethebus')}>
+                  <span className="badge">ladder</span>
+                  <h3>Ride the bus</h3>
+                  <p>Color, higher/lower, inside/outside, suit. Cash out anytime.</p>
+                </button>
                 <button type="button" className="game-card dice" onClick={() => onSelect('dice')}>
                   <span className="badge">risk</span>
                   <h3>Roll under</h3>
@@ -91,6 +97,7 @@ export function GamesScreen({
         {activeGame === 'hilo' && <HiLoGame key="hilo" onBack={onBack} />}
         {activeGame === 'dice' && <DiceGame key="dice" onBack={onBack} />}
         {activeGame === 'plinko' && <PlinkoGame key="plinko" onBack={onBack} />}
+        {activeGame === 'ridethebus' && <RideBusGame key="ridethebus" onBack={onBack} />}
       </AnimatePresence>
     </div>
   );

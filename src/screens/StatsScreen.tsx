@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bomb, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
+import { Bomb, Bus, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
 import type { GameKind } from '../types';
 import { useScreel } from '../context/ScreelContext';
 
@@ -12,6 +12,7 @@ const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
   hilo: { label: 'Higher / lower', icon: Layers },
   dice: { label: 'Roll under', icon: Dices },
   plinko: { label: 'Plinko', icon: Target },
+  ridethebus: { label: 'Ride the bus', icon: Bus },
 };
 
 export function StatsScreen() {

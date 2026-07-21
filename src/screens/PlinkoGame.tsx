@@ -105,13 +105,11 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
         changed = true;
       }
 
-      // Keep live balls + briefly show the last few settled ones, then fade them out of state.
+      // Only keep balls still in flight — settled ones leave the board after payout.
       const live = nextBalls.filter((b) => !b.settled);
-      const settledKeep = nextBalls.filter((b) => b.settled).slice(-3);
-      const pruned = [...live, ...settledKeep];
-      if (changed || pruned.length !== prev.length) {
-        ballsRef.current = pruned;
-        setBalls(pruned);
+      if (changed || live.length !== prev.length) {
+        ballsRef.current = live;
+        setBalls(live);
       }
       rafRef.current = requestAnimationFrame(tick);
     };

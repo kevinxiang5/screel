@@ -100,6 +100,7 @@ function OddsBody() {
         <li>Twenty-one — double on first two cards, or bank / go again after a win</li>
         <li>Match three — bank a match or one double-up respin</li>
         <li>Plinko — drop through the pegs; edge bins pay more, center pays less</li>
+        <li>Ride the bus — color, higher/lower, inside/outside, suit; cash out after any stop</li>
         <li>Roll under — set your own target; harder = bigger payout</li>
       </ul>
       <p>
