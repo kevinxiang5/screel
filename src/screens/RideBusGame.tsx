@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Bus } from 'lucide-react';
 import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
@@ -38,15 +38,31 @@ const NEXT_ROUND: Record<number, Phase> = {
   3: 'suit',
 };
 
-function CardFace({ card, dimmed = false }: { card: BusCard | null; dimmed?: boolean }) {
-  if (!card) {
-    return <div className="bus-card bus-card-back" aria-hidden />;
-  }
-  const red = busIsRed(card);
+const FLIP_MS = 420;
+
+function CardFace({
+  card,
+  flipping = false,
+}: {
+  card: BusCard | null;
+  flipping?: boolean;
+}) {
+  const showFace = Boolean(card) && !flipping;
+  const red = card ? busIsRed(card) : false;
+
   return (
-    <div className={`bus-card ${red ? 'red' : ''} ${dimmed ? 'dim' : ''}`}>
-      <span className="bus-rank">{busRankLabel(card.rank)}</span>
-      <span className="bus-suit">{card.suit}</span>
+    <div className={`bus-card-scene ${flipping ? 'flipping' : ''} ${showFace ? 'face-up' : 'face-down'}`}>
+      <div className="bus-card-flip">
+        <div className="bus-card-face bus-card-back-face" aria-hidden />
+        <div className={`bus-card-face bus-card-front-face ${red ? 'red' : ''}`}>
+          {card ? (
+            <>
+              <span className="bus-rank">{busRankLabel(card.rank)}</span>
+              <span className="bus-suit">{card.suit}</span>
+            </>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -56,6 +72,7 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
   const [phase, setPhase] = useState<Phase>('ready');
   const [deck, setDeck] = useState<BusCard[]>([]);
   const [cards, setCards] = useState<(BusCard | null)[]>([null, null, null, null]);
+  const [flippingSlot, setFlippingSlot] = useState<number | null>(null);
   const [round, setRound] = useState(0);
   const [pathOdds, setPathOdds] = useState(1);
   const [stake, setStake] = useState(0);
@@ -64,33 +81,6 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
 
   const activeStake = stake || Math.min(state.wagerMinutes, remaining);
   const pot = round > 0 ? fairNet(activeStake, pathOdds) : 0;
-
-  const colorOdds = useMemo(
-    () => ({
-      red: busColorChance(deck, 'red'),
-      black: busColorChance(deck, 'black'),
-    }),
-    [deck],
-  );
-  const hiloOdds = useMemo(() => {
-    if (!cards[0]) return { higher: 0, lower: 0 };
-    return {
-      higher: busHiloChance(deck, cards[0], 'higher'),
-      lower: busHiloChance(deck, cards[0], 'lower'),
-    };
-  }, [deck, cards]);
-  const rangeOdds = useMemo(() => {
-    if (!cards[0] || !cards[1]) return { inside: 0, outside: 0 };
-    return {
-      inside: busRangeChance(deck, cards[0], cards[1], 'inside'),
-      outside: busRangeChance(deck, cards[0], cards[1], 'outside'),
-    };
-  }, [deck, cards]);
-  const suitOdds = useMemo(() => {
-    const map = {} as Record<BusSuit, number>;
-    for (const s of BUS_SUITS) map[s] = busSuitChance(deck, s);
-    return map;
-  }, [deck]);
 
   const start = () => {
     if (remaining < 1) {
@@ -101,10 +91,24 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
     setStake(nextStake);
     setDeck(shuffleBusDeck(createBusDeck()));
     setCards([null, null, null, null]);
+    setFlippingSlot(null);
     setRound(0);
     setPathOdds(1);
     setBanner(null);
     setPhase('color');
+  };
+
+  const revealCard = (slot: number, card: BusCard, onDone: () => void) => {
+    setFlippingSlot(slot);
+    setCards((prev) => {
+      const next = [...prev] as (BusCard | null)[];
+      next[slot] = card;
+      return next;
+    });
+    window.setTimeout(() => {
+      setFlippingSlot(null);
+      onDone();
+    }, FLIP_MS);
   };
 
   const lose = (detail: string, shown: string) => {
@@ -156,14 +160,15 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
     const chance = busColorChance(deck, color);
     const { card, rest } = drawBusCard(deck);
     setDeck(rest);
-    setCards([card, null, null, null]);
-    const won = color === 'red' ? busIsRed(card) : !busIsRed(card);
-    const label = `${busRankLabel(card.rank)}${card.suit}`;
-    if (!won) {
-      lose(`Color miss · ${label}`, `${label} missed color`);
-      return;
-    }
-    winRound(chance, 1, ROUND_AFTER.color, `${label} · color hit`);
+    revealCard(0, card, () => {
+      const won = color === 'red' ? busIsRed(card) : !busIsRed(card);
+      const label = `${busRankLabel(card.rank)}${card.suit}`;
+      if (!won) {
+        lose(`Color miss · ${label}`, `${label} missed color`);
+        return;
+      }
+      winRound(chance, 1, ROUND_AFTER.color, `${label} · color hit`);
+    });
   };
 
   const pickHilo = (dir: BusHilo) => {
@@ -172,14 +177,15 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
     const chance = busHiloChance(deck, cards[0], dir);
     const { card, rest } = drawBusCard(deck);
     setDeck(rest);
-    setCards([cards[0], card, null, null]);
-    const won = busHiloMatches(cards[0], card, dir);
-    const label = `${busRankLabel(card.rank)}${card.suit}`;
-    if (!won) {
-      lose(`Higher/lower miss · ${label}`, `${label} missed`);
-      return;
-    }
-    winRound(pathOdds * chance, 2, ROUND_AFTER.hilo, `${label} · ${dir} hit`);
+    revealCard(1, card, () => {
+      const won = busHiloMatches(cards[0]!, card, dir);
+      const label = `${busRankLabel(card.rank)}${card.suit}`;
+      if (!won) {
+        lose(`Higher/lower miss · ${label}`, `${label} missed`);
+        return;
+      }
+      winRound(pathOdds * chance, 2, ROUND_AFTER.hilo, `${label} · ${dir} hit`);
+    });
   };
 
   const pickRange = (dir: BusRange) => {
@@ -188,14 +194,15 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
     const chance = busRangeChance(deck, cards[0], cards[1], dir);
     const { card, rest } = drawBusCard(deck);
     setDeck(rest);
-    setCards([cards[0], cards[1], card, null]);
-    const won = busRangeMatches(cards[0], cards[1], card, dir);
-    const label = `${busRankLabel(card.rank)}${card.suit}`;
-    if (!won) {
-      lose(`Inside/outside miss · ${label}`, `${label} missed`);
-      return;
-    }
-    winRound(pathOdds * chance, 3, ROUND_AFTER.range, `${label} · ${dir} hit`);
+    revealCard(2, card, () => {
+      const won = busRangeMatches(cards[0]!, cards[1]!, card, dir);
+      const label = `${busRankLabel(card.rank)}${card.suit}`;
+      if (!won) {
+        lose(`Inside/outside miss · ${label}`, `${label} missed`);
+        return;
+      }
+      winRound(pathOdds * chance, 3, ROUND_AFTER.range, `${label} · ${dir} hit`);
+    });
   };
 
   const pickSuit = (suit: BusSuit) => {
@@ -204,33 +211,32 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
     const chance = busSuitChance(deck, suit);
     const { card, rest } = drawBusCard(deck);
     setDeck(rest);
-    setCards([cards[0], cards[1], cards[2], card]);
-    const won = card.suit === suit;
-    const label = `${busRankLabel(card.rank)}${card.suit}`;
-    if (!won) {
-      lose(`Suit miss · ${label}`, `${label} missed suit`);
-      return;
-    }
-    const nextOdds = pathOdds * chance;
-    const amount = fairNet(stake, nextOdds);
-    const applied = settleRound({
-      game: 'ridethebus',
-      pot: amount,
-      kept: true,
-      wager: stake,
-      detail: `Cleared all 4 rounds · ${label}`,
-      result: 'win',
+    revealCard(3, card, () => {
+      const won = card.suit === suit;
+      const label = `${busRankLabel(card.rank)}${card.suit}`;
+      if (!won) {
+        lose(`Suit miss · ${label}`, `${label} missed suit`);
+        return;
+      }
+      const nextOdds = pathOdds * chance;
+      const amount = fairNet(stake, nextOdds);
+      const applied = settleRound({
+        game: 'ridethebus',
+        pot: amount,
+        kept: true,
+        wager: stake,
+        detail: `Cleared all 4 rounds · ${label}`,
+        result: 'win',
+      });
+      setPathOdds(nextOdds);
+      setRound(4);
+      setBanner({ text: `${label} · full ride · +${applied}m`, kind: 'win' });
+      setPhase('done');
+      setBusy(false);
     });
-    setPathOdds(nextOdds);
-    setRound(4);
-    setBanner({ text: `${label} · full ride · +${applied}m`, kind: 'win' });
-    setPhase('done');
-    setBusy(false);
   };
 
   const setupLocked = phase !== 'ready' && phase !== 'done';
-
-  const pct = (n: number) => `${Math.round(n * 100)}%`;
 
   return (
     <GameChrome
@@ -268,10 +274,10 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
           {phase === 'color' ? (
             <div className="bj-actions wrap">
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => pickColor('red')}>
-                Red · {pct(colorOdds.red)}
+                Red
               </button>
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => pickColor('black')}>
-                Black · {pct(colorOdds.black)}
+                Black
               </button>
             </div>
           ) : null}
@@ -279,10 +285,10 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
           {phase === 'hilo' ? (
             <div className="bj-actions wrap">
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => pickHilo('higher')}>
-                Higher · {pct(hiloOdds.higher)}
+                Higher
               </button>
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => pickHilo('lower')}>
-                Lower · {pct(hiloOdds.lower)}
+                Lower
               </button>
             </div>
           ) : null}
@@ -290,10 +296,10 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
           {phase === 'range' ? (
             <div className="bj-actions wrap">
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => pickRange('inside')}>
-                Inside · {pct(rangeOdds.inside)}
+                Inside
               </button>
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => pickRange('outside')}>
-                Outside · {pct(rangeOdds.outside)}
+                Outside
               </button>
             </div>
           ) : null}
@@ -309,7 +315,6 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
                   onClick={() => pickSuit(suit)}
                 >
                   {suit}
-                  <span>{pct(suitOdds[suit])}</span>
                 </button>
               ))}
             </div>
@@ -336,7 +341,7 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
         {['Color', 'Hi / Lo', 'Range', 'Suit'].map((label, i) => (
           <div key={label} className="bus-slot">
             <span className="hand-label">{label}</span>
-            <CardFace card={cards[i]} />
+            <CardFace card={cards[i]} flipping={flippingSlot === i} />
           </div>
         ))}
       </div>
@@ -344,13 +349,13 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
       <div className="bus-hint">
         {phase === 'ready' && (
           <span>
-            <Bus size={14} /> Four stops. Odds update from the remaining deck.
+            <Bus size={14} /> Four stops. Cash out anytime after a hit.
           </span>
         )}
         {phase === 'color' && 'Guess red or black for the first card.'}
         {phase === 'hilo' && 'Higher includes equals (Schedule One rule).'}
         {phase === 'range' && 'Inside = strictly between your first two ranks.'}
-        {phase === 'suit' && 'Pick the suit — unused suits are slightly better.'}
+        {phase === 'suit' && 'Pick the suit of the last card.'}
         {phase === 'choice' && 'Bank now, or risk it for the next stop.'}
         {phase === 'done' && 'Ride over.'}
       </div>
