@@ -268,15 +268,6 @@ button {
   padding: 10px;
 }
 
-.game-title-chip {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--mute);
-  text-align: center;
-}
-
 .option-strip.locked,
 .tier-row.locked {
   opacity: 0.55;
@@ -796,11 +787,38 @@ button {
 }
 
 .game-top {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+  min-height: 44px;
+}
+
+.game-top .back-btn,
+.game-top .bj-balance {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.game-title-chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  text-align: center;
+  pointer-events: none;
+  max-width: 42%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .back-btn {
