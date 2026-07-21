@@ -214,9 +214,14 @@ button {
   overflow: hidden;
 }
 
+.tab-page.is-hidden {
+  display: none;
+}
+
 .tab-fallback {
   flex: 1;
   min-height: 120px;
+  background: transparent;
 }
 
 .tab-page > .screen,

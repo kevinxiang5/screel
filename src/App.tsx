@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { AgeBlocked, AgeGate } from './components/AgeGate';
 import type { LegalDoc } from './components/LegalDocView';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -18,19 +18,8 @@ const LegalDocView = lazy(() =>
   import('./components/LegalDocView').then((m) => ({ default: m.LegalDocView })),
 );
 
-const tabMotion = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
-};
-
-function TabFallback() {
-  return <div className="tab-fallback" aria-hidden />;
-}
-
 function TabPane({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<TabFallback />}>{children}</Suspense>;
+  return <Suspense fallback={<div className="tab-fallback" aria-hidden />}>{children}</Suspense>;
 }
 
 function ScreelApp() {
@@ -39,27 +28,47 @@ function ScreelApp() {
   const [tab, setTab] = useState<TabId>('home');
   const [activeGame, setActiveGame] = useState<GameId>(null);
   const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
+  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set<TabId>(['home']));
 
   const finishLoading = useCallback(() => setReady(true), []);
   const inGame = tab === 'play' && Boolean(activeGame);
   const showTabs = !inGame && !legalDoc;
 
-  // Warm the Play chunk so the first tab click doesn't blank the shell.
+  // Prefetch every tab chunk so the first switch never hits a blank Suspense frame.
   useEffect(() => {
     if (!ready || !state.setupComplete) return;
     const id = window.setTimeout(() => {
-      void import('./screens/GamesScreen');
-    }, 400);
+      void Promise.all([
+        import('./screens/HomeScreen'),
+        import('./screens/GamesScreen'),
+        import('./screens/BankScreen'),
+        import('./screens/StatsScreen'),
+        import('./screens/ProfileScreen'),
+        import('./components/LegalDocView'),
+      ]);
+    }, 200);
     return () => window.clearTimeout(id);
   }, [ready, state.setupComplete]);
 
   const goPlay = (game: GameId) => {
+    setVisited((prev) => {
+      if (prev.has('play')) return prev;
+      const next = new Set(prev);
+      next.add('play');
+      return next;
+    });
     setActiveGame(game);
     setTab('play');
     setLegalDoc(null);
   };
 
   const changeTab = (next: TabId) => {
+    setVisited((prev) => {
+      if (prev.has(next)) return prev;
+      const copy = new Set(prev);
+      copy.add(next);
+      return copy;
+    });
     if (next !== 'play') setActiveGame(null);
     setLegalDoc(null);
     setTab(next);
@@ -79,63 +88,67 @@ function ScreelApp() {
             </TabPane>
           ) : (
             <div className="tab-route">
-              <AnimatePresence mode="wait" initial={false}>
-                {tab === 'home' && (
-                  <motion.div key="home" className="tab-page" {...tabMotion}>
-                    <TabPane>
-                      <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
-                    </TabPane>
-                  </motion.div>
-                )}
-                {tab === 'play' && (
-                  <motion.div key="play" className="tab-page" {...tabMotion}>
-                    <TabPane>
-                      <GamesScreen
-                        activeGame={activeGame}
-                        onSelect={setActiveGame}
-                        onBack={() => setActiveGame(null)}
-                      />
-                    </TabPane>
-                  </motion.div>
-                )}
-                {tab === 'bank' && (
-                  <motion.div key="bank" className="tab-page" {...tabMotion}>
-                    <TabPane>
-                      <BankScreen />
-                    </TabPane>
-                  </motion.div>
-                )}
-                {tab === 'stats' && (
-                  <motion.div key="stats" className="tab-page" {...tabMotion}>
-                    <TabPane>
-                      <StatsScreen />
-                    </TabPane>
-                  </motion.div>
-                )}
-                {tab === 'you' && (
-                  <motion.div key="you" className="tab-page" {...tabMotion}>
-                    <TabPane>
-                      <ProfileScreen onOpenLegal={setLegalDoc} />
-                    </TabPane>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {visited.has('home') && (
+                <div
+                  className={`tab-page ${tab === 'home' ? 'is-active' : 'is-hidden'}`}
+                  aria-hidden={tab !== 'home'}
+                >
+                  <TabPane>
+                    <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
+                  </TabPane>
+                </div>
+              )}
+              {visited.has('play') && (
+                <div
+                  className={`tab-page ${tab === 'play' ? 'is-active' : 'is-hidden'}`}
+                  aria-hidden={tab !== 'play'}
+                >
+                  <TabPane>
+                    <GamesScreen
+                      activeGame={activeGame}
+                      onSelect={setActiveGame}
+                      onBack={() => setActiveGame(null)}
+                    />
+                  </TabPane>
+                </div>
+              )}
+              {visited.has('bank') && (
+                <div
+                  className={`tab-page ${tab === 'bank' ? 'is-active' : 'is-hidden'}`}
+                  aria-hidden={tab !== 'bank'}
+                >
+                  <TabPane>
+                    <BankScreen />
+                  </TabPane>
+                </div>
+              )}
+              {visited.has('stats') && (
+                <div
+                  className={`tab-page ${tab === 'stats' ? 'is-active' : 'is-hidden'}`}
+                  aria-hidden={tab !== 'stats'}
+                >
+                  <TabPane>
+                    <StatsScreen />
+                  </TabPane>
+                </div>
+              )}
+              {visited.has('you') && (
+                <div
+                  className={`tab-page ${tab === 'you' ? 'is-active' : 'is-hidden'}`}
+                  aria-hidden={tab !== 'you'}
+                >
+                  <TabPane>
+                    <ProfileScreen onOpenLegal={setLegalDoc} />
+                  </TabPane>
+                </div>
+              )}
             </div>
           )}
-          <AnimatePresence>
-            {showTabs && (
-              <motion.div
-                key="tabs"
-                className="tab-bar-wrap"
-                initial={{ y: 28, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 36, opacity: 0 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <TabBar active={tab} onChange={changeTab} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {showTabs ? (
+            <div className="tab-bar-wrap">
+              <TabBar active={tab} onChange={changeTab} />
+            </div>
+          ) : null}
         </div>
       )}
     </>
