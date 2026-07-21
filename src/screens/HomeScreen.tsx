@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { Flame, Sparkles, Trophy } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
@@ -19,6 +20,45 @@ function greeting(): string {
   return 'Good evening';
 }
 
+/** Ease-out count-up for the hero number — makes the value feel alive on entry. */
+function useCountUp(target: number, duration = 950): number {
+  const reduce = useReducedMotion();
+  const [value, setValue] = useState(reduce ? target : 0);
+
+  useEffect(() => {
+    if (reduce) {
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const from = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration, reduce]);
+
+  return value;
+}
+
+const container: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.03 } },
+};
+
+const item: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const RING_R = 52;
+const RING_C = 2 * Math.PI * RING_R;
+
 export function HomeScreen({
   onNavigate,
   onPlay,
@@ -28,61 +68,104 @@ export function HomeScreen({
 }) {
   const { state, remaining, claimChallenge } = useScreel();
   const { toast } = useScreelUI();
-  const usedPct = Math.min(100, Math.round((state.minutesUsed / Math.max(1, state.minutesBank)) * 100));
   const firstName = state.displayName === 'Focus Mode' ? '' : state.displayName.split(' ')[0];
 
+  const now = new Date();
+  const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
+  const dateLine = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  const ringMax = Math.max(state.minutesBank, remaining, 1);
+  const ringPct = Math.max(0, Math.min(100, (remaining / ringMax) * 100));
+  const ringOffset = RING_C * (1 - ringPct / 100);
+  const shownMinutes = useCountUp(remaining);
+
+  const xpIntoLevel = ((state.xp % 100) + 100) % 100;
+  const readyCount = state.challenges.filter((c) => c.progress >= c.target && !c.claimed).length;
+
   return (
-    <div className="screen">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">
-          {greeting()}
-          {firstName ? `, ${firstName}` : ''}
+    <motion.div className="screen home" variants={container} initial="hidden" animate="show">
+      <motion.header variants={item}>
+        <div className="home-head">
+          <div>
+            <div className="eyebrow">
+              {greeting()}
+              {firstName ? `, ${firstName}` : ''}
+            </div>
+          </div>
+          <div className="home-date">
+            {weekday}
+            <br />
+            {dateLine}
+          </div>
         </div>
-        <h1 className="display xl">screel</h1>
+        <h1 className="display xl brand-mark">
+          scree<span className="dot">l</span>
+        </h1>
         <p className="lede">
           {(state.focusGoal && GOAL_LINES[state.focusGoal]) ||
             'Set a daily minute budget for the apps you choose. Stake minutes on short challenges to win more.'}
         </p>
-      </motion.div>
+      </motion.header>
 
-      <motion.div
-        className="hero-panel"
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08 }}
-      >
-        <div className="bank-row">
-          <div>
-            <div className="bank-value">{remaining}</div>
-            <span className="bank-unit">minutes left today</span>
+      <motion.div className="hero-panel" variants={item}>
+        <div className="home-hero">
+          <div className="gauge" role="img" aria-label={`${remaining} minutes left of ${state.minutesBank}`}>
+            <svg viewBox="0 0 120 120">
+              <circle className="gauge-track" cx="60" cy="60" r={RING_R} strokeWidth="10" />
+              <circle
+                className="gauge-fill"
+                cx="60"
+                cy="60"
+                r={RING_R}
+                strokeWidth="10"
+                stroke="url(#gaugeGrad)"
+                strokeDasharray={RING_C}
+                strokeDashoffset={ringOffset}
+              />
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#f0c94d" />
+                  <stop offset="100%" stopColor="#c8ff2e" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="gauge-center">
+              <div className="gauge-num">{shownMinutes}</div>
+              <div className="gauge-label">min left</div>
+            </div>
           </div>
-          <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
-            <span className={`pill ${state.connected ? 'live' : 'warn'}`}>
-              {state.connected
-                ? state.usageSource === 'screenTime'
-                  ? 'Screen Time linked'
-                  : 'Usage linked (demo)'
-                : 'Not linked'}
-            </span>
-            <span className="pill gold">
-              <Flame size={14} /> {state.streak} day streak
-            </span>
+
+          <div className="hero-side">
+            <div className="hero-pills">
+              <span className={`pill ${state.connected ? 'live' : 'warn'}`}>
+                <span className={`live-dot ${state.connected ? 'on' : ''}`} />
+                {state.connected
+                  ? state.usageSource === 'screenTime'
+                    ? 'Screen Time'
+                    : 'Linked'
+                  : 'Not linked'}
+              </span>
+              <span className="pill gold">
+                <Flame size={14} /> {state.streak}d
+              </span>
+            </div>
+            <div className="hero-stat">
+              <span className="k">Used today</span>
+              <span className="v">{state.minutesUsed}m</span>
+            </div>
+            <div className="hero-stat">
+              <span className="k">Won today</span>
+              <span className="v pos">+{state.minutesEarnedToday}m</span>
+            </div>
           </div>
         </div>
-        <div className="meter">
-          <div className="meter-track">
-            <div className="meter-fill" style={{ width: `${usedPct}%` }} />
-          </div>
-          <div className="meter-meta">
-            <span>{state.minutesUsed}m used</span>
-            <span>Won +{state.minutesEarnedToday}m today</span>
-          </div>
-        </div>
       </motion.div>
 
-      <section className="section">
+      <motion.section className="section" variants={item}>
         <div className="section-head">
-          <h2>Quick play</h2>
+          <h2>
+            <span className="idx">01</span> Quick play
+          </h2>
           <button type="button" className="linkish" onClick={() => onNavigate('play')}>
             See all
           </button>
@@ -99,27 +182,41 @@ export function HomeScreen({
             <p>Drop the ball. Edge bins pay more.</p>
           </button>
         </div>
-        <p className="lede" style={{ marginTop: 10 }}>
-          {state.winStreak > 0 ? `${state.winStreak} win streak · ` : ''}
-          {state.connected
-            ? 'Screen Time usage lowers minutes left automatically.'
-            : 'Stake minutes from your allowance. Win the round, grow the bank.'}
-        </p>
-      </section>
+      </motion.section>
 
-      <section className="section">
+      <motion.section className="section" variants={item}>
         <div className="section-head">
-          <h2>Pulse</h2>
+          <h2>
+            <span className="idx">02</span> Your progress
+          </h2>
+          <button type="button" className="linkish" onClick={() => onNavigate('stats')}>
+            Stats
+          </button>
         </div>
-        <div className="grid-2">
-          <div className="stat-tile">
-            <div className="label">Level</div>
-            <div className="value">{state.level}</div>
+        <div className="level-card">
+          <div className="level-badge">
+            <div className="n">{state.level}</div>
+            <div className="cap">lvl</div>
           </div>
-          <div className="stat-tile">
-            <div className="label">XP</div>
-            <div className="value">{state.xp}</div>
+          <div className="level-body">
+            <div className="row">
+              <span className="t">Level {state.level}</span>
+              <span className="x">{xpIntoLevel} / 100 XP</span>
+            </div>
+            <div className="xp-track">
+              <div className="xp-fill" style={{ width: `${xpIntoLevel}%` }} />
+            </div>
+            <div className="row">
+              <span className="x">{100 - xpIntoLevel} XP to level {state.level + 1}</span>
+              {state.winStreak > 0 ? (
+                <span className="x" style={{ color: 'var(--lime)' }}>
+                  {state.winStreak} win streak
+                </span>
+              ) : null}
+            </div>
           </div>
+        </div>
+        <div className="grid-2" style={{ marginTop: 'var(--s3)' }}>
           <div className="stat-tile">
             <div className="label">Best earn</div>
             <div className="value">+{state.biggestWin}m</div>
@@ -129,13 +226,14 @@ export function HomeScreen({
             <div className="value">{state.gamesPlayed}</div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="section">
+      <motion.section className="section" variants={item}>
         <div className="section-head">
           <h2>
+            <span className="idx">03</span>
             <span className="spark">
-              <Sparkles size={16} style={{ verticalAlign: -2 }} />
+              <Sparkles size={15} style={{ verticalAlign: -2 }} />
             </span>{' '}
             Daily goals
           </h2>
@@ -143,10 +241,15 @@ export function HomeScreen({
             Bank
           </button>
         </div>
+        {readyCount > 0 ? (
+          <p className="lede" style={{ marginTop: 0, marginBottom: 'var(--s4)', color: 'var(--lime)' }}>
+            {readyCount} reward{readyCount > 1 ? 's' : ''} ready to claim.
+          </p>
+        ) : null}
         {state.challenges.map((c) => {
           const ready = c.progress >= c.target && !c.claimed;
           return (
-            <div className="challenge" key={c.id}>
+            <div className={`challenge ${ready ? 'ready' : ''} ${c.claimed ? 'claimed' : ''}`} key={c.id}>
               <div className="challenge-top">
                 <div>
                   <h3>{c.title}</h3>
@@ -193,7 +296,7 @@ export function HomeScreen({
             </div>
           );
         })}
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
