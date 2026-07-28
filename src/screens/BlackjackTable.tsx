@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GameChrome } from '../components/GameChrome';
 import { WagerSelector } from '../components/WagerSelector';
 import { useScreel } from '../context/ScreelContext';
@@ -12,6 +12,7 @@ import {
   type Card,
 } from '../utils/blackjack';
 import { seedPot } from '../utils/potMath';
+import type { RoundResult } from '../types';
 
 type Phase = 'ready' | 'playing' | 'dealer' | 'result' | 'ride';
 
@@ -53,7 +54,7 @@ function CardView({ card }: { card: Card }) {
 const MAX_RIDES = 1;
 
 export function BlackjackTable({ onBack }: { onBack: () => void }) {
-  const { remaining, settleRound, state, setWagerMinutes } = useScreel();
+  const { remaining, state, setWagerMinutes, lockStake, resolveLock, forfeitAllLocks } = useScreel();
   const [phase, setPhase] = useState<Phase>('ready');
   const [shoe, setShoe] = useState<Card[]>(() => createShoe());
   const [dealer, setDealer] = useState<Card[]>([]);
@@ -68,14 +69,31 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
   const potRef = useRef(0);
   const stakeRef = useRef(0);
   const ridesRef = useRef(0);
-  const roundIdRef = useRef('');
+  const lockIdRef = useRef<string | null>(null);
+  const forfeitRef = useRef(forfeitAllLocks);
   shoeRef.current = shoe;
+  forfeitRef.current = forfeitAllLocks;
+
+  // Leaving mid-hand forfeits the escrowed stake (same pattern as Plinko).
+  useEffect(() => {
+    return () => {
+      forfeitRef.current();
+    };
+  }, []);
 
   const pull = () => {
     const r = draw(shoeRef.current);
     shoeRef.current = r.shoe;
     setShoe(r.shoe);
     return r.card;
+  };
+
+  /** Credit returnMinutes against the open lock. Clears lockId so unmount won't double-forfeit. */
+  const resolveCurrent = (returnMinutes: number, detail: string, result: RoundResult) => {
+    const lockId = lockIdRef.current;
+    if (!lockId) return 0;
+    lockIdRef.current = null;
+    return resolveLock({ lockId, returnMinutes, detail, result });
   };
 
   const beginRound = async (ridePot?: number) => {
@@ -93,10 +111,17 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
         setBusy(false);
         return;
       }
-      const stake = Math.min(state.wagerMinutes, remaining);
-      stakeRef.current = stake;
-      roundIdRef.current = `bj-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const b = seedPot('blackjack', stake);
+      const wanted = Math.min(state.wagerMinutes, remaining);
+      const stakeLock = lockStake(wanted, 'blackjack');
+      if (!stakeLock) {
+        setBanner({ text: 'No minutes available to stake.', kind: 'lose' });
+        setPhase('result');
+        setBusy(false);
+        return;
+      }
+      stakeRef.current = stakeLock.amount;
+      lockIdRef.current = stakeLock.id;
+      const b = seedPot('blackjack', stakeLock.amount);
       setPot(b);
       potRef.current = b;
       setRides(0);
@@ -208,51 +233,29 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     }
 
     if (result === 'push') {
-      settleRound({
-        game: 'blackjack',
-        pot: 0,
-        kept: false,
-        wager: stakeRef.current,
-        detail: `${handLabel(pCards)} vs ${handLabel(dCards)} · push`,
-        result: 'push',
-        roundId: `${roundIdRef.current}-push`,
-      });
+      // Return the escrowed stake — net zero.
+      resolveCurrent(stakeRef.current, `${handLabel(pCards)} vs ${handLabel(dCards)} · push`, 'push');
       setBanner({ text: 'Push — no minutes won or lost.', kind: 'push' });
       setPhase('result');
       setBusy(false);
       return;
     }
 
-    settleRound({
-      game: 'blackjack',
-      pot: 0,
-      kept: false,
-      wager: stakeRef.current,
-      detail: `${handLabel(pCards)} vs ${handLabel(dCards)}`,
-      result: 'lose',
-      roundId: `${roundIdRef.current}-lose`,
-    });
+    resolveCurrent(0, `${handLabel(pCards)} vs ${handLabel(dCards)}`, 'lose');
     setBanner({ text: `House hand wins · lost ${stakeRef.current}m`, kind: 'lose' });
     setPhase('result');
     setBusy(false);
   };
 
   const bankIt = () => {
-    const applied = settleRound({
-      game: 'blackjack',
-      pot: Math.round(potRef.current),
-      kept: true,
-      wager: stakeRef.current,
-      detail: 'Banked the pot',
-      result: 'win',
-      roundId: `${roundIdRef.current}-bank`,
-    });
-    if (applied === 0 && potRef.current > 0) {
-      // Already settled this round — ignore double-tap
+    if (!lockIdRef.current) {
       setPhase('result');
       return;
     }
-    setBanner({ text: `Won +${applied}m`, kind: 'win' });
+    // Escrow already took the stake; credit stake + profit so net = pot.
+    const credited = stakeRef.current + Math.round(potRef.current);
+    const net = resolveCurrent(credited, 'Banked the pot', 'win');
+    setBanner({ text: `Won +${net}m`, kind: 'win' });
     setPhase('result');
   };
 

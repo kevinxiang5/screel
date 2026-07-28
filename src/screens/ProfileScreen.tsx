@@ -20,15 +20,8 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">Profile</div>
         <h1 className="display lg">You</h1>
-        <p className="lede">Tune Screel. Stay honest about what it is: a screen-time helper with focus challenges.</p>
+        <p className="lede">Make the app feel like yours, while keeping the rules and settings easy to trust.</p>
       </motion.div>
-
-      <div className="disclosure-box" style={{ marginTop: 14 }}>
-        <p>
-          Challenges use minute stakes. Wins add the displayed payout; misses subtract the selected stake
-          from today’s allowance. Minutes have no cash value.
-        </p>
-      </div>
 
       <div className="profile-hero section" style={{ marginTop: 18 }}>
         <div className="avatar">{state.displayName.slice(0, 1).toUpperCase()}</div>
@@ -58,35 +51,41 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
 
       <section className="section">
         <div className="section-head">
-          <h2>App typeface</h2>
+          <h2>
+            <span className="idx">01</span> Personalize
+          </h2>
         </div>
-        <p className="lede" style={{ marginTop: 0, fontSize: '0.85rem' }}>
-          Switch the whole app’s fonts.
-        </p>
-        <div className="font-theme-grid">
-          {FONT_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className={`font-theme-card ${state.fontTheme === opt.id ? 'active' : ''}`}
-              data-font-preview={opt.id}
-              onClick={() => {
-                setFontTheme(opt.id);
-                toast(`${opt.label} typeface applied.`, { title: 'Fonts updated', tone: 'success' });
-              }}
-            >
-              <strong>{opt.label}</strong>
-              <span>{opt.blurb}</span>
-            </button>
-          ))}
+        <div className="profile-section-card">
+          <p className="lede" style={{ marginTop: 0, fontSize: '0.85rem' }}>
+            Switch the whole app’s fonts.
+          </p>
+          <div className="font-theme-grid">
+            {FONT_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={`font-theme-card ${state.fontTheme === opt.id ? 'active' : ''}`}
+                data-font-preview={opt.id}
+                onClick={() => {
+                  setFontTheme(opt.id);
+                  toast(`${opt.label} typeface applied.`, { title: 'Fonts updated', tone: 'success' });
+                }}
+              >
+                <strong>{opt.label}</strong>
+                <span>{opt.blurb}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="section">
         <div className="section-head">
-          <h2>Settings</h2>
+          <h2>
+            <span className="idx">02</span> Controls
+          </h2>
         </div>
-        <div className="stat-tile" style={{ paddingTop: 4, paddingBottom: 4 }}>
+        <div className="profile-section-card">
           <div className="toggle-row">
             <div>
               <strong>Sounds</strong>
@@ -108,44 +107,56 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
               }}
             />
           </div>
+          <div className="profile-inline-note">
+            Challenges use minute stakes. Wins add the displayed payout; misses subtract the selected stake
+            from today’s allowance. Minutes have no cash value.
+          </div>
         </div>
       </section>
 
       <section className="section">
         <div className="section-head">
-          <h2>Legal &amp; rules</h2>
+          <h2>
+            <span className="idx">03</span> Legal &amp; support
+          </h2>
         </div>
-        <div className="legal-links">
-          <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('odds')}>
-            How earning works
-          </button>
-          <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('privacy')}>
-            Privacy Policy
-          </button>
-          <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('terms')}>
-            Terms of Use
-          </button>
-          <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('responsible')}>
-            Healthy habits
-          </button>
+        <div className="profile-section-card">
+          <div className="legal-links">
+            <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('odds')}>
+              How earning works
+            </button>
+            <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('privacy')}>
+              Privacy Policy
+            </button>
+            <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('terms')}>
+              Terms of Use
+            </button>
+            <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('responsible')}>
+              Healthy habits
+            </button>
+          </div>
         </div>
       </section>
 
       <section className="section">
         <div className="section-head">
-          <h2>How Screel works</h2>
+          <h2>
+            <span className="idx">04</span> How Screel works
+          </h2>
         </div>
-        <div className="challenge">
-          <h3>1. Set a ceiling</h3>
-          <p>Pick how many minutes you want each day for the apps you limit.</p>
-        </div>
-        <div className="challenge">
-          <h3>2. Connect Screen Time</h3>
-          <p>Authorize Family Controls, pick apps, and spend from a fresh Screel budget.</p>
-        </div>
-        <div className="challenge">
-          <h3>3. Earn a little more</h3>
-          <p>Choose a stake and play optional minigames. Wins add minutes; misses subtract the stake.</p>
+        <div className="challenge-list">
+          <div className="challenge">
+            <h3>1. Set a ceiling</h3>
+            <p>Pick how many minutes you want each day for the apps you limit.</p>
+          </div>
+          <div className="challenge">
+            <h3>2. Connect Screen Time</h3>
+            <p>Authorize Family Controls, pick apps, and spend from a fresh Screel budget.</p>
+          </div>
+          <div className="challenge">
+            <h3>3. Earn a little more</h3>
+            <p>Choose a stake and play optional minigames. Wins add minutes; misses subtract the stake.</p>
+          </div>
         </div>
       </section>
     </div>

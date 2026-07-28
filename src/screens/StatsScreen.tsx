@@ -20,6 +20,7 @@ export function StatsScreen() {
   const wins = state.history.filter((h) => h.delta > 0 || h.result === 'win' || h.result === 'blackjack');
   const winRate =
     state.history.length === 0 ? 0 : Math.round((wins.length / state.history.length) * 100);
+  const net = state.totalWon - state.totalLost;
 
   return (
     <div className="screen">
@@ -27,42 +28,71 @@ export function StatsScreen() {
         <div className="eyebrow">Progress</div>
         <h1 className="display lg">Your run</h1>
         <p className="lede">
-          Track minute winnings, stake losses, win rate, and challenge history.
+          See whether your screen-time game is compounding in the right direction.
         </p>
       </motion.div>
 
-      <div className="grid-2 section">
-        <div className="stat-tile">
-          <div className="label">Winnings (lifetime)</div>
-          <div className="value" style={{ color: 'var(--lime)' }}>
-            +{state.totalWon}m
+      <div className="hero-panel section">
+        <div className="stats-hero">
+          <div>
+            <div className="label">Net minutes kept</div>
+            <div className={`stats-hero-value ${net >= 0 ? 'pos' : 'neg'}`}>{net >= 0 ? '+' : ''}{net}m</div>
+            <p className="lede" style={{ marginTop: 8 }}>
+              {winRate >= 50
+                ? 'You are banking more than you burn.'
+                : 'The next clean streak can swing the whole run back.'}
+            </p>
           </div>
-        </div>
-        <div className="stat-tile">
-          <div className="label">Stake losses</div>
-          <div className="value" style={{ color: '#ff8a8a' }}>−{state.totalLost}m</div>
-        </div>
-        <div className="stat-tile">
-          <div className="label">Win rate</div>
-          <div className="value">{winRate}%</div>
-        </div>
-        <div className="stat-tile">
-          <div className="label">Win streak</div>
-          <div className="value">{state.winStreak}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="label">Won today</div>
-          <div className="value">+{state.minutesEarnedToday}m</div>
-        </div>
-        <div className="stat-tile">
-          <div className="label">Best win</div>
-          <div className="value">+{state.biggestWin}m</div>
+          <div className="stats-hero-side">
+            <div className="hero-stat">
+              <span className="k">Win rate</span>
+              <span className="v">{winRate}%</span>
+            </div>
+            <div className="hero-stat">
+              <span className="k">Streak</span>
+              <span className="v">{state.winStreak}</span>
+            </div>
+            <div className="hero-stat">
+              <span className="k">Rounds</span>
+              <span className="v">{state.gamesPlayed}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <section className="section">
         <div className="section-head">
-          <h2>Per-game performance</h2>
+          <h2>
+            <span className="idx">01</span> Run shape
+          </h2>
+        </div>
+        <div className="grid-2">
+          <div className="stat-tile">
+            <div className="label">Winnings (lifetime)</div>
+            <div className="value" style={{ color: 'var(--lime)' }}>
+              +{state.totalWon}m
+            </div>
+          </div>
+          <div className="stat-tile">
+            <div className="label">Stake losses</div>
+            <div className="value" style={{ color: '#ff8a8a' }}>−{state.totalLost}m</div>
+          </div>
+          <div className="stat-tile">
+            <div className="label">Won today</div>
+            <div className="value">+{state.minutesEarnedToday}m</div>
+          </div>
+          <div className="stat-tile">
+            <div className="label">Best win</div>
+            <div className="value">+{state.biggestWin}m</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>
+            <span className="idx">02</span> Per-game performance
+          </h2>
         </div>
         <div className="game-stats-grid">
           {(Object.keys(GAME_META) as GameKind[]).map((game) => {
@@ -83,7 +113,9 @@ export function StatsScreen() {
 
       <section className="section">
         <div className="section-head">
-          <h2>Recent challenges</h2>
+          <h2>
+            <span className="idx">03</span> Recent challenges
+          </h2>
         </div>
         {state.history.length === 0 ? (
           <div className="empty">No rounds yet. Open Play and clear a challenge.</div>

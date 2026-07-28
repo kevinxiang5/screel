@@ -486,7 +486,7 @@ button {
   font-weight: 800;
   font-size: clamp(3.2rem, 14vw, 4.4rem);
   letter-spacing: -0.06em;
-  line-height: 0.85;
+  line-height: 0.92;
   background: linear-gradient(180deg, var(--snow), var(--lime));
   -webkit-background-clip: text;
   background-clip: text;
@@ -599,7 +599,7 @@ button {
 
 .gauge {
   position: relative;
-  width: clamp(116px, 33vw, 138px);
+  width: clamp(122px, 35vw, 146px);
   aspect-ratio: 1;
   flex-shrink: 0;
 }
@@ -629,13 +629,14 @@ button {
   display: grid;
   place-content: center;
   text-align: center;
+  padding-top: 2px;
 }
 
 .gauge-num {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(2rem, 8.5vw, 2.6rem);
-  line-height: 0.9;
+  font-size: clamp(1.58rem, 6.5vw, 2.02rem);
+  line-height: 1.02;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   background: linear-gradient(180deg, var(--snow), var(--lime));
@@ -687,15 +688,22 @@ button {
 }
 
 .hero-stat .v {
-  font-family: var(--font-accent);
+  font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.02rem;
-  letter-spacing: -0.02em;
+  font-size: 1.08rem;
+  letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
 }
 
 .hero-stat .v.pos {
   color: var(--lime);
+}
+
+.bank-row .display.md {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
 }
 
 .live-dot {
@@ -792,6 +800,221 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.home-action-grid {
+  display: grid;
+  gap: var(--s3);
+}
+
+.home-feature-card {
+  min-height: 196px;
+}
+
+.home-feature-card h3 {
+  font-size: clamp(1.7rem, 7vw, 2.3rem);
+}
+
+.home-feature-card p {
+  max-width: 24ch;
+}
+
+.home-mini-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+
+.home-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--line);
+  box-shadow: var(--edge-light);
+}
+
+.home-note-copy {
+  min-width: 0;
+}
+
+.home-note-copy strong {
+  display: block;
+  font-family: var(--font-accent);
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.home-note-copy span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--mute);
+}
+
+.home-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+
+.home-stat-strip .stat-tile .value {
+  font-size: 1.32rem;
+}
+
+.challenge-list {
+  display: grid;
+  gap: var(--s3);
+}
+
+.play-shell {
+  display: grid;
+  gap: var(--s7);
+}
+
+.play-feature-grid {
+  display: grid;
+  gap: var(--s3);
+}
+
+.play-feature-grid .game-card.featured {
+  min-height: 212px;
+}
+
+.play-spotlight {
+  display: grid;
+  gap: var(--s3);
+}
+
+.play-spotlight-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  color: var(--mute);
+  font-size: 0.8rem;
+}
+
+.play-spotlight-note strong {
+  color: var(--snow);
+  font-weight: 700;
+}
+
+.shelf {
+  display: grid;
+  gap: var(--s3);
+}
+
+.shelf-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.shelf-head h3 {
+  margin: 0;
+  font-family: var(--font-accent);
+  font-size: 1.02rem;
+  letter-spacing: -0.02em;
+}
+
+.shelf-head p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--mute);
+}
+
+.shelf-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(210px, 74%);
+  gap: var(--s3);
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+}
+
+.shelf-row::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf-row .game-card {
+  min-height: 150px;
+  scroll-snap-align: start;
+}
+
+.shelf-row .game-card h3 {
+  font-size: 1.24rem;
+}
+
+.shelf-row .game-card p {
+  font-size: 0.78rem;
+  max-width: 22ch;
+}
+
+.stats-hero {
+  display: grid;
+  gap: var(--s5);
+}
+
+.stats-hero-value {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(3rem, 13vw, 4rem);
+  letter-spacing: -0.06em;
+  line-height: 0.92;
+}
+
+.stats-hero-value.pos {
+  color: var(--lime);
+}
+
+.stats-hero-value.neg {
+  color: #ff8a8a;
+}
+
+.stats-hero-side {
+  display: grid;
+  gap: var(--s2);
+}
+
+.profile-section-card {
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--line);
+  box-shadow: var(--edge-light);
+}
+
+.profile-inline-note {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--mute);
+}
+
+@media (max-width: 390px) {
+  .home-hero {
+    display: grid;
+    justify-items: start;
+  }
+
+  .home-stat-strip,
+  .home-mini-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-hero-value {
+    font-size: 2.6rem;
+  }
+}
+
 .xp-track {
   height: 7px;
   border-radius: 999px;
@@ -884,7 +1107,7 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: space-between;
   min-height: 168px;
   padding: 18px;
   border-radius: var(--r-md);
@@ -995,6 +1218,39 @@ button {
   font-size: clamp(0.72rem, 2.8vw, 0.82rem);
   color: rgba(246, 243, 234, 0.7);
   line-height: 1.35;
+}
+
+.game-card-topline {
+  max-width: calc(100% - 96px);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(246, 243, 234, 0.58);
+}
+
+.game-card-copy {
+  display: grid;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.game-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.game-card-foot span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(246, 243, 234, 0.82);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(246, 243, 234, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .game-card .badge {

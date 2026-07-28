@@ -233,6 +233,17 @@ export function stepBall(ball: PlinkoBallState, layout: PlinkoLayout): PlinkoBal
     }
     if (hitPeg) bouncePeg(next, hitPeg, layout);
 
+    // Once the fair path has determined the final bin, visually commit toward it
+    // near the bottom so the rendered landing matches the credited result.
+    if (next.lastRowHit >= layout.rows - 1 && next.y >= layout.binTop - layout.rowSpacing * 0.45) {
+      const finalBin = binFromRights(layout, next.rights);
+      const finalX = layout.binCenters[finalBin];
+      const pull = finalX - next.x;
+      next.vx *= 0.6;
+      next.vx += pull * 0.08;
+      next.x += pull * 0.12;
+    }
+
     if (next.y >= layout.binTop + layout.binHeight * 0.2) {
       return settleBall(next, layout);
     }

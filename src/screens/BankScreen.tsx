@@ -41,6 +41,7 @@ export function BankScreen() {
   const [pendingPin, setPendingPin] = useState<string | null>(null);
   const isNativeLink = state.usageSource === 'screenTime';
   const settingsEditable = bankUnlocked;
+  const readyChallenges = state.challenges.filter((c) => c.progress >= c.target && !c.claimed);
 
   const resetLabel = useMemo(
     () => formatResetClock(state.resetHour, state.resetMinute),
@@ -173,6 +174,11 @@ export function BankScreen() {
       </motion.div>
 
       <section className="section" style={{ marginTop: 14 }}>
+        <div className="section-head">
+          <h2>
+            <span className="idx">01</span> Connection
+          </h2>
+        </div>
         <div className="connect-card connect-card-priority">
           <div style={{ display: 'flex', gap: 12, alignItems: 'start' }}>
             <Shield size={22} color="var(--lime)" />
@@ -234,7 +240,9 @@ export function BankScreen() {
 
       <section className="section">
         <div className="section-head">
-          <h2>Bank lock</h2>
+          <h2>
+            <span className="idx">02</span> Bank lock
+          </h2>
           <span className={`pill ${bankLocked ? 'gold' : ''}`}>{bankLocked ? 'On' : 'Off'}</span>
         </div>
         <div className="panel-box bank-lock-box">
@@ -271,7 +279,9 @@ export function BankScreen() {
 
       <section className={`section ${!settingsEditable ? 'bank-settings-locked' : ''}`}>
         <div className="section-head">
-          <h2>Daily allowance</h2>
+          <h2>
+            <span className="idx">03</span> Daily allowance
+          </h2>
           <span className="pill gold tabular">{formatMinutes(state.baseLimit)}</span>
         </div>
         {!settingsEditable && (
@@ -314,7 +324,9 @@ export function BankScreen() {
 
       <section className={`section ${!settingsEditable ? 'bank-settings-locked' : ''}`}>
         <div className="section-head">
-          <h2>Daily reset time</h2>
+          <h2>
+            <span className="idx">04</span> Daily reset time
+          </h2>
         </div>
         {!settingsEditable && (
           <button type="button" className="bank-lock-banner" onClick={() => setPinMode('unlock')}>
@@ -351,31 +363,35 @@ export function BankScreen() {
 
       <section className="section">
         <div className="section-head">
-          <h2>Claim rewards</h2>
+          <h2>
+            <span className="idx">05</span> Rewards ready
+          </h2>
         </div>
-        {state.challenges.map((c) => {
-          const ready = c.progress >= c.target && !c.claimed;
-          return (
-            <div className="challenge" key={c.id}>
-              <div className="challenge-top">
-                <div>
-                  <h3>{c.title}</h3>
-                  <p>
-                    {c.progress}/{c.target} · +{c.reward}m
-                  </p>
+        {readyChallenges.length === 0 ? (
+          <div className="empty">No reward is ready right now. Clear a goal from Home or Play and it will land here.</div>
+        ) : (
+          <div className="challenge-list">
+            {readyChallenges.map((c) => (
+              <div className="challenge ready" key={c.id}>
+                <div className="challenge-top">
+                  <div>
+                    <h3>{c.title}</h3>
+                    <p>
+                      {c.progress}/{c.target} · +{c.reward}m
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-gold"
+                    onClick={() => onClaim(c.id, c.reward, c.title)}
+                  >
+                    Claim
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-gold"
-                  disabled={!ready}
-                  onClick={() => onClaim(c.id, c.reward, c.title)}
-                >
-                  {c.claimed ? 'Claimed' : 'Claim'}
-                </button>
               </div>
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        )}
       </section>
 
       <AnimatePresence>

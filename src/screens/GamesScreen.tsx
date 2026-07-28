@@ -12,6 +12,68 @@ import { RouletteTable } from './RouletteTable';
 import { SlotsGame } from './SlotsGame';
 import { useScreel } from '../context/ScreelContext';
 
+const quickRounds = [
+  {
+    id: 'plinko' as const,
+    className: 'plinko',
+    badge: 'drop',
+    title: 'Plinko',
+    copy: 'Fast drop, immediate result, bigger edge bins.',
+  },
+  {
+    id: 'mines' as const,
+    className: 'mines',
+    badge: 'ladder',
+    title: 'Safe tiles',
+    copy: 'Pick your path and cash out before the miss.',
+  },
+  {
+    id: 'crash' as const,
+    className: 'crash',
+    badge: 'live',
+    title: 'Timing run',
+    copy: 'Wait for more, or bank before it breaks.',
+  },
+  {
+    id: 'dice' as const,
+    className: 'dice',
+    badge: 'risk',
+    title: 'Roll under',
+    copy: 'Set the target yourself and trade safety for payout.',
+  },
+];
+
+const longerRuns = [
+  {
+    id: 'ridethebus' as const,
+    className: 'bus',
+    badge: 'ladder',
+    title: 'Ride the bus',
+    copy: 'Four stops, more decisions, bigger finish if you stay alive.',
+  },
+  {
+    id: 'hilo' as const,
+    className: 'hilo',
+    badge: 'chain',
+    title: 'Higher / lower',
+    copy: 'Correct calls build momentum. Bank between turns.',
+  },
+  {
+    id: 'slots' as const,
+    className: 'slots',
+    badge: 'match',
+    title: 'Match three',
+    copy: 'Any pair pays. Push your luck with a double-up respin.',
+  },
+  {
+    id: 'roulette' as const,
+    className: 'rl',
+    badge: 'stake',
+    title: 'Multiplier wheel',
+    copy: 'Pick your number, take the spin, and chase a clean hit.',
+  },
+];
+
 export function GamesScreen({
   activeGame,
   onSelect,
@@ -28,65 +90,75 @@ export function GamesScreen({
       <AnimatePresence mode="wait" initial={false}>
         {!activeGame && (
           <GameListMotion key="list">
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            <motion.div className="play-shell" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+              <div>
               <div className="eyebrow">Challenges</div>
-              <h1 className="display lg">Earn more minutes</h1>
+              <h1 className="display lg">Choose your spot</h1>
               <p className="lede">
-                Choose a minute stake, play the challenge, and bank the payout when you win. A miss subtracts
-                your stake.{state.winStreak > 0 ? ` ${state.winStreak} win streak.` : ''}
+                Screel works best when Play feels curated, not crowded. Start with one strong pick, then move into
+                shorter or riskier rounds.{state.winStreak > 0 ? ` ${state.winStreak} win streak live.` : ''}
               </p>
-            </motion.div>
+              </div>
 
-            <div className="section" style={{ display: 'grid', gap: 14 }}>
-              <button type="button" className="game-card featured bj" onClick={() => onSelect('blackjack')}>
-                <span className="badge">stake</span>
-                <h3>Twenty-one</h3>
-                <p>Beat the house hand. Double on your first two cards — or go again after a win.</p>
-              </button>
-              <button type="button" className="game-card featured rl" onClick={() => onSelect('roulette')}>
-                <span className="badge">stake</span>
-                <h3>Multiplier wheel</h3>
-                <p>Bet a multiplier (2×–20×). Land it to win — miss and the stake is spent.</p>
-              </button>
-
-              <div className="grid-2">
-                <button type="button" className="game-card mines" onClick={() => onSelect('mines')}>
+            <div className="play-spotlight">
+              <div className="play-feature-grid">
+                <button type="button" className="game-card featured bj" onClick={() => onSelect('blackjack')}>
+                  <span className="badge">stake</span>
+                  <div className="game-card-copy">
+                    <h3>Twenty-one</h3>
+                    <p>Beat the house hand. Double on your first two cards, or bank a clean quick win.</p>
+                  </div>
+                </button>
+                <button type="button" className="game-card featured bus" onClick={() => onSelect('ridethebus')}>
                   <span className="badge">ladder</span>
-                  <h3>Safe tiles</h3>
-                  <p>Choose the hazards. Each safe tile grows your payout.</p>
-                </button>
-                <button type="button" className="game-card crash" onClick={() => onSelect('crash')}>
-                  <span className="badge">live</span>
-                  <h3>Timing run</h3>
-                  <p>Bank before it pops — your payout scales with ×.</p>
-                </button>
-                <button type="button" className="game-card plinko" onClick={() => onSelect('plinko')}>
-                  <span className="badge">drop</span>
-                  <h3>Plinko</h3>
-                  <p>Drop the ball through the pegs. Edge bins pay more.</p>
-                </button>
-                <button type="button" className="game-card slots" onClick={() => onSelect('slots')}>
-                  <span className="badge">match</span>
-                  <h3>Match three</h3>
-                  <p>Any pair wins. Take the payout or try one double-up respin.</p>
-                </button>
-                <button type="button" className="game-card hilo" onClick={() => onSelect('hilo')}>
-                  <span className="badge">chain</span>
-                  <h3>Higher / lower</h3>
-                  <p>Correct calls grow your payout. Bank between calls.</p>
-                </button>
-                <button type="button" className="game-card bus" onClick={() => onSelect('ridethebus')}>
-                  <span className="badge">ladder</span>
-                  <h3>Ride the bus</h3>
-                  <p>Color, higher/lower, inside/outside, suit. Cash out anytime.</p>
-                </button>
-                <button type="button" className="game-card dice" onClick={() => onSelect('dice')}>
-                  <span className="badge">risk</span>
-                  <h3>Roll under</h3>
-                  <p>Set your own target. Harder roll, bigger payout.</p>
+                  <div className="game-card-copy">
+                    <h3>Ride the bus</h3>
+                    <p>Longer sequence, richer suspense. Cash out after every successful stop.</p>
+                  </div>
                 </button>
               </div>
+              <div className="play-spotlight-note">
+                <span>Best when you want a full round with a bit of tension.</span>
+                <strong>{state.winStreak > 0 ? `${state.winStreak} streak active` : 'Fresh board'}</strong>
+              </div>
             </div>
+
+            <section className="shelf">
+              <div className="shelf-head">
+                <h3>Quick rounds</h3>
+                <p>Fastest games to get in, resolve, and bank.</p>
+              </div>
+              <div className="shelf-row">
+                {quickRounds.map((game) => (
+                  <button key={game.id} type="button" className={`game-card ${game.className}`} onClick={() => onSelect(game.id)}>
+                    <span className="badge">{game.badge}</span>
+                    <div className="game-card-copy">
+                      <h3>{game.title}</h3>
+                      <p>{game.copy}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="shelf">
+              <div className="shelf-head">
+                <h3>Deeper runs</h3>
+                <p>Longer decision chains and slower-burn tension.</p>
+              </div>
+              <div className="shelf-row">
+                {longerRuns.map((game) => (
+                  <button key={game.id} type="button" className={`game-card ${game.className}`} onClick={() => onSelect(game.id)}>
+                    <span className="badge">{game.badge}</span>
+                    <div className="game-card-copy">
+                      <h3>{game.title}</h3>
+                      <p>{game.copy}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+            </motion.div>
           </GameListMotion>
         )}
         {activeGame === 'blackjack' && <BlackjackTable key="blackjack" onBack={onBack} />}
