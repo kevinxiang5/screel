@@ -158,15 +158,14 @@ export function SetupFlow() {
         <div key={step} className="setup-step" data-dir={dir}>
           {step === 'welcome' && (
             <>
-              <div className="setup-mark">S</div>
+              <img className="setup-mark" src={`${import.meta.env.BASE_URL}logo.png`} alt="Screel" />
               <h1 className="display lg">Let’s take your time back</h1>
-              <p className="lede">A couple of quick questions so Screel fits how you actually use your phone.</p>
+              <p className="lede">A few quick questions so Screel fits how you actually use your phone.</p>
               <div className="feature-list">
                 {[
-                  { icon: Timer, text: 'Set a daily minute budget for chosen apps' },
-                  { icon: ShieldCheck, text: 'Apps can lock when the budget runs out' },
-                  { icon: Brain, text: 'Clear skill puzzles to earn minutes back' },
-                  { icon: Sparkles, text: 'Optional: stake minutes on challenges' },
+                  { icon: Timer, text: 'Set a daily minute budget' },
+                  { icon: ShieldCheck, text: 'Chosen apps can lock when time runs out' },
+                  { icon: Brain, text: 'Earn minutes back with skill puzzles' },
                 ].map(({ icon: Icon, text }) => (
                   <div className="feature-row" key={text}>
                     <span className="feature-icon">

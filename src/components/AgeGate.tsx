@@ -11,16 +11,12 @@ export function AgeGate() {
         <div className="eyebrow">Welcome</div>
         <h1 className="display lg">Ready to focus?</h1>
         <p className="lede">
-          Screel is a <strong>screen-time helper</strong>. Set a daily minute budget, optionally link Apple
-          Screen Time, clear skill puzzles to earn minutes back, and optionally play short focus challenges
-          that adjust today’s allowance.
+          Screel helps you set a daily phone budget, earn minutes back, and keep limits honest.
         </p>
         <div className="disclosure-box">
           <p>
-            Earn puzzles give fixed minutes with no stake. Optional Play challenges may use minute stakes —
-            wins can add minutes and misses subtract the selected stake from today’s allowance. Minutes have
-            no cash value, cannot be bought or withdrawn, and are not prizes. No real-money gambling. For
-            self-directed screen-time management (ages {AGE_FLOOR}+).
+            Minutes stay inside the app. No money, no prizes, no cash value. For self-directed screen-time
+            management ages {AGE_FLOOR}+.
           </p>
         </div>
         <div className="bj-actions" style={{ marginTop: 20, gridTemplateColumns: '1fr 1fr' }}>
