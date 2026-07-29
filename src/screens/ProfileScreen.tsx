@@ -3,6 +3,7 @@ import { useScreelUI } from '../components/ScreelUI';
 import type { LegalDoc } from '../components/LegalDocView';
 import { useScreel } from '../context/ScreelContext';
 import type { FontTheme } from '../types';
+import { BankScreen } from './BankScreen';
 
 const FONT_OPTIONS: { id: FontTheme; label: string; blurb: string }[] = [
   { id: 'felt', label: 'Felt', blurb: 'Bold Syne headlines (default)' },
@@ -20,7 +21,9 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">Profile</div>
         <h1 className="display lg">You</h1>
-        <p className="lede">Make the app feel like yours, while keeping the rules and settings easy to trust.</p>
+        <p className="lede">
+          Settings, Screen Time link, and the rules that keep Screel honest.
+        </p>
       </motion.div>
 
       <div className="profile-hero section" style={{ marginTop: 18 }}>
@@ -49,10 +52,12 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
         </div>
       </div>
 
+      <BankScreen embedded />
+
       <section className="section">
         <div className="section-head">
           <h2>
-            <span className="idx">01</span> Personalize
+            <span className="idx">A</span> Personalize
           </h2>
         </div>
         <div className="profile-section-card">
@@ -82,7 +87,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
       <section className="section">
         <div className="section-head">
           <h2>
-            <span className="idx">02</span> Controls
+            <span className="idx">B</span> Controls
           </h2>
         </div>
         <div className="profile-section-card">
@@ -108,8 +113,9 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
             />
           </div>
           <div className="profile-inline-note">
-            Challenges use minute stakes. Wins add the displayed payout; misses subtract the selected stake
-            from today’s allowance. Minutes have no cash value.
+            Earn puzzles give fixed minutes with no stake. Optional Play challenges may adjust today’s
+            allowance with minute stakes — wins can add a payout, misses subtract the stake. Minutes have no
+            cash value and are not prizes.
           </div>
         </div>
       </section>
@@ -117,7 +123,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
       <section className="section">
         <div className="section-head">
           <h2>
-            <span className="idx">03</span> Legal &amp; support
+            <span className="idx">C</span> Legal &amp; support
           </h2>
         </div>
         <div className="profile-section-card">
@@ -134,28 +140,6 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
             <button type="button" className="btn btn-secondary btn-block" onClick={() => onOpenLegal('responsible')}>
               Healthy habits
             </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head">
-          <h2>
-            <span className="idx">04</span> How Screel works
-          </h2>
-        </div>
-        <div className="challenge-list">
-          <div className="challenge">
-            <h3>1. Set a ceiling</h3>
-            <p>Pick how many minutes you want each day for the apps you limit.</p>
-          </div>
-          <div className="challenge">
-            <h3>2. Connect Screen Time</h3>
-            <p>Authorize Family Controls, pick apps, and spend from a fresh Screel budget.</p>
-          </div>
-          <div className="challenge">
-            <h3>3. Earn a little more</h3>
-            <p>Choose a stake and play optional minigames. Wins add minutes; misses subtract the stake.</p>
           </div>
         </div>
       </section>

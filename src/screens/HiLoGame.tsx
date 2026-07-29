@@ -101,6 +101,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
     <GameChrome
       title="Higher / lower"
       onBack={onBack}
+      className="hilo-screen"
       backDisabled={stage === 'live'}
       banner={banner}
       setup={

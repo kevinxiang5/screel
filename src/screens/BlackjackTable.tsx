@@ -279,7 +279,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     <GameChrome
       title="Twenty-one"
       onBack={onBack}
-      backDisabled={busy && phase !== 'result'}
+      backDisabled={busy || phase === 'ride'}
       className="bj-screen"
       banner={banner}
       setup={

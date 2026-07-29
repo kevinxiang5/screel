@@ -1,6 +1,6 @@
 import { useScreel } from '../context/ScreelContext';
 
-export const AGE_FLOOR = 13;
+export const AGE_FLOOR = 17;
 
 export function AgeGate() {
   const { verifyAge, blockUnderage } = useScreel();
@@ -12,13 +12,15 @@ export function AgeGate() {
         <h1 className="display lg">Ready to focus?</h1>
         <p className="lede">
           Screel is a <strong>screen-time helper</strong>. Set a daily minute budget, optionally link Apple
-          Screen Time, and stake minutes on short challenges for a chance to win more.
+          Screen Time, clear skill puzzles to earn minutes back, and optionally play short focus challenges
+          that adjust today’s allowance.
         </p>
         <div className="disclosure-box">
           <p>
-            Challenges use minute stakes. Wins add minutes and misses subtract the selected stake from
-            today’s allowance. Minutes have no cash value. No real money. Designed for self-directed screen-time management (ages{' '}
-            {AGE_FLOOR}+).
+            Earn puzzles give fixed minutes with no stake. Optional Play challenges may use minute stakes —
+            wins can add minutes and misses subtract the selected stake from today’s allowance. Minutes have
+            no cash value, cannot be bought or withdrawn, and are not prizes. No real-money gambling. For
+            self-directed screen-time management (ages {AGE_FLOOR}+).
           </p>
         </div>
         <div className="bj-actions" style={{ marginTop: 20, gridTemplateColumns: '1fr 1fr' }}>
@@ -30,8 +32,8 @@ export function AgeGate() {
           </button>
         </div>
         <p className="age-gate-fine">
-          By continuing you confirm Screel fits your needs and you accept Terms &amp; Privacy (You tab).
-          Choosing under {AGE_FLOOR} locks Screel on this device.
+          By continuing you confirm you are {AGE_FLOOR}+ and accept Terms &amp; Privacy (You tab). Choosing
+          under {AGE_FLOOR} locks Screel on this device.
         </p>
       </div>
     </div>

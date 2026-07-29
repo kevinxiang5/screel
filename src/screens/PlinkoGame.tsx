@@ -169,6 +169,8 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
     <GameChrome
       title="Plinko"
       onBack={onBack}
+      backDisabled={locked}
+      className="plinko-screen"
       banner={banner}
       setup={
         <>

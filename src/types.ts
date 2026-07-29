@@ -1,4 +1,4 @@
-export type TabId = 'home' | 'play' | 'bank' | 'stats' | 'you';
+export type TabId = 'home' | 'earn' | 'play' | 'stats' | 'you';
 
 export type GameKind =
   | 'blackjack'
@@ -9,11 +9,36 @@ export type GameKind =
   | 'hilo'
   | 'dice'
   | 'plinko'
-  | 'ridethebus';
+  | 'ridethebus'
+  | 'puzzle';
 
-export type GameId = GameKind | null;
+export type GameId = Exclude<GameKind, 'puzzle'> | null;
 
 export type RoundResult = 'win' | 'lose' | 'push' | 'blackjack';
+
+export type PuzzleId =
+  | 'math'
+  | 'pattern'
+  | 'grid'
+  | 'sequence'
+  | 'stroop'
+  | 'binary'
+  | 'cipher'
+  | 'memory'
+  | 'nback'
+  | 'lights'
+  | 'slider'
+  | 'sudoku'
+  | 'sumgrid'
+  | 'countdown'
+  | 'hanoi'
+  | 'mastermind'
+  | 'oddone'
+  | 'order'
+  | 'scramble'
+  | 'equation'
+  | 'primes'
+  | 'safe';
 
 export interface HistoryEntry {
   id: string;
@@ -35,20 +60,29 @@ export interface DailyChallenge {
   claimed: boolean;
 }
 
-/** How usage minutes are sourced when Bank is linked. */
+export interface UsageDayLog {
+  /** Calendar day key YYYY-MM-DD in the user's reset timezone. */
+  day: string;
+  used: number;
+  bank: number;
+  puzzleEarned: number;
+  stakeNet: number;
+}
+
+/** How usage minutes are sourced when Screen Time is linked. */
 export type UsageSource = 'none' | 'simulated' | 'screenTime';
 
 /** Global typeface pairs for the whole app. */
 export type FontTheme = 'felt' | 'editorial' | 'soft' | 'clean';
 
 export interface ScreelState {
-  schemaVersion: 3;
+  schemaVersion: 4;
   displayName: string;
   connected: boolean;
   /** `screenTime` = Apple Family Controls; `simulated` = local demo (web / fallback). */
   usageSource: UsageSource;
   ageVerified: boolean;
-  /** User said they are under 18 — locked out. */
+  /** User said they are under 13 — locked out. */
   ageBlocked: boolean;
   /** Finished post-age setup (allowance / reset / connect prompt). */
   setupComplete: boolean;
@@ -84,8 +118,14 @@ export interface ScreelState {
   challenges: DailyChallenge[];
   soundOn: boolean;
   riskAlerts: boolean;
-  /** Minutes earned from minigames in the current period. */
+  /** Minutes earned from minigames + puzzles in the current period. */
   minutesEarnedToday: number;
+  /** Minutes earned from skill puzzles in the current period (capped). */
+  puzzleEarnedToday: number;
+  /** Last puzzle clear timestamp — short cooldown between clears. */
+  lastPuzzleAt: number;
+  /** Rolling daily usage archive for heatmaps / charts. */
+  usageDayLog: UsageDayLog[];
   /** Default minute stake for the next challenge (capped at remaining minutes when played). */
   wagerMinutes: number;
   /**
@@ -95,8 +135,21 @@ export interface ScreelState {
   bankPinHash: string | null;
 }
 
-/** Base minute pot seeds per game (before ladder / multiplier growth). */
-export const GAME_REWARDS: Record<GameKind, number> = {
+/** Max minutes from skill puzzles per period. */
+export const PUZZLE_DAILY_CAP = 30;
+
+/** Minimum ms between puzzle clears. */
+export const PUZZLE_COOLDOWN_MS = 20_000;
+
+/** Fixed rewards by difficulty — no RNG, no stake. Range 2–4 minutes. */
+export const PUZZLE_REWARDS = {
+  easy: 2,
+  medium: 3,
+  hard: 4,
+} as const;
+
+/** Base minute pot seeds per stake game (before ladder / multiplier growth). */
+export const GAME_REWARDS: Record<Exclude<GameKind, 'puzzle'>, number> = {
   blackjack: 5,
   roulette: 4,
   mines: 3,

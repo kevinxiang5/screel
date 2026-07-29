@@ -9,7 +9,7 @@ import { GAME_REWARDS, type GameKind } from '../types';
 export const HOUSE_EDGE = 0.12;
 
 /** Seed a payout base from the selected minute stake. */
-export function seedPot(game: GameKind, wager?: number): number {
+export function seedPot(game: Exclude<GameKind, 'puzzle'>, wager?: number): number {
   return Math.max(1, Math.round(wager ?? GAME_REWARDS[game]));
 }
 

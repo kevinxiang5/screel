@@ -141,7 +141,8 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
     <GameChrome
       title="Match three"
       onBack={onBack}
-      backDisabled={stage === 'spinning'}
+      className="slots-screen"
+      backDisabled={stage === 'spinning' || stage === 'choice'}
       banner={banner}
       setup={
         <>

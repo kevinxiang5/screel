@@ -6,13 +6,14 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { ScreelUIProvider, useScreelUI } from './components/ScreelUI';
 import { SetupFlow } from './components/SetupFlow';
 import { TabBar } from './components/TabBar';
+import { TabErrorBoundary } from './components/TabErrorBoundary';
 import { ScreelProvider, useScreel } from './context/ScreelContext';
 import { requestReviewPrompt } from './native/requestReview';
 import type { GameId, TabId } from './types';
 
 const HomeScreen = lazy(() => import('./screens/HomeScreen').then((m) => ({ default: m.HomeScreen })));
+const EarnScreen = lazy(() => import('./screens/EarnScreen').then((m) => ({ default: m.EarnScreen })));
 const GamesScreen = lazy(() => import('./screens/GamesScreen').then((m) => ({ default: m.GamesScreen })));
-const BankScreen = lazy(() => import('./screens/BankScreen').then((m) => ({ default: m.BankScreen })));
 const StatsScreen = lazy(() => import('./screens/StatsScreen').then((m) => ({ default: m.StatsScreen })));
 const ProfileScreen = lazy(() => import('./screens/ProfileScreen').then((m) => ({ default: m.ProfileScreen })));
 const LegalDocView = lazy(() =>
@@ -22,8 +23,12 @@ const LegalDocView = lazy(() =>
 const REVIEW_PROMPT_KEY = 'screel-review-prompt-v1';
 const REVIEW_PROMPT_LAUNCH = 5;
 
-function TabPane({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<div className="tab-fallback" aria-hidden />}>{children}</Suspense>;
+function TabPane({ children, label }: { children: ReactNode; label?: string }) {
+  return (
+    <TabErrorBoundary label={label}>
+      <Suspense fallback={<div className="tab-fallback" aria-hidden />}>{children}</Suspense>
+    </TabErrorBoundary>
+  );
 }
 
 function ScreelApp() {
@@ -40,14 +45,13 @@ function ScreelApp() {
   const inGame = tab === 'play' && Boolean(activeGame);
   const showTabs = !inGame && !legalDoc;
 
-  // Prefetch every tab chunk so the first switch never hits a blank Suspense frame.
   useEffect(() => {
     if (!ready || !state.setupComplete) return;
     const id = window.setTimeout(() => {
       void Promise.all([
         import('./screens/HomeScreen'),
+        import('./screens/EarnScreen'),
         import('./screens/GamesScreen'),
-        import('./screens/BankScreen'),
         import('./screens/StatsScreen'),
         import('./screens/ProfileScreen'),
         import('./components/LegalDocView'),
@@ -70,16 +74,13 @@ function ScreelApp() {
         prompted = Boolean(parsed.prompted);
       }
     } catch {
-      /* ignore malformed local state */
+      /* ignore */
     }
 
     const nextLaunches = launches + 1;
     localStorage.setItem(
       REVIEW_PROMPT_KEY,
-      JSON.stringify({
-        launches: nextLaunches,
-        prompted,
-      }),
+      JSON.stringify({ launches: nextLaunches, prompted }),
     );
 
     if (prompted || nextLaunches < REVIEW_PROMPT_LAUNCH) return;
@@ -95,10 +96,7 @@ function ScreelApp() {
 
       localStorage.setItem(
         REVIEW_PROMPT_KEY,
-        JSON.stringify({
-          launches: nextLaunches,
-          prompted: true,
-        }),
+        JSON.stringify({ launches: nextLaunches, prompted: true }),
       );
 
       if (!wantsToRate) return;
@@ -164,8 +162,18 @@ function ScreelApp() {
                   className={`tab-page ${tab === 'home' ? 'is-active' : 'is-hidden'}`}
                   aria-hidden={tab !== 'home'}
                 >
-                  <TabPane>
+                  <TabPane label="Home">
                     <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
+                  </TabPane>
+                </div>
+              )}
+              {visited.has('earn') && (
+                <div
+                  className={`tab-page ${tab === 'earn' ? 'is-active' : 'is-hidden'}`}
+                  aria-hidden={tab !== 'earn'}
+                >
+                  <TabPane label="Earn">
+                    <EarnScreen />
                   </TabPane>
                 </div>
               )}
@@ -174,7 +182,7 @@ function ScreelApp() {
                   className={`tab-page ${tab === 'play' ? 'is-active' : 'is-hidden'}`}
                   aria-hidden={tab !== 'play'}
                 >
-                  <TabPane>
+                  <TabPane label="Play">
                     <GamesScreen
                       activeGame={activeGame}
                       onSelect={setActiveGame}
@@ -183,23 +191,13 @@ function ScreelApp() {
                   </TabPane>
                 </div>
               )}
-              {visited.has('bank') && (
-                <div
-                  className={`tab-page ${tab === 'bank' ? 'is-active' : 'is-hidden'}`}
-                  aria-hidden={tab !== 'bank'}
-                >
-                  <TabPane>
-                    <BankScreen />
-                  </TabPane>
-                </div>
-              )}
               {visited.has('stats') && (
                 <div
                   className={`tab-page ${tab === 'stats' ? 'is-active' : 'is-hidden'}`}
                   aria-hidden={tab !== 'stats'}
                 >
-                  <TabPane>
-                    <StatsScreen />
+                  <TabPane label="Stats">
+                    <StatsScreen onNavigate={changeTab} />
                   </TabPane>
                 </div>
               )}
@@ -208,7 +206,7 @@ function ScreelApp() {
                   className={`tab-page ${tab === 'you' ? 'is-active' : 'is-hidden'}`}
                   aria-hidden={tab !== 'you'}
                 >
-                  <TabPane>
+                  <TabPane label="You">
                     <ProfileScreen onOpenLegal={setLegalDoc} />
                   </TabPane>
                 </div>

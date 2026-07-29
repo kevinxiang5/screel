@@ -242,7 +242,8 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
     <GameChrome
       title="Ride the bus"
       onBack={onBack}
-      backDisabled={busy && phase !== 'done'}
+      className="bus-screen"
+      backDisabled={setupLocked || busy}
       banner={banner}
       setup={
         <WagerSelector

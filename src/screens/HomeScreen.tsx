@@ -3,6 +3,7 @@ import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { Flame, Sparkles, Trophy } from 'lucide-react';
 import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
+import { hapticSuccess } from '../native/haptics';
 import type { GameId, TabId } from '../types';
 
 const GOAL_LINES: Record<string, string> = {
@@ -20,7 +21,6 @@ function greeting(): string {
   return 'Good evening';
 }
 
-/** Ease-out count-up for the hero number — makes the value feel alive on entry. */
 function useCountUp(target: number, duration = 950): number {
   const reduce = useReducedMotion();
   const [value, setValue] = useState(reduce ? target : 0);
@@ -32,11 +32,10 @@ function useCountUp(target: number, duration = 950): number {
     }
     let raf = 0;
     const start = performance.now();
-    const from = 0;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
-      setValue(Math.round(from + (target - from) * eased));
+      setValue(Math.round(target * eased));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -78,10 +77,10 @@ export function HomeScreen({
   const ringPct = Math.max(0, Math.min(100, (remaining / ringMax) * 100));
   const ringOffset = RING_C * (1 - ringPct / 100);
   const shownMinutes = useCountUp(remaining);
+  const puzzleToday = state.puzzleEarnedToday;
 
   const xpIntoLevel = ((state.xp % 100) + 100) % 100;
-  const readyCount = state.challenges.filter((c) => c.progress >= c.target && !c.claimed).length;
-  const visibleChallenges = state.challenges.slice(0, 2);
+  const visibleChallenges = state.challenges;
 
   return (
     <motion.div className="screen home" variants={container} initial="hidden" animate="show">
@@ -104,7 +103,7 @@ export function HomeScreen({
         </h1>
         <p className="lede">
           {(state.focusGoal && GOAL_LINES[state.focusGoal]) ||
-            'Set a daily minute budget for the apps you choose. Stake minutes on short challenges to win more.'}
+            'Budget your apps. Earn minutes back with puzzles — Play is optional.'}
         </p>
       </motion.header>
 
@@ -149,30 +148,15 @@ export function HomeScreen({
               <span className="pill gold">
                 <Flame size={14} /> {state.streak}d
               </span>
-              {readyCount > 0 ? <span className="pill live">{readyCount} rewards live</span> : null}
             </div>
             <div className="hero-stat">
               <span className="k">Used today</span>
               <span className="v">{state.minutesUsed}m</span>
             </div>
             <div className="hero-stat">
-              <span className="k">Won today</span>
-              <span className="v pos">+{state.minutesEarnedToday}m</span>
+              <span className="k">Earned today</span>
+              <span className="v pos">+{puzzleToday}m</span>
             </div>
-          </div>
-        </div>
-        <div className="home-stat-strip">
-          <div className="stat-tile">
-            <div className="label">Best earn</div>
-            <div className="value">+{state.biggestWin}m</div>
-          </div>
-          <div className="stat-tile">
-            <div className="label">Rounds</div>
-            <div className="value">{state.gamesPlayed}</div>
-          </div>
-          <div className="stat-tile">
-            <div className="label">Level</div>
-            <div className="value">{state.level}</div>
           </div>
         </div>
       </motion.div>
@@ -180,18 +164,39 @@ export function HomeScreen({
       <motion.section className="section" variants={item}>
         <div className="section-head">
           <h2>
-            <span className="idx">01</span> Tonight
+            <span className="idx">01</span> Regain minutes
+          </h2>
+        </div>
+        <div className="home-note">
+          <div className="home-note-copy">
+            <strong>Skill puzzles · fixed rewards</strong>
+            <span>No stake. Cap 30m/day. The cleanest way to earn time back.</span>
+          </div>
+          <button type="button" className="btn btn-primary" onClick={() => onNavigate('earn')}>
+            Earn
+          </button>
+        </div>
+      </motion.section>
+
+      <motion.section className="section" variants={item}>
+        <div className="section-head">
+          <h2>
+            <span className="idx">02</span> Optional challenges
           </h2>
           <button type="button" className="linkish" onClick={() => onNavigate('play')}>
-            Open play
+            Play
           </button>
         </div>
         <div className="home-action-grid">
-          <button type="button" className="game-card featured bj home-feature-card" onClick={() => onPlay('blackjack')}>
+          <button
+            type="button"
+            className="game-card featured bj home-feature-card"
+            onClick={() => onPlay('blackjack')}
+          >
             <span className="badge">stake</span>
             <div className="game-card-copy">
-              <h3>Start with Twenty-one</h3>
-              <p>Fastest route to a clean win. Bank early or double into a bigger night.</p>
+              <h3>Twenty-one</h3>
+              <p>Optional stake challenge. Bank early or go again once.</p>
             </div>
           </button>
           <div className="home-mini-grid">
@@ -199,69 +204,17 @@ export function HomeScreen({
               <span className="badge">drop</span>
               <div className="game-card-copy">
                 <h3>Plinko</h3>
-                <p>Quick, high-variance minutes.</p>
+                <p>Quick variance.</p>
               </div>
             </button>
             <button type="button" className="game-card bus" onClick={() => onPlay('ridethebus')}>
               <span className="badge">ladder</span>
               <div className="game-card-copy">
                 <h3>Ride the bus</h3>
-                <p>Longer run. Cash out when it feels right.</p>
+                <p>Longer run.</p>
               </div>
             </button>
           </div>
-          <div className="home-note">
-            <div className="home-note-copy">
-              <strong>Best when you want one focused round</strong>
-              <span>{state.winStreak > 0 ? `${state.winStreak} win streak running.` : 'Open Play for the full challenge board.'}</span>
-            </div>
-            <button type="button" className="btn btn-secondary" onClick={() => onNavigate('play')}>
-              All games
-            </button>
-          </div>
-        </div>
-      </motion.section>
-
-      <motion.section className="section" variants={item}>
-        <div className="section-head">
-          <h2>
-            <span className="idx">02</span> Your progress
-          </h2>
-          <button type="button" className="linkish" onClick={() => onNavigate('stats')}>
-            Stats
-          </button>
-        </div>
-        <div className="level-card">
-          <div className="level-badge">
-            <div className="n">{state.level}</div>
-            <div className="cap">lvl</div>
-          </div>
-          <div className="level-body">
-            <div className="row">
-              <span className="t">Level {state.level}</span>
-              <span className="x">{xpIntoLevel} / 100 XP</span>
-            </div>
-            <div className="xp-track">
-              <div className="xp-fill" style={{ width: `${xpIntoLevel}%` }} />
-            </div>
-            <div className="row">
-              <span className="x">{100 - xpIntoLevel} XP to level {state.level + 1}</span>
-              {state.winStreak > 0 ? (
-                <span className="x" style={{ color: 'var(--lime)' }}>
-                  {state.winStreak} win streak
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        <div className="home-note" style={{ marginTop: 'var(--s3)' }}>
-          <div className="home-note-copy">
-            <strong>You're building consistency</strong>
-            <span>Every 100 XP moves you up a level. Keep the streak alive and the rewards stack faster.</span>
-          </div>
-          <button type="button" className="btn btn-secondary" onClick={() => onNavigate('stats')}>
-            View stats
-          </button>
         </div>
       </motion.section>
 
@@ -274,78 +227,78 @@ export function HomeScreen({
             </span>{' '}
             Daily goals
           </h2>
-          <button type="button" className="linkish" onClick={() => onNavigate('bank')}>
-            Bank
+          <button type="button" className="linkish" onClick={() => onNavigate('you')}>
+            You
           </button>
         </div>
-        {readyCount > 0 ? (
-          <p className="lede" style={{ marginTop: 0, marginBottom: 'var(--s4)', color: 'var(--lime)' }}>
-            {readyCount} reward{readyCount > 1 ? 's' : ''} ready to claim.
-          </p>
-        ) : null}
         <div className="challenge-list">
-        {visibleChallenges.map((c) => {
-          const ready = c.progress >= c.target && !c.claimed;
-          return (
-            <div className={`challenge ${ready ? 'ready' : ''} ${c.claimed ? 'claimed' : ''}`} key={c.id}>
-              <div className="challenge-top">
-                <div>
-                  <h3>{c.title}</h3>
-                  <p>{c.description}</p>
+          {visibleChallenges.map((c) => {
+            const ready = c.progress >= c.target && !c.claimed;
+            return (
+              <div className={`challenge ${ready ? 'ready' : ''} ${c.claimed ? 'claimed' : ''}`} key={c.id}>
+                <div className="challenge-top">
+                  <div>
+                    <h3>{c.title}</h3>
+                    <p>{c.description}</p>
+                  </div>
+                  {ready ? (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-gold"
+                      onClick={() => {
+                        claimChallenge(c.id);
+                        void hapticSuccess();
+                        toast(`+${c.reward}m added to your allowance.`, {
+                          title: `${c.title} claimed`,
+                          tone: 'success',
+                        });
+                      }}
+                    >
+                      Claim +{c.reward}m
+                    </button>
+                  ) : (
+                    <span className="pill gold">+{c.reward}m</span>
+                  )}
                 </div>
-                {ready ? (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-gold"
-                    onClick={() => {
-                      claimChallenge(c.id);
-                      toast(`+${c.reward}m added to your allowance.`, {
-                        title: `${c.title} claimed`,
-                        tone: 'success',
-                      });
-                    }}
-                  >
-                    Claim +{c.reward}m
-                  </button>
-                ) : (
-                  <span className="pill gold">+{c.reward}m</span>
-                )}
-              </div>
-              <div className="meter-track">
-                <div
-                  className="meter-fill"
-                  style={{ width: `${Math.min(100, (c.progress / c.target) * 100)}%` }}
-                />
-              </div>
-              <div className="meter-meta">
-                <span>
-                  {c.progress}/{c.target}
-                </span>
-                {c.claimed ? (
+                <div className="meter-track">
+                  <div
+                    className="meter-fill"
+                    style={{ width: `${Math.min(100, (c.progress / c.target) * 100)}%` }}
+                  />
+                </div>
+                <div className="meter-meta">
                   <span>
-                    <Trophy size={12} /> Claimed
+                    {c.progress}/{c.target}
                   </span>
-                ) : ready ? (
-                  <span style={{ color: 'var(--lime)' }}>Ready to claim</span>
-                ) : (
-                  <span>In progress</span>
-                )}
+                  {c.claimed ? (
+                    <span>
+                      <Trophy size={12} /> Claimed
+                    </span>
+                  ) : ready ? (
+                    <span style={{ color: 'var(--accent)' }}>Ready</span>
+                  ) : (
+                    <span>In progress</span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
-        {state.challenges.length > visibleChallenges.length ? (
-          <div className="home-note" style={{ marginTop: 'var(--s3)' }}>
-            <div className="home-note-copy">
-              <strong>{state.challenges.length - visibleChallenges.length} more goal{state.challenges.length - visibleChallenges.length > 1 ? 's' : ''}</strong>
-              <span>Open Bank to manage rewards, lock settings, and your daily allowance.</span>
-            </div>
-            <button type="button" className="btn btn-secondary" onClick={() => onNavigate('bank')}>
-              Open bank
-            </button>
+        <div className="level-card" style={{ marginTop: 'var(--s4)' }}>
+          <div className="level-badge">
+            <div className="n">{state.level}</div>
+            <div className="cap">lvl</div>
           </div>
-        ) : null}
+          <div className="level-body">
+            <div className="row">
+              <span className="t">Level {state.level}</span>
+              <span className="x">{xpIntoLevel} / 100 XP</span>
+            </div>
+            <div className="xp-track">
+              <div className="xp-fill" style={{ width: `${xpIntoLevel}%` }} />
+            </div>
+          </div>
+        </div>
       </motion.section>
     </motion.div>
   );

@@ -68,6 +68,7 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
     <GameChrome
       title="Roll under"
       onBack={onBack}
+      className="dice-screen"
       backDisabled={rolling}
       banner={banner}
       setup={
@@ -117,7 +118,7 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
             aria-label="Target number"
           />
           <p className="risk-slider-hint">
-            Chance ≈ {chance}% · fair payout with house edge built in.
+            Chance ≈ {chance}% · payout includes built-in budget friction.
           </p>
         </div>
 

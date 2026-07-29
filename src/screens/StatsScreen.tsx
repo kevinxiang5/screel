@@ -1,9 +1,20 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bomb, Bus, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
-import type { GameKind } from '../types';
+import { Bomb, Brain, Bus, Cherry, Dices, Layers, Rocket, Spade, Target } from 'lucide-react';
+import type { GameKind, TabId } from '../types';
 import { useScreel } from '../context/ScreelContext';
+import { useScreelUI } from '../components/ScreelUI';
+import { presentTopAppsReport } from '../components/stats/TopAppsReport';
+import {
+  unusedAllowance,
+  UsageHeatmap,
+  WeekBars,
+  weekOverWeekUsed,
+} from '../components/stats/UsageCharts';
+import { connectScreenTimeFlow } from '../native/connectScreenTimeFlow';
+import { reselectTrackedApps } from '../native/reselectTrackedApps';
 
-const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
+const GAME_META: Record<Exclude<GameKind, 'puzzle'>, { label: string; icon: typeof Spade }> = {
   blackjack: { label: 'Twenty-one', icon: Spade },
   roulette: { label: 'Multiplier wheel', icon: Target },
   mines: { label: 'Safe tiles', icon: Bomb },
@@ -15,46 +26,108 @@ const GAME_META: Record<GameKind, { label: string; icon: typeof Spade }> = {
   ridethebus: { label: 'Ride the bus', icon: Bus },
 };
 
-export function StatsScreen() {
-  const { state } = useScreel();
-  const wins = state.history.filter((h) => h.delta > 0 || h.result === 'win' || h.result === 'blackjack');
-  const winRate =
-    state.history.length === 0 ? 0 : Math.round((wins.length / state.history.length) * 100);
-  const net = state.totalWon - state.totalLost;
+export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }) {
+  const { state, connectScreenTime } = useScreel();
+  const { toast } = useScreelUI();
+  const [showChallenges, setShowChallenges] = useState(false);
+  const [busy, setBusy] = useState<'report' | 'pick' | 'link' | null>(null);
+  const usageLog = Array.isArray(state.usageDayLog) ? state.usageDayLog : [];
+  const unused = unusedAllowance(usageLog);
+  const todayUnused = Math.max(0, (state.minutesBank ?? 0) - (state.minutesUsed ?? 0));
+  const wow = weekOverWeekUsed(usageLog);
+  const isNativeLink = state.connected && state.usageSource === 'screenTime';
+
+  const openReport = async () => {
+    if (busy) return;
+    setBusy('report');
+    const ok = await presentTopAppsReport();
+    setBusy(null);
+    if (!ok) {
+      toast('Top-app report needs a linked iPhone build with Screen Time.', {
+        title: 'Report unavailable',
+        tone: 'info',
+      });
+    }
+  };
+
+  const pickApps = async () => {
+    if (busy) return;
+    setBusy('pick');
+    const result = await reselectTrackedApps({
+      budgetMinutes: state.minutesBank,
+      resetHour: state.resetHour,
+      resetMinute: state.resetMinute,
+    });
+    setBusy(null);
+    if (!result.ok) {
+      toast(result.message ?? 'Could not open app picker.', {
+        title: 'Select apps',
+        tone: 'warn',
+      });
+      return;
+    }
+    toast(`Tracking ${result.applicationCount ?? 0} selection(s).`, {
+      title: 'Apps updated',
+      tone: 'success',
+    });
+  };
+
+  const linkAndPick = async () => {
+    if (busy) return;
+    setBusy('link');
+    const result = await connectScreenTimeFlow({
+      budgetMinutes: state.minutesBank,
+      resetHour: state.resetHour,
+      resetMinute: state.resetMinute,
+    });
+    setBusy(null);
+    if (!result.ok) {
+      toast(result.message, { title: result.title, tone: result.tone ?? 'warn' });
+      return;
+    }
+    connectScreenTime({ source: result.mode, minutesUsed: 0 });
+    toast(
+      result.mode === 'screenTime'
+        ? `Linked. Tracking ${result.applicationCount ?? 0} selection(s).`
+        : 'Demo link on for this browser session. Real app pick needs the iPhone build.',
+      {
+        title: result.mode === 'screenTime' ? 'Screen Time linked' : 'Usage simulated',
+        tone: 'success',
+      },
+    );
+  };
 
   return (
     <div className="screen">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">Progress</div>
-        <h1 className="display lg">Your run</h1>
+        <div className="eyebrow">Usage</div>
+        <h1 className="display lg">Stats</h1>
         <p className="lede">
-          See whether your screen-time game is compounding in the right direction.
+          Honest numbers from your Screel budget — unused allowance, not invented doomscroll hours.
         </p>
       </motion.div>
 
       <div className="hero-panel section">
         <div className="stats-hero">
           <div>
-            <div className="label">Net minutes kept</div>
-            <div className={`stats-hero-value ${net >= 0 ? 'pos' : 'neg'}`}>{net >= 0 ? '+' : ''}{net}m</div>
+            <div className="label">Unused allowance today</div>
+            <div className="stats-hero-value pos">+{todayUnused}m</div>
             <p className="lede" style={{ marginTop: 8 }}>
-              {winRate >= 50
-                ? 'You are banking more than you burn.'
-                : 'The next clean streak can swing the whole run back.'}
+              {todayUnused}m still in today’s bank · base limit {state.baseLimit}m.
             </p>
           </div>
           <div className="stats-hero-side">
             <div className="hero-stat">
-              <span className="k">Win rate</span>
-              <span className="v">{winRate}%</span>
+              <span className="k">Used today</span>
+              <span className="v">{state.minutesUsed}m</span>
             </div>
             <div className="hero-stat">
-              <span className="k">Streak</span>
-              <span className="v">{state.winStreak}</span>
+              <span className="k">Archive unused</span>
+              <span className="v">{unused}m</span>
             </div>
             <div className="hero-stat">
-              <span className="k">Rounds</span>
-              <span className="v">{state.gamesPlayed}</span>
+              <span className="k">Puzzle today</span>
+              <span className="v pos">+{state.puzzleEarnedToday}m</span>
             </div>
           </div>
         </div>
@@ -63,84 +136,123 @@ export function StatsScreen() {
       <section className="section">
         <div className="section-head">
           <h2>
-            <span className="idx">01</span> Run shape
+            <span className="idx">01</span> Select apps to track
           </h2>
         </div>
-        <div className="grid-2">
-          <div className="stat-tile">
-            <div className="label">Winnings (lifetime)</div>
-            <div className="value" style={{ color: 'var(--lime)' }}>
-              +{state.totalWon}m
-            </div>
+        <div className="stat-tile" style={{ marginBottom: 12 }}>
+          <div className="label">Tracked selection · week vs last</div>
+          <div className="value">
+            {wow.pct == null ? '—' : `${wow.pct > 0 ? '+' : ''}${wow.pct}%`}
           </div>
-          <div className="stat-tile">
-            <div className="label">Stake losses</div>
-            <div className="value" style={{ color: '#ff8a8a' }}>−{state.totalLost}m</div>
-          </div>
-          <div className="stat-tile">
-            <div className="label">Won today</div>
-            <div className="value">+{state.minutesEarnedToday}m</div>
-          </div>
-          <div className="stat-tile">
-            <div className="label">Best win</div>
-            <div className="value">+{state.biggestWin}m</div>
-          </div>
+          <p>
+            This week {wow.thisWeek}m · last week {wow.lastWeek}m.
+            {state.connected
+              ? isNativeLink
+                ? ' Screen Time is linked.'
+                : ' Demo mode — link on iPhone to pick real apps.'
+              : ' Not linked yet.'}
+          </p>
         </div>
+        <div className="stats-actions">
+          {!state.connected ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              disabled={busy !== null}
+              onClick={() => void linkAndPick()}
+            >
+              {busy === 'link' ? 'Connecting…' : 'Link & select apps'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              disabled={busy !== null}
+              onClick={() => void pickApps()}
+            >
+              {busy === 'pick' ? 'Opening picker…' : 'Select / change apps'}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-secondary btn-block"
+            disabled={busy !== null || !isNativeLink}
+            onClick={() => void openReport()}
+          >
+            {busy === 'report' ? 'Opening…' : 'Open top-app system report'}
+          </button>
+          {onNavigate ? (
+            <button type="button" className="btn btn-secondary btn-block" onClick={() => onNavigate('you')}>
+              Open You for allowance settings
+            </button>
+          ) : null}
+        </div>
+        <p className="lede" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+          Apple only lets you pick apps in the installed iPhone app. The browser can simulate a link for
+          demos.
+        </p>
       </section>
 
       <section className="section">
         <div className="section-head">
           <h2>
-            <span className="idx">02</span> Per-game performance
+            <span className="idx">02</span> Calendar heat
           </h2>
         </div>
-        <div className="game-stats-grid">
-          {(Object.keys(GAME_META) as GameKind[]).map((game) => {
-            const rows = state.history.filter((entry) => entry.game === game);
-            const kept = rows.filter((entry) => entry.result === 'win' || entry.result === 'blackjack');
-            const minutes = rows.reduce((sum, entry) => sum + Math.max(0, entry.delta), 0);
-            const rate = rows.length ? Math.round((kept.length / rows.length) * 100) : 0;
-            return (
-              <div className="stat-tile" key={game}>
-                <div className="label">{GAME_META[game].label}</div>
-                <div className="value">{rate}%</div>
-                <p>{rows.length} runs · +{minutes}m kept</p>
-              </div>
-            );
-          })}
-        </div>
+        <UsageHeatmap log={usageLog} />
       </section>
 
       <section className="section">
         <div className="section-head">
           <h2>
-            <span className="idx">03</span> Recent challenges
+            <span className="idx">03</span> Last 7 days
           </h2>
         </div>
-        {state.history.length === 0 ? (
-          <div className="empty">No rounds yet. Open Play and clear a challenge.</div>
+        <WeekBars log={usageLog} />
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>
+            <span className="idx">04</span> Challenge results
+          </h2>
+          <button type="button" className="linkish" onClick={() => setShowChallenges((v) => !v)}>
+            {showChallenges ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        {showChallenges ? (
+          state.history.length === 0 ? (
+            <div className="empty">No rounds yet.</div>
+          ) : (
+            state.history.slice(0, 40).map((h) => {
+              const meta =
+                h.game === 'puzzle'
+                  ? { label: 'Puzzle', icon: Brain }
+                  : GAME_META[h.game as Exclude<GameKind, 'puzzle'>] ?? GAME_META.blackjack;
+              const Icon = meta.icon;
+              return (
+                <div className="history-item" key={h.id}>
+                  <div className="history-icon">
+                    <Icon size={18} />
+                  </div>
+                  <div>
+                    <h4>{meta.label}</h4>
+                    <p>
+                      {h.detail} ·{' '}
+                      {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className={`delta ${h.delta > 0 ? 'up' : h.delta < 0 ? 'down' : ''}`}>
+                    {h.delta > 0 ? `+${h.delta}m` : h.delta < 0 ? `${h.delta}m` : '—'}
+                  </div>
+                </div>
+              );
+            })
+          )
         ) : (
-          state.history.slice(0, 80).map((h) => {
-            const meta = GAME_META[h.game] ?? GAME_META.blackjack;
-            const Icon = meta.icon;
-            return (
-              <div className="history-item" key={h.id}>
-                <div className="history-icon">
-                  <Icon size={18} />
-                </div>
-                <div>
-                  <h4>{meta.label}</h4>
-                  <p>
-                    {h.detail} ·{' '}
-                    {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <div className={`delta ${h.delta > 0 ? 'up' : h.delta < 0 ? 'down' : ''}`}>
-                  {h.delta > 0 ? `+${h.delta}m` : h.delta < 0 ? `${h.delta}m` : '—'}
-                </div>
-              </div>
-            );
-          })
+          <p className="lede" style={{ margin: 0, fontSize: '0.85rem' }}>
+            Stake wins/losses stay available here — usage is the main story now.
+          </p>
         )}
       </section>
     </div>

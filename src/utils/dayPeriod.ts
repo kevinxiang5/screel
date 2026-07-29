@@ -110,6 +110,18 @@ export function periodId(
   return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}T${hh}:${mm}@${timeZone}`;
 }
 
+/** YYYY-MM-DD for the allowance period start (heatmap / archive key). */
+export function calendarDayKey(
+  now: Date,
+  resetHour: number,
+  resetMinute: number,
+  timeZone: string,
+): string {
+  const start = periodStartMs(now, resetHour, resetMinute, timeZone);
+  const p = zonedParts(new Date(start), timeZone);
+  return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+}
+
 export function formatMinutes(total: number): string {
   const m = Math.max(0, Math.round(total));
   const h = Math.floor(m / 60);

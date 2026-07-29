@@ -6,6 +6,7 @@ import { useScreelUI } from '../components/ScreelUI';
 import { useScreel } from '../context/ScreelContext';
 import { connectScreenTimeFlow } from '../native/connectScreenTimeFlow';
 import { ScreelScreenTime } from '../native/ScreelScreenTime';
+import { reselectTrackedApps } from '../native/reselectTrackedApps';
 import {
   ALLOWANCE_MAX,
   ALLOWANCE_MIN,
@@ -18,7 +19,7 @@ function toTimeInputValue(hour: number, minute: number): string {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-export function BankScreen() {
+export function BankScreen({ embedded = false }: { embedded?: boolean }) {
   const {
     state,
     remaining,
@@ -52,6 +53,28 @@ export function BankScreen() {
     if (settingsEditable) return true;
     setPinMode('unlock');
     return false;
+  };
+
+  const onReselectApps = async () => {
+    if (linking) return;
+    setLinking(true);
+    try {
+      const result = await reselectTrackedApps({
+        budgetMinutes: state.minutesBank,
+        resetHour: state.resetHour,
+        resetMinute: state.resetMinute,
+      });
+      if (!result.ok) {
+        toast(result.message ?? 'Could not open app picker.', { title: 'Select apps', tone: 'warn' });
+        return;
+      }
+      toast(`Tracking ${result.applicationCount ?? 0} selection(s).`, {
+        title: 'Apps updated',
+        tone: 'success',
+      });
+    } finally {
+      setLinking(false);
+    }
   };
 
   const onConnect = async () => {
@@ -163,17 +186,20 @@ export function BankScreen() {
   };
 
   return (
-    <div className="screen">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">Allowance</div>
-        <h1 className="display lg">Your bank</h1>
-        <p className="lede">
-          Daily minutes for the apps you choose to limit. Earn a little more from minigames — losses never
-          take from this pile. Fresh Screel budget, not your Settings Screen Time total.
-        </p>
-      </motion.div>
+    <div className={embedded ? 'bank-embedded' : 'screen'}>
+      {!embedded ? (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="eyebrow">Allowance</div>
+          <h1 className="display lg">Your bank</h1>
+          <p className="lede">
+            Daily minutes for the apps you choose to limit. Earn more from skill puzzles — optional Play
+            challenges can adjust today’s allowance. Minutes have no cash value. Fresh Screel budget, not
+            your Settings Screen Time total.
+          </p>
+        </motion.div>
+      ) : null}
 
-      <section className="section" style={{ marginTop: 14 }}>
+      <section className="section" style={{ marginTop: embedded ? 0 : 14 }}>
         <div className="section-head">
           <h2>
             <span className="idx">01</span> Connection
@@ -197,9 +223,19 @@ export function BankScreen() {
           </div>
           <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
             {state.connected ? (
-              <button type="button" className="btn btn-secondary btn-block" onClick={() => void onDisconnect()}>
-                <Link2Off size={16} /> Disconnect & unlock
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-block"
+                  onClick={() => void onReselectApps()}
+                  disabled={linking}
+                >
+                  <Link2 size={16} /> {linking ? 'Opening…' : 'Select / change apps'}
+                </button>
+                <button type="button" className="btn btn-secondary btn-block" onClick={() => void onDisconnect()}>
+                  <Link2Off size={16} /> Disconnect & unlock
+                </button>
+              </>
             ) : (
               <button
                 type="button"
@@ -214,29 +250,31 @@ export function BankScreen() {
         </div>
       </section>
 
-      <div className="hero-panel bank-hero-stable" style={{ marginTop: 18 }}>
-        <div className="bank-row">
-          <div>
-            <div className="bank-value tabular">{formatMinutes(state.minutesBank)}</div>
-            <span className="bank-unit">in bank</span>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="display md tabular" style={{ color: 'var(--lime)' }}>
-              {formatMinutes(remaining)}
+      {!embedded ? (
+        <div className="hero-panel bank-hero-stable" style={{ marginTop: 18 }}>
+          <div className="bank-row">
+            <div>
+              <div className="bank-value tabular">{formatMinutes(state.minutesBank)}</div>
+              <span className="bank-unit">in bank</span>
             </div>
-            <span className="bank-unit">still free</span>
+            <div style={{ textAlign: 'right' }}>
+              <div className="display md tabular" style={{ color: 'var(--lime)' }}>
+                {formatMinutes(remaining)}
+              </div>
+              <span className="bank-unit">still free</span>
+            </div>
+          </div>
+          <div className="bank-meta">
+            <p>
+              Used this period: <strong className="tabular">{formatMinutes(state.minutesUsed)}</strong>
+              {state.connected ? (isNativeLink ? ' · selected apps' : ' · simulated') : ' · not linked yet'}
+            </p>
+            <p>
+              Auto-resets daily at <strong>{resetLabel}</strong> · {state.timeZone}
+            </p>
           </div>
         </div>
-        <div className="bank-meta">
-          <p>
-            Used this period: <strong className="tabular">{formatMinutes(state.minutesUsed)}</strong>
-            {state.connected ? (isNativeLink ? ' · selected apps' : ' · simulated') : ' · not linked yet'}
-          </p>
-          <p>
-            Auto-resets daily at <strong>{resetLabel}</strong> · {state.timeZone}
-          </p>
-        </div>
-      </div>
+      ) : null}
 
       <section className="section">
         <div className="section-head">

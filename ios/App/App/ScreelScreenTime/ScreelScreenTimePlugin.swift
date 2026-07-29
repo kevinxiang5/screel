@@ -24,6 +24,7 @@ public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
     CAPPluginMethod(name: "applyShieldWhenBroke", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "getLinkStatus", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "resetUsageDay", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "presentUsageReport", returnType: CAPPluginReturnPromise),
   ]
 
   private let center = DeviceActivityCenter()
@@ -168,6 +169,18 @@ public class ScreelScreenTimePlugin: CAPPlugin, CAPBridgedPlugin {
       "resetHour": ScreelScreenTimeShared.resetHour,
       "resetMinute": ScreelScreenTimeShared.resetMinute,
     ])
+  }
+
+  @objc func presentUsageReport(_ call: CAPPluginCall) {
+    DispatchQueue.main.async {
+      guard let presenter = self.bridge?.viewController else {
+        call.reject("No view controller")
+        return
+      }
+      UsageReportHost.present(from: presenter) { shown in
+        call.resolve(["shown": shown])
+      }
+    }
   }
 
   private static func mapStatus(_ status: AuthorizationStatus) -> String {

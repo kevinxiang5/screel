@@ -1,10 +1,10 @@
-import { BarChart3, Home, Spade, Timer, UserRound } from 'lucide-react';
+import { BarChart3, Brain, Home, Spade, UserRound } from 'lucide-react';
 import type { TabId } from '../types';
 
 const TABS: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'home', label: 'Home', icon: Home },
+  { id: 'earn', label: 'Earn', icon: Brain },
   { id: 'play', label: 'Play', icon: Spade },
-  { id: 'bank', label: 'Bank', icon: Timer },
   { id: 'stats', label: 'Stats', icon: BarChart3 },
   { id: 'you', label: 'You', icon: UserRound },
 ];

@@ -1,4 +1,4 @@
-import { BellOff, Clock, Gamepad2, Link2, MessageCircle, Moon, Play, Radio, ShieldCheck, Sparkles, Target, Timer, Tv } from 'lucide-react';
+import { BellOff, Brain, Clock, Gamepad2, Link2, MessageCircle, Moon, Play, Radio, ShieldCheck, Sparkles, Target, Timer, Tv } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useScreel } from '../context/ScreelContext';
 import { connectScreenTimeFlow } from '../native/connectScreenTimeFlow';
@@ -165,7 +165,8 @@ export function SetupFlow() {
                 {[
                   { icon: Timer, text: 'Set a daily minute budget for chosen apps' },
                   { icon: ShieldCheck, text: 'Apps can lock when the budget runs out' },
-                  { icon: Sparkles, text: 'Stake minutes on challenges to win more' },
+                  { icon: Brain, text: 'Clear skill puzzles to earn minutes back' },
+                  { icon: Sparkles, text: 'Optional: stake minutes on challenges' },
                 ].map(({ icon: Icon, text }) => (
                   <div className="feature-row" key={text}>
                     <span className="feature-icon">

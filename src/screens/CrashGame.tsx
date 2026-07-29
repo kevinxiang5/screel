@@ -109,6 +109,7 @@ export function CrashGame({ onBack }: { onBack: () => void }) {
     <GameChrome
       title="Timing run"
       onBack={onBack}
+      className="crash-screen"
       backDisabled={stage === 'running'}
       banner={banner}
       setup={

@@ -37,6 +37,8 @@ export interface ScreelScreenTimePlugin {
     minutesUsed: number;
     budgetMinutes: number;
   }>;
+  /** Present DeviceActivityReport sheet (top apps / week compare). */
+  presentUsageReport(): Promise<{ shown: boolean }>;
 }
 
 const webImpl: ScreelScreenTimePlugin = {
@@ -73,6 +75,9 @@ const webImpl: ScreelScreenTimePlugin = {
       minutesUsed: 0,
       budgetMinutes: 0,
     };
+  },
+  async presentUsageReport() {
+    return { shown: false };
   },
 };
 
@@ -158,5 +163,9 @@ export const ScreelScreenTime: ScreelScreenTimePlugin = {
       budgetMinutes: 0,
     };
     return withTimeout(nativePlugin.getLinkStatus(), 5000, empty, empty);
+  },
+  presentUsageReport() {
+    if (!Capacitor.isNativePlatform()) return webImpl.presentUsageReport();
+    return withTimeout(nativePlugin.presentUsageReport(), 120_000, { shown: false }, { shown: false });
   },
 };
