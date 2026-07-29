@@ -12,7 +12,7 @@
 | Contests | **None** |
 | Gambling (real money) | **No** |
 | Loot Boxes | **No** |
-| Age Assurance | **No** (welcome disclosure only; soft 17+ lockout) |
+| Age Assurance | **No** (welcome disclosure only; soft 13+ lockout) |
 | Parental Controls | **No** |
 | Unrestricted Web Access | **No** |
 | UGC / Social / Messaging | **No** |

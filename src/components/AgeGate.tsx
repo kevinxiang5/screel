@@ -1,6 +1,6 @@
 import { useScreel } from '../context/ScreelContext';
 
-export const AGE_FLOOR = 17;
+export const AGE_FLOOR = 13;
 
 export function AgeGate() {
   const { verifyAge, blockUnderage } = useScreel();
