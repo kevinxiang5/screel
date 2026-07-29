@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "licenses": "license-checker --summary && license-checker --json > docs/compliance/licenses/dependencies.json",
-    "build:ios": "npm run build && npx cap sync ios && node scripts/fix-ios-spm-paths.mjs",
+    "build:ios": "npm run build && npx cap sync ios",
     "open:ios": "npx cap open ios"
   },
   "dependencies": {
