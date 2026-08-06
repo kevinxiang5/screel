@@ -122,6 +122,19 @@ export function calendarDayKey(
   return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
 }
 
+/** Extract YYYY-MM-DD from a periodId like `2026-08-06T04:00@America/Los_Angeles`. */
+export function dayKeyFromPeriodId(id: string): string | null {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(id);
+  return match ? match[1] : null;
+}
+
+/** Shift a YYYY-MM-DD key by `delta` calendar days. */
+export function shiftDayKey(dayKey: string, delta: number): string {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  const shifted = addCalendarDays(y, m, d, delta);
+  return `${shifted.year}-${String(shifted.month).padStart(2, '0')}-${String(shifted.day).padStart(2, '0')}`;
+}
+
 export function formatMinutes(total: number): string {
   const m = Math.max(0, Math.round(total));
   const h = Math.floor(m / 60);

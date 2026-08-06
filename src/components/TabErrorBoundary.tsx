@@ -27,7 +27,7 @@ export class TabErrorBoundary extends Component<Props, State> {
         <div className="eyebrow">Something went wrong</div>
         <h1 className="display md">{this.props.label ?? 'This screen'} couldn’t load</h1>
         <p className="lede">
-          A temporary error stopped this view. Your minute data is still on this device — try again.
+          A temporary error stopped this view. Your minute data is still on this device. Try again.
         </p>
         <button
           type="button"

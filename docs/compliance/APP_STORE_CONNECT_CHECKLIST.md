@@ -1,4 +1,4 @@
-# App Store Connect checklist (US only) — screen-time helper / individual account
+# App Store Connect checklist (US only). Screen-time helper / individual account
 
 > **Current build warning (July 17, 2026):** The app now lets users stake allowance minutes and lose that stake. This likely meets Apple’s simulated-gambling definition and is high-risk for an Individual Developer account. Do not reuse the “Simulated Gambling = None” answers below without new policy/legal review.
 
@@ -19,35 +19,35 @@
 | Advertising | **No** |
 | Other mature content | **None** unless clearly present |
 
-Expected rating: Productivity / Lifestyle — **not** 17+ simulated gambling.
+Expected rating: Productivity / Lifestyle. **Not** 17+ simulated gambling.
 
 If you answer Simulated Gambling = Frequent/Infrequent on an Individual account, Apple will reject. Do not declare gambling and then ask for an Individual exception.
 
 ## Category
 
-- Primary: **Productivity** (or **Lifestyle**) — match Second Thought–style wellbeing apps
+- Primary: **Productivity** (or **Lifestyle**). Match Second Thought–style wellbeing apps
 - Secondary: optional Lifestyle / Productivity
 - Not Made for Kids
 
 ## Listing copy (paste)
 
-**Subtitle:** `Challenges for screen time`
+**Subtitle:** `Screen time you can stake`
 
 **Promotional text:**  
-Set a daily minute budget, build better habits, and clear optional focus challenges.
+The screen time app that makes earning minutes fun. Set a daily budget, earn time back with skill puzzles, or stake minutes in optional Play challenges.
 
 **Description:**
 
 ```
-Screel is a screen-time helper for iPhone.
+Screel is a screen time budget you can earn back.
 
-• Set a daily minute allowance for apps you select
-• Link Apple Screen Time (Family Controls) to enforce when you’re out
-• Optional challenges: Safe tiles, Timing run, Multiplier wheel, Twenty-one, Match three, and more
-• Choose a minute stake before each challenge
-• Wins add the displayed payout; misses subtract the stake
-• Unlimited challenge starts and full progress stats
-• Optional PIN lock on allowance settings
+Set a daily minute allowance for the apps you choose. Link Apple Screen Time so limits stick when you’re out of time.
+
+Earn minutes two ways:
+• Skill puzzles on Earn pay fixed minutes (capped each day)
+• Optional Play challenges let you stake minutes from today’s budget. Wins add a payout. Misses subtract the stake.
+
+Your bank resets on a schedule you pick. Lucky runs are capped so one hot streak cannot explode your allowance.
 
 No real money. No deposits. No cash-out. Minutes are only your daily screen allowance.
 
@@ -57,7 +57,7 @@ Designed for self-directed screen-time management. United States only for v1.
 **Keywords:** `screen time,focus,habit,app limit,digital wellbeing,minutes,challenge`
 
 **What’s New (resubmit):**  
-Added minute stakes, challenge customization, unlimited starts, and clearer progress stats.
+Clearer earn and stake flow, daily win caps, and sharper product messaging.
 
 ## Review notes (paste)
 
@@ -73,7 +73,7 @@ Challenge starts are unlimited. The app contains no ads or in-app purchases.
 
 No real money, deposits, withdrawals, chips, or IAP for minutes.
 
-United States only. No demo account — all data on-device.
+United States only. No demo account. All data on-device.
 
 Store screenshots should lead with the bank / Screen Time setup (not the color wheel).
 ```

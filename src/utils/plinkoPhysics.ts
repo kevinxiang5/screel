@@ -39,7 +39,7 @@ export interface PlinkoBallState {
   y: number;
   vx: number;
   vy: number;
-  /** Right deflections so far — maps to landing bin (classic Plinko). */
+  /** Right deflections so far . maps to landing bin (classic Plinko). */
   rights: number;
   /** Highest peg row that already triggered a bounce. */
   lastRowHit: number;
@@ -143,7 +143,7 @@ function binFromX(layout: PlinkoLayout, x: number): number {
   return Math.max(0, Math.min(layout.bins - 1, idx));
 }
 
-/** One peg bounce per row — 50/50 left/right like standard Plinko boards. */
+/** One peg bounce per row . 50/50 left/right like standard Plinko boards. */
 function bouncePeg(ball: PlinkoBallState, peg: Peg, layout: PlinkoLayout): boolean {
   const dx = ball.x - peg.x;
   const dy = ball.y - peg.y;
@@ -155,7 +155,7 @@ function bouncePeg(ball: PlinkoBallState, peg: Peg, layout: PlinkoLayout): boole
   const ny = dy / dist;
   pushOut(ball, nx, ny, minDist, dist);
 
-  // Already bounced this row — only separate, no second impulse (prevents pin-stick).
+  // Already bounced this row . only separate, no second impulse (prevents pin-stick).
   if (peg.row <= ball.lastRowHit) return true;
 
   // Only register a row bounce while falling onto the peg from above.
@@ -219,7 +219,7 @@ export function stepBall(ball: PlinkoBallState, layout: PlinkoLayout): PlinkoBal
 
     collideWalls(next, layout);
 
-    // Closest peg first — avoids fighting multiple overlaps in one substep.
+    // Closest peg first . avoids fighting multiple overlaps in one substep.
     let hitPeg: Peg | null = null;
     let hitDist = Infinity;
     for (const peg of layout.pegs) {

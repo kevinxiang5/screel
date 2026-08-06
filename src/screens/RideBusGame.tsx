@@ -324,17 +324,17 @@ export function RideBusGame({ onBack }: { onBack: () => void }) {
       }
     >
       <p className="lede bus-lede">
-        Color → higher/lower → inside/outside → suit. Cash out after any win — a miss loses your stake.
+        Color → higher/lower → inside/outside → suit. Cash out after any win. A miss loses your stake.
       </p>
 
       <div className="bus-meta">
         <div className="stat-tile">
           <div className="label">Round</div>
-          <div className="value">{round === 0 ? '—' : `${round}/4`}</div>
+          <div className="value">{round === 0 ? '-' : `${round}/4`}</div>
         </div>
         <div className="stat-tile">
           <div className="label">Cash out</div>
-          <div className="value">{round === 0 ? '—' : `+${Math.round(pot)}m`}</div>
+          <div className="value">{round === 0 ? '-' : `+${Math.round(pot)}m`}</div>
         </div>
       </div>
 

@@ -201,7 +201,7 @@ export function SlotsGame({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </div>
-        <p className="slots-paytable">Any pair or triple wins. Take the payout — or try one double-up respin.</p>
+        <p className="slots-paytable">Any pair or triple wins. Take the payout, or try one double-up respin.</p>
       </div>
     </GameChrome>
   );

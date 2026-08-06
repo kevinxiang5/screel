@@ -1,3 +1,5 @@
+import { MAX_STAKE } from '../types';
+
 export function WagerSelector({
   value,
   remaining,
@@ -9,13 +11,13 @@ export function WagerSelector({
   onChange: (value: number) => void;
   disabled?: boolean;
 }) {
-  const max = Math.max(1, remaining);
+  const max = Math.max(1, Math.min(MAX_STAKE, remaining));
   const selected = Math.min(Math.max(1, value), max);
   const unavailable = disabled || remaining < 1;
 
   const presets = Array.from(
     new Set(
-      [1, 5, 10, 25, 50, max]
+      [1, 5, 10, 15, 30, max]
         .map((n) => Math.round(n))
         .filter((n) => n >= 1 && n <= max),
     ),
@@ -47,7 +49,7 @@ export function WagerSelector({
             onClick={() => onChange(amount)}
             disabled={unavailable}
           >
-            {amount === max && max > 50 ? 'All' : `${amount}m`}
+            {`${amount}m`}
           </button>
         ))}
       </div>

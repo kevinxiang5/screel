@@ -1,4 +1,4 @@
-/** Lightweight local PIN hash — device-only lock, not cryptographic auth. */
+/** Lightweight local PIN hash. Device-only lock, not cryptographic auth. */
 
 const SALT = 'screel-bank-pin-v1';
 

@@ -1,5 +1,5 @@
 :root {
-  /* Classic Screel lime/coral/gold — dark tinted shell, not flat grey. */
+  /* Classic Screel lime/coral/gold . Dark tinted shell, not flat grey. */
   --ink: #060907;
   --ink-2: #0b100c;
   --felt: #121a14;
@@ -131,7 +131,7 @@ button {
   overflow: hidden;
 }
 
-/* Soft top wash — muted lime, keeps shell dark. */
+/* Soft top wash . Muted lime, keeps shell dark. */
 .app-shell::before {
   content: '';
   pointer-events: none;
@@ -142,7 +142,7 @@ button {
   z-index: 0;
 }
 
-/* Fine film grain — tactile texture that reads as "crafted", not rendered. */
+/* Fine film grain . Tactile texture that reads as "crafted", not rendered. */
 .app-shell::after {
   content: '';
   pointer-events: none;
@@ -169,7 +169,7 @@ button {
   scrollbar-color: rgba(200, 255, 46, 0.35) transparent;
 }
 
-/* —— Loading —— */
+/* Loading */
 .loading {
   position: fixed;
   inset: 0;
@@ -180,37 +180,152 @@ button {
   overflow: hidden;
 }
 
+.loading::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  z-index: 0;
+  background:
+    radial-gradient(80% 65% at 15% 10%, rgba(200, 255, 46, 0.18), transparent 55%),
+    radial-gradient(70% 60% at 85% 30%, rgba(240, 201, 77, 0.14), transparent 50%),
+    repeating-linear-gradient(
+      120deg,
+      rgba(200, 255, 46, 0.05) 0px,
+      rgba(200, 255, 46, 0.05) 10px,
+      transparent 10px,
+      transparent 28px
+    );
+  opacity: 0.95;
+  transform: translate3d(0, 0, 0);
+  animation: loadingBgDrift 6.5s var(--ease-in-out, ease-in-out) infinite alternate;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(closest-side at 50% 45%, rgba(246, 243, 234, 0.12), transparent 70%),
+    linear-gradient(180deg, rgba(10, 16, 12, 0.25), rgba(0, 0, 0, 0.55));
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.loading-stage {
+  position: relative;
+  z-index: 1;
+  width: 260px;
+  height: 260px;
+  display: grid;
+  place-items: center;
+}
+
 .loading-logo {
-  width: min(132px, 34vw);
-  height: auto;
+  width: min(118px, 30vw);
+  height: min(118px, 30vw);
+  object-fit: cover;
+  border-radius: 999px;
   display: block;
   user-select: none;
   -webkit-user-drag: none;
+  position: relative;
+  z-index: 2;
+  box-shadow:
+    0 0 0 3px rgba(200, 255, 46, 0.28),
+    0 0 28px rgba(200, 255, 46, 0.22);
+  animation: logoFloat 2.8s ease-in-out infinite;
 }
 
-.loading-bar {
+.loading-orbit {
   position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Outer rotor: pure 0→360 spin (smooth on every browser). */
+.loading-float-rotor {
+  --dot-dur: 3.2s;
+  --dot-delay: 0s;
+  position: absolute;
+  inset: 0;
+  animation: loadingRotorSpin var(--dot-dur) linear infinite;
+  animation-delay: var(--dot-delay);
+}
+
+/* Inner arm: static start angle, no animation. */
+.loading-float-arm {
+  --arm-angle: 0deg;
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--arm-angle));
+}
+
+.loading-float-dot {
+  --dot-size: 8px;
+  --dot-dist: 96px;
+  --dot-opacity: 0.85;
+  --dot-delay: 0s;
+  position: absolute;
+  top: 50%;
   left: 50%;
-  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
-  width: 50%;
-  height: 3px;
-  transform: translateX(-50%);
+  width: var(--dot-size);
+  height: var(--dot-size);
+  margin: calc(var(--dot-size) / -2) 0 0 calc(var(--dot-size) / -2);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-  overflow: hidden;
+  background: radial-gradient(circle at 30% 30%, #e8ff8a, var(--lime) 55%, #8fd400);
+  box-shadow:
+    0 0 0 3px rgba(200, 255, 46, 0.1),
+    0 0 16px rgba(200, 255, 46, 0.45);
+  transform: translateX(var(--dot-dist));
+  opacity: 0;
+  animation: loadingDotIn 0.75s var(--ease-out) forwards;
+  animation-delay: var(--dot-delay);
 }
 
-.loading-bar > span {
-  display: block;
-  height: 100%;
-  width: 0%;
-  border-radius: inherit;
-  background: #fff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.45);
-  animation: loadFill 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+@keyframes loadingBgDrift {
+  from {
+    transform: translate3d(-4%, -2%, 0) scale(1.02);
+    filter: hue-rotate(0deg);
+  }
+  to {
+    transform: translate3d(4%, 2%, 0) scale(1.02);
+    filter: hue-rotate(6deg);
+  }
 }
 
-/* —— Tab bar —— */
+@keyframes logoFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.02);
+  }
+}
+
+@keyframes loadingRotorSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loadingDotIn {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--dot-dist) * 0.4)) scale(0.35);
+  }
+  to {
+    opacity: var(--dot-opacity);
+    transform: translateX(var(--dot-dist)) scale(1);
+  }
+}
+
+/* Tab bar */
 .tab-bar {
   position: relative;
   left: auto;
@@ -259,43 +374,55 @@ button {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  transition: opacity 0.32s var(--ease-out), transform 0.32s var(--ease-out);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 1;
+  transform: translateY(6px);
+  transition:
+    opacity 0.28s var(--ease-out),
+    transform 0.28s var(--ease-out),
+    visibility 0s linear 0.28s;
 }
 
 .tab-page.is-active {
   opacity: 1;
-  transform: none;
-  z-index: 2;
   visibility: visible;
-  animation: tabIn 0.34s var(--ease-out) both;
-}
-
-@keyframes tabIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.994);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  pointer-events: auto;
+  z-index: 2;
+  transform: none;
+  transition:
+    opacity 0.28s var(--ease-out),
+    transform 0.28s var(--ease-out),
+    visibility 0s linear 0s;
 }
 
 .tab-page.is-hidden {
   opacity: 0;
-  transform: translateY(10px) scale(0.994);
+  visibility: hidden;
   pointer-events: none;
   z-index: 1;
-  visibility: hidden;
-  /* Delay visibility flip until the fade finishes so it eases out, not cuts. */
-  transition: opacity 0.24s var(--ease-out), transform 0.24s var(--ease-out),
-    visibility 0s linear 0.24s;
+  transform: translateY(6px);
+  transition:
+    opacity 0.22s var(--ease-out),
+    transform 0.22s var(--ease-out),
+    visibility 0s linear 0.22s;
 }
 
 .tab-fallback {
   flex: 1;
   min-height: 120px;
   background: transparent;
+}
+
+.legal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--felt-deep, #090e0a);
+  overflow: hidden;
 }
 
 .tab-page > .screen,
@@ -309,6 +436,13 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Crossfade game list ↔ table without a blank gap. */
+.game-route > .screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
 }
 
 .app-shell.in-game .screen.game-in {
@@ -389,7 +523,7 @@ button {
   height: 20px;
 }
 
-/* —— Shared UI —— */
+/* Shared UI */
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -404,11 +538,11 @@ button {
 
 .eyebrow::before {
   content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
   background: currentColor;
-  box-shadow: 0 0 12px currentColor;
+  opacity: 0.55;
 }
 
 .display {
@@ -646,6 +780,15 @@ button {
   color: var(--mute);
 }
 
+.gauge-sub {
+  margin-top: 2px;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
 .hero-side {
   flex: 1;
   min-width: 0;
@@ -725,7 +868,7 @@ button {
   }
 }
 
-/* Level card — a small narrative instead of four identical tiles. */
+/* Level card . A small narrative instead of four identical tiles. */
 .level-card {
   display: flex;
   align-items: center;
@@ -1052,7 +1195,7 @@ button {
   gap: var(--s2);
 }
 
-/* Small index numeral before section titles — an editorial, designed touch. */
+/* Small index numeral before section titles . An editorial, designed touch. */
 .section-head h2 .idx {
   font-family: var(--font-body);
   font-size: 0.66rem;
@@ -1429,7 +1572,7 @@ button {
   border-color: transparent;
 }
 
-/* —— Games —— */
+/* Games */
 .game-stage {
   min-height: 100%;
   display: flex;
@@ -1444,6 +1587,10 @@ button {
   gap: 12px;
   margin-bottom: 16px;
   min-height: 44px;
+}
+
+.earn-puzzle-top {
+  margin-bottom: 12px;
 }
 
 .game-top .back-btn,
@@ -1981,7 +2128,7 @@ button {
   }
 }
 
-/* —— Chips —— */
+/* Chips */
 .chip-tray {
   display: flex;
   justify-content: center;
@@ -2038,7 +2185,7 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-/* —— Blackjack table —— */
+/* Blackjack table */
 .bj-screen,
 .rl-screen {
   padding-bottom: 16px;
@@ -2395,7 +2542,7 @@ button {
   color: transparent;
 }
 
-/* —— Roulette table —— */
+/* Roulette table */
 .rl-top {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -2837,7 +2984,7 @@ button {
   gap: 10px;
 }
 
-/* —— Custom modal + toasts —— */
+/* Custom modal + toasts */
 .screel-toasts {
   position: fixed;
   left: 50%;
@@ -3146,7 +3293,7 @@ button {
   font-family: 'DM Sans', system-ui, sans-serif;
 }
 
-/* —— Arcade floor cards —— */
+/* Arcade floor cards */
 .game-card.mines {
   background:
     radial-gradient(circle at 80% 10%, rgba(167, 139, 250, 0.34), transparent 45%),
@@ -3252,7 +3399,7 @@ button {
   transform: rotate(-8deg);
 }
 
-/* —— Plinko board —— */
+/* Plinko board */
 .plinko-meta {
   display: flex;
   justify-content: space-between;
@@ -3377,7 +3524,7 @@ button {
   transform: translateY(-2px);
 }
 
-/* —— Mines —— */
+/* Mines */
 .mines-screen .game-top {
   margin-bottom: 10px;
 }
@@ -3462,7 +3609,7 @@ button {
   margin-bottom: 12px;
 }
 
-/* —— Crash —— */
+/* Crash */
 .crash-stage {
   position: relative;
   display: grid;
@@ -3513,7 +3660,7 @@ button {
   color: var(--mute);
 }
 
-/* —— Slots —— */
+/* Slots */
 .slots-cabinet {
   display: grid;
   gap: 14px;
@@ -3556,7 +3703,7 @@ button {
   color: var(--mute);
 }
 
-/* —— Hi-Lo —— */
+/* Hi-Lo */
 .hilo-stage {
   display: grid;
   justify-items: center;
@@ -3598,7 +3745,7 @@ button {
   margin-bottom: 0;
 }
 
-/* —— Ride the bus —— */
+/* Ride the bus */
 .bus-lede {
   margin: 0 0 10px;
   font-size: 0.78rem;
@@ -3738,7 +3885,7 @@ button {
   color: #ff8a8a;
 }
 
-/* —— Dice —— */
+/* Dice */
 .dice-stage {
   display: grid;
   gap: 16px;
@@ -3858,7 +4005,7 @@ button {
   text-transform: capitalize;
 }
 
-/* —— Bank PIN lock —— */
+/* Bank PIN lock */
 .bank-lock-box {
   display: grid;
   gap: 14px;
@@ -4171,7 +4318,7 @@ button {
   font-size: 0.82rem;
   text-shadow: 0 0 10px rgba(200, 255, 46, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9);
 }
-/* —— Onboarding personalization —— */
+/* Onboarding personalization */
 .setup-progress {
   height: 5px;
   border-radius: 999px;
@@ -4344,6 +4491,109 @@ button {
   letter-spacing: -0.02em;
 }
 
+/* Post-setup “where to start” guide */
+.start-choice-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.start-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(246, 243, 234, 0.04);
+  color: var(--snow);
+  text-align: left;
+  font-family: var(--font-body);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.start-choice:active {
+  transform: scale(0.985);
+}
+
+.start-choice:hover,
+.start-choice:focus-visible {
+  border-color: rgba(200, 255, 46, 0.5);
+  background: rgba(200, 255, 46, 0.08);
+  outline: none;
+}
+
+.start-choice-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(200, 255, 46, 0.12);
+  color: var(--lime);
+}
+
+.start-choice-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.start-choice-copy strong {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.start-choice-copy span {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--mute);
+}
+
+.guide-nudge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  z-index: 28;
+  margin: 0 14px 8px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(200, 255, 46, 0.28);
+  background: linear-gradient(135deg, rgba(200, 255, 46, 0.14), rgba(12, 14, 12, 0.94));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  animation: setupCardIn 0.35s ease-out both;
+  pointer-events: auto;
+}
+
+.guide-nudge p {
+  margin: 0;
+  flex: 1;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--snow);
+}
+
+.guide-nudge-dismiss {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--lime);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
 .game-stats-grid p {
   margin: 0;
   color: var(--mute);
@@ -4476,7 +4726,7 @@ button {
   border-radius: var(--r-md) !important;
   border: 1px solid var(--hairline) !important;
 }
-/* Keep per-game color washes — do not flatten to grey. */
+/* Keep per-game color washes . Do not flatten to grey. */
 
 .pill { border-radius: var(--r-sm) !important; padding: 6px 10px; }
 .pill.live { color: var(--lime); background: var(--lime-dim); border-color: rgba(200, 255, 46, 0.28); }
@@ -4720,7 +4970,7 @@ button {
   max-width: 34ch;
 }
 
-/* Dark tinted game stages — color without leaving the dark-grey shell. */
+/* Dark tinted game stages . Color without leaving the dark-grey shell. */
 .screen.game-stage {
   background:
     radial-gradient(120% 70% at 50% -10%, rgba(246, 243, 234, 0.04), transparent 55%),

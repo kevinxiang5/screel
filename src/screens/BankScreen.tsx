@@ -60,7 +60,7 @@ export function BankScreen({ embedded = false }: { embedded?: boolean }) {
     setLinking(true);
     try {
       const result = await reselectTrackedApps({
-        budgetMinutes: state.minutesBank,
+        budgetMinutes: state.baseLimit,
         resetHour: state.resetHour,
         resetMinute: state.resetMinute,
       });
@@ -82,7 +82,7 @@ export function BankScreen({ embedded = false }: { embedded?: boolean }) {
 
     const ready = await confirm({
       title: 'Link Screen Time?',
-      message: `Screel starts a fresh ${formatMinutes(state.minutesBank)} budget from now — it does not import the hours already in Settings → Screen Time.\n\nPick only the apps you want limited (not everything).\n\nDaily reset: ${resetLabel} (${state.timeZone}).`,
+      message: `Screel starts a fresh ${formatMinutes(state.minutesBank)} budget from now. It does not import the hours already in Settings → Screen Time.\n\nPick only the apps you want limited (not everything).\n\nDaily reset: ${resetLabel} (${state.timeZone}).`,
       confirmLabel: 'Continue',
       cancelLabel: 'Cancel',
       tone: 'warn',
@@ -93,7 +93,7 @@ export function BankScreen({ embedded = false }: { embedded?: boolean }) {
     toast('Connecting…', { title: 'Usage link', tone: 'info' });
     try {
       const result = await connectScreenTimeFlow({
-        budgetMinutes: state.minutesBank,
+        budgetMinutes: state.baseLimit,
         resetHour: state.resetHour,
         resetMinute: state.resetMinute,
       });
@@ -105,7 +105,7 @@ export function BankScreen({ embedded = false }: { embedded?: boolean }) {
       toast(
         result.mode === 'screenTime'
           ? `Fresh ${formatMinutes(state.minutesBank)} bank. Tracking ${result.applicationCount ?? 0} selection(s). Resets at ${resetLabel}.`
-          : 'Demo link on — used minutes start at 0 for this session.',
+          : 'Demo link on. Used minutes start at 0 for this session.',
         { title: result.mode === 'screenTime' ? 'Screen Time linked' : 'Usage simulated', tone: 'success' },
       );
     } catch (err) {
@@ -188,13 +188,13 @@ export function BankScreen({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className={embedded ? 'bank-embedded' : 'screen'}>
       {!embedded ? (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
           <div className="eyebrow">Allowance</div>
           <h1 className="display lg">Your bank</h1>
           <p className="lede">
-            Daily minutes for the apps you choose to limit. Earn more from skill puzzles — optional Play
-            challenges can adjust today’s allowance. Minutes have no cash value. Fresh Screel budget, not
-            your Settings Screen Time total.
+            Daily minutes for the apps you choose to limit. Earn more from skill puzzles. Optional Play
+            challenges can win or lose from today’s allowance. Minutes have no cash value. Fresh Screel
+            budget, not your Settings Screen Time total.
           </p>
         </motion.div>
       ) : null}
@@ -216,7 +216,7 @@ export function BankScreen({ embedded = false }: { embedded?: boolean }) {
                 {state.connected
                   ? isNativeLink
                     ? `Budget ${formatMinutes(state.minutesBank)} · resets ${resetLabel}`
-                    : 'Demo sync — reconnect anytime for real limits.'
+                    : 'Demo sync. Reconnect anytime for real limits.'
                   : 'Most important step: authorize, pick apps, start your fresh bank.'}
               </p>
             </div>

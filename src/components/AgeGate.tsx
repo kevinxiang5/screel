@@ -11,7 +11,8 @@ export function AgeGate() {
         <div className="eyebrow">Welcome</div>
         <h1 className="display lg">Ready to focus?</h1>
         <p className="lede">
-          Screel helps you set a daily phone budget, earn minutes back, and keep limits honest.
+          Screel is a screen time budget you can earn back. Skill puzzles pay fixed minutes. Optional Play
+          stakes let you win or lose from today’s allowance.
         </p>
         <div className="disclosure-box">
           <p>
@@ -48,7 +49,7 @@ export function AgeBlocked() {
         </p>
         <div className="disclosure-box">
           <p>
-            If this was a mistake, delete the app and reinstall, or clear site data — then answer the welcome
+            If this was a mistake, delete the app and reinstall, or clear site data, then answer the welcome
             check honestly.
           </p>
         </div>

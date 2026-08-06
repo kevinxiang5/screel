@@ -87,16 +87,17 @@ export function GamesScreen({
 
   return (
     <div className="game-route">
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="sync" initial={false}>
         {!activeGame && (
           <GameListMotion key="list">
-            <motion.div className="play-shell" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            <motion.div className="play-shell" initial={false} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
               <div>
               <div className="eyebrow">Challenges</div>
               <h1 className="display lg">Choose your spot</h1>
               <p className="lede">
-                Screel works best when Play feels curated, not crowded. Start with one strong pick, then move into
-                shorter or riskier rounds.{state.winStreak > 0 ? ` ${state.winStreak} win streak live.` : ''}
+                Stake minutes from today’s budget. Wins add a payout. Misses subtract the stake. Start with one
+                strong pick, then try a quicker round.
+                {state.winStreak > 0 ? ` ${state.winStreak} win streak going.` : ''}
               </p>
               </div>
 

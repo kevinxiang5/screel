@@ -51,7 +51,7 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       layoutRef.current = next;
       setLayout(next);
     };
-    // Board shape changed — wipe leftover balls from the previous risk layout.
+    // Board shape changed . wipe leftover balls from the previous risk layout.
     clearBalls();
     measure();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
@@ -105,7 +105,7 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
         changed = true;
       }
 
-      // Only keep balls still in flight — settled ones leave the board after payout.
+      // Only keep balls still in flight . settled ones leave the board after payout.
       const live = nextBalls.filter((b) => !b.settled);
       if (changed || live.length !== prev.length) {
         ballsRef.current = live;
@@ -277,7 +277,7 @@ export function PlinkoGame({ onBack }: { onBack: () => void }) {
       <div className="rl-history" style={{ marginTop: 8 }}>
         <span className="hand-label">Last</span>
         <div className="rl-history-row">
-          {history.length === 0 && <span className="mute">—</span>}
+          {history.length === 0 && <span className="mute">-</span>}
           {history.map((h, i) => (
             <span
               key={`${h.mult}-${i}`}

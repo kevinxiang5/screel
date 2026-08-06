@@ -1,4 +1,13 @@
 import type { UsageDayLog } from '../../types';
+import {
+  lastNDays,
+  unusedAllowance,
+  weekOverWeekUsed,
+  withLive,
+  type LiveUsage,
+  type UsagePeriodOpts,
+} from '../../utils/usageStats';
+import { calendarDayKey } from '../../utils/dayPeriod';
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -10,39 +19,33 @@ function padDay(n: number) {
   return String(n).padStart(2, '0');
 }
 
-/** Build the last N calendar days (including empty slots) for charts. */
-export function lastNDays(log: UsageDayLog[], n: number): UsageDayLog[] {
-  const rows = Array.isArray(log) ? log : [];
-  const byDay = new Map(rows.map((row) => [row.day, row]));
-  const out: UsageDayLog[] = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i -= 1) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    const key = `${d.getFullYear()}-${padDay(d.getMonth() + 1)}-${padDay(d.getDate())}`;
-    out.push(
-      byDay.get(key) ?? {
-        day: key,
-        used: 0,
-        bank: 0,
-        puzzleEarned: 0,
-        stakeNet: 0,
-      },
-    );
-  }
-  return out;
-}
+export type { LiveUsage, UsagePeriodOpts };
+export { lastNDays, unusedAllowance, weekOverWeekUsed };
 
-export function UsageHeatmap({ log }: { log: UsageDayLog[] }) {
-  const rows = Array.isArray(log) ? log : [];
+export function UsageHeatmap({
+  log,
+  resetHour = 4,
+  resetMinute = 0,
+  timeZone = 'UTC',
+  live,
+}: {
+  log: UsageDayLog[];
+  resetHour?: number;
+  resetMinute?: number;
+  timeZone?: string;
+  live?: LiveUsage;
+}) {
+  const opts = { resetHour, resetMinute, timeZone };
+  const byDay = withLive(log, opts, live);
+  const rows = [...byDay.values()];
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
-  const byDay = new Map(rows.map((row) => [row.day, row]));
   const maxUsed = Math.max(1, ...rows.map((row) => row.used || 0), 1);
   const count = daysInMonth(year, month);
   const label = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const startWeekday = new Date(year, month, 1).getDay();
-  const todayKey = `${year}-${padDay(month + 1)}-${padDay(now.getDate())}`;
+  const periodToday = calendarDayKey(now, resetHour, resetMinute, timeZone);
 
   return (
     <div className="heatmap">
@@ -61,17 +64,13 @@ export function UsageHeatmap({ log }: { log: UsageDayLog[] }) {
           const key = `${year}-${padDay(month + 1)}-${padDay(day)}`;
           const row = byDay.get(key);
           const intensity = row ? row.used / maxUsed : 0;
-          const isToday = key === todayKey;
+          const isToday = key === periodToday;
           return (
             <div
               key={key}
               className={`heatmap-cell dated ${isToday ? 'today' : ''} ${row ? 'has-data' : ''}`}
               title={row ? `${key}: ${row.used}m used` : `${key}: no data yet`}
-              style={
-                row
-                  ? { ['--heat' as string]: String(0.22 + intensity * 0.78) }
-                  : undefined
-              }
+              style={row ? { ['--heat' as string]: String(0.22 + intensity * 0.78) } : undefined}
             >
               <span className="heatmap-day">{day}</span>
             </div>
@@ -79,15 +78,27 @@ export function UsageHeatmap({ log }: { log: UsageDayLog[] }) {
         })}
       </div>
       <div className="meter-meta">
-        <span>Number = date</span>
+        <span>Days follow your reset clock</span>
         <span>Brighter = more usage</span>
       </div>
     </div>
   );
 }
 
-export function WeekBars({ log }: { log: UsageDayLog[] }) {
-  const days = lastNDays(log, 7);
+export function WeekBars({
+  log,
+  resetHour = 4,
+  resetMinute = 0,
+  timeZone = 'UTC',
+  live,
+}: {
+  log: UsageDayLog[];
+  resetHour?: number;
+  resetMinute?: number;
+  timeZone?: string;
+  live?: LiveUsage;
+}) {
+  const days = lastNDays(log, 7, { resetHour, resetMinute, timeZone }, live);
   const max = Math.max(1, ...days.map((row) => row.used), 1);
   return (
     <div className="week-bars">
@@ -102,23 +113,4 @@ export function WeekBars({ log }: { log: UsageDayLog[] }) {
       ))}
     </div>
   );
-}
-
-export function unusedAllowance(log: UsageDayLog[]): number {
-  if (!Array.isArray(log)) return 0;
-  return log.reduce((sum, row) => sum + Math.max(0, (row.bank ?? 0) - (row.used ?? 0)), 0);
-}
-
-export function weekOverWeekUsed(log: UsageDayLog[]): {
-  thisWeek: number;
-  lastWeek: number;
-  pct: number | null;
-} {
-  const thisWeek = lastNDays(log, 7);
-  const twoWeeks = lastNDays(log, 14);
-  const lastWeek = twoWeeks.slice(0, 7);
-  const a = thisWeek.reduce((s, r) => s + r.used, 0);
-  const b = lastWeek.reduce((s, r) => s + r.used, 0);
-  if (b === 0) return { thisWeek: a, lastWeek: b, pct: null };
-  return { thisWeek: a, lastWeek: b, pct: Math.round(((a - b) / b) * 100) };
 }

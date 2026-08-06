@@ -140,7 +140,7 @@ export function DiceGame({ onBack }: { onBack: () => void }) {
         <div className="rl-history">
           <span className="hand-label">Last rolls</span>
           <div className="rl-history-row">
-            {history.length === 0 && <span className="mute">—</span>}
+            {history.length === 0 && <span className="mute">-</span>}
             {history.map((h, i) => (
               <span key={`${h.roll}-${i}`} className={`rl-hist ${h.won ? 'green' : 'red'}`}>
                 {h.roll}

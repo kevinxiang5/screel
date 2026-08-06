@@ -77,7 +77,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
     setCard(next);
     setSuit(SUITS[Math.floor(Math.random() * SUITS.length)]);
     if (!won) {
-      setNearMiss(`Would have been ${label(next)} — streak broken.`);
+      setNearMiss(`Would have been ${label(next)}. Streak broken.`);
       setStage('done');
       settleRound({
         game: 'hilo',
@@ -135,7 +135,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
       }
       dock={
         <>
-          <p className="rl-hint">Correct calls grow the payout. Bank anytime — a miss loses your stake.</p>
+          <p className="rl-hint">Correct calls grow the payout. Bank anytime. A miss loses your stake.</p>
           {stage === 'ready' || stage === 'done' ? (
             <button type="button" className="btn btn-primary btn-block" onClick={start}>
               {stage === 'done' ? 'New run' : 'Start'}
@@ -192,7 +192,7 @@ export function HiLoGame({ onBack }: { onBack: () => void }) {
           </div>
           <div className="stat-tile">
             <div className="label">Payout</div>
-            <div className="value">{streak === 0 ? '—' : `+${pot}m`}</div>
+            <div className="value">{streak === 0 ? '-' : `+${pot}m`}</div>
           </div>
         </div>
         {nearMiss && <p className="near-miss">{nearMiss}</p>}

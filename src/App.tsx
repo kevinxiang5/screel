@@ -1,7 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AgeBlocked, AgeGate } from './components/AgeGate';
 import type { LegalDoc } from './components/LegalDocView';
+import { FirstRunGuide, GuideNudge } from './components/FirstRunGuide';
 import { LoadingScreen } from './components/LoadingScreen';
 import { ScreelUIProvider, useScreelUI } from './components/ScreelUI';
 import { SetupFlow } from './components/SetupFlow';
@@ -21,7 +22,6 @@ const LegalDocView = lazy(() =>
 );
 
 const REVIEW_PROMPT_KEY = 'screel-review-prompt-v1';
-const REVIEW_PROMPT_LAUNCH = 5;
 
 function TabPane({ children, label }: { children: ReactNode; label?: string }) {
   return (
@@ -32,7 +32,7 @@ function TabPane({ children, label }: { children: ReactNode; label?: string }) {
 }
 
 function ScreelApp() {
-  const { state } = useScreel();
+  const { state, dismissGuideTip } = useScreel();
   const { confirm, toast } = useScreelUI();
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<TabId>('home');
@@ -44,62 +44,64 @@ function ScreelApp() {
   const finishLoading = useCallback(() => setReady(true), []);
   const inGame = tab === 'play' && Boolean(activeGame);
   const showTabs = !inGame && !legalDoc;
+  const showGuide = state.setupComplete && !state.guideComplete;
+  const showShell = state.setupComplete && state.guideComplete;
+  const guideTip = state.guideTipTab;
 
   useEffect(() => {
-    if (!ready || !state.setupComplete) return;
-    const id = window.setTimeout(() => {
-      void Promise.all([
-        import('./screens/HomeScreen'),
-        import('./screens/EarnScreen'),
-        import('./screens/GamesScreen'),
-        import('./screens/StatsScreen'),
-        import('./screens/ProfileScreen'),
-        import('./components/LegalDocView'),
-      ]);
-    }, 200);
-    return () => window.clearTimeout(id);
-  }, [ready, state.setupComplete]);
+    if (!ready || !showShell) return;
+    void Promise.all([
+      import('./screens/HomeScreen'),
+      import('./screens/EarnScreen'),
+      import('./screens/GamesScreen'),
+      import('./screens/StatsScreen'),
+      import('./screens/ProfileScreen'),
+      import('./components/LegalDocView'),
+    ]);
+  }, [ready, showShell]);
 
   useEffect(() => {
-    if (!ready || !state.setupComplete || launchTrackedRef.current) return;
+    if (!ready || !showShell || launchTrackedRef.current) return;
     launchTrackedRef.current = true;
 
     let launches = 0;
-    let prompted = false;
+    let lastAttemptLaunch: number | null = null;
     try {
       const raw = localStorage.getItem(REVIEW_PROMPT_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as { launches?: number; prompted?: boolean };
+        const parsed = JSON.parse(raw) as { launches?: number; lastAttemptLaunch?: number };
         launches = typeof parsed.launches === 'number' ? parsed.launches : 0;
-        prompted = Boolean(parsed.prompted);
+        lastAttemptLaunch = typeof parsed.lastAttemptLaunch === 'number' ? parsed.lastAttemptLaunch : null;
       }
     } catch {
       /* ignore */
     }
 
     const nextLaunches = launches + 1;
-    localStorage.setItem(
-      REVIEW_PROMPT_KEY,
-      JSON.stringify({ launches: nextLaunches, prompted }),
-    );
+    localStorage.setItem(REVIEW_PROMPT_KEY, JSON.stringify({ launches: nextLaunches, lastAttemptLaunch }));
 
-    if (prompted || nextLaunches < REVIEW_PROMPT_LAUNCH) return;
+    const scheduled = nextLaunches === 5 || nextLaunches === 15 || nextLaunches === 30;
+    const shouldAsk =
+      scheduled &&
+      lastAttemptLaunch !== nextLaunches;
+    if (!shouldAsk) return;
 
     const ask = window.setTimeout(async () => {
       const wantsToRate = await confirm({
         title: 'Enjoying Screel?',
         message: 'If Screel has been helpful so far, would you rate the app? It helps a lot.',
         confirmLabel: 'Rate app',
-        cancelLabel: 'Later',
+        cancelLabel: 'No thanks',
+        dismissOnBackdrop: false,
         tone: 'default',
       });
 
+      if (!wantsToRate) return;
+
       localStorage.setItem(
         REVIEW_PROMPT_KEY,
-        JSON.stringify({ launches: nextLaunches, prompted: true }),
+        JSON.stringify({ launches: nextLaunches, lastAttemptLaunch: nextLaunches }),
       );
-
-      if (!wantsToRate) return;
 
       const opened = await requestReviewPrompt();
       if (!opened) {
@@ -110,14 +112,14 @@ function ScreelApp() {
         return;
       }
 
-      toast('Thanks — opened the App Store so you can leave a rating.', {
+      toast('Thanks. Opened the App Store so you can leave a rating.', {
         title: 'Rate Screel',
         tone: 'success',
       });
     }, 1400);
 
     return () => window.clearTimeout(ask);
-  }, [ready, state.setupComplete, confirm, toast]);
+  }, [ready, showShell, confirm, toast]);
 
   const goPlay = (game: GameId) => {
     setVisited((prev) => {
@@ -132,6 +134,7 @@ function ScreelApp() {
   };
 
   const changeTab = (next: TabId) => {
+    if (next === tab && !legalDoc && !(next === 'play' && activeGame)) return;
     setVisited((prev) => {
       if (prev.has(next)) return prev;
       const copy = new Set(prev);
@@ -143,82 +146,118 @@ function ScreelApp() {
     setTab(next);
   };
 
+  const startFromGuide = (next: TabId) => {
+    setVisited((prev) => {
+      if (prev.has(next)) return prev;
+      const copy = new Set(prev);
+      copy.add(next);
+      return copy;
+    });
+    setActiveGame(null);
+    setLegalDoc(null);
+    setTab(next);
+  };
+
   return (
     <>
       <AnimatePresence>{!ready && <LoadingScreen onDone={finishLoading} />}</AnimatePresence>
       {ready && state.ageBlocked && <AgeBlocked />}
       {ready && !state.ageBlocked && !state.ageVerified && <AgeGate />}
       {ready && !state.ageBlocked && state.ageVerified && !state.setupComplete && <SetupFlow />}
-      {ready && !state.ageBlocked && state.ageVerified && state.setupComplete && (
-        <div className={`app-shell ${inGame ? 'in-game' : ''}`}>
-          {legalDoc ? (
-            <TabPane>
-              <LegalDocView doc={legalDoc} onBack={() => setLegalDoc(null)} />
-            </TabPane>
-          ) : (
-            <div className="tab-route">
-              {visited.has('home') && (
-                <div
-                  className={`tab-page ${tab === 'home' ? 'is-active' : 'is-hidden'}`}
-                  aria-hidden={tab !== 'home'}
-                >
-                  <TabPane label="Home">
-                    <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
-                  </TabPane>
-                </div>
-              )}
-              {visited.has('earn') && (
-                <div
-                  className={`tab-page ${tab === 'earn' ? 'is-active' : 'is-hidden'}`}
-                  aria-hidden={tab !== 'earn'}
-                >
-                  <TabPane label="Earn">
-                    <EarnScreen />
-                  </TabPane>
-                </div>
-              )}
-              {visited.has('play') && (
-                <div
-                  className={`tab-page ${tab === 'play' ? 'is-active' : 'is-hidden'}`}
-                  aria-hidden={tab !== 'play'}
-                >
-                  <TabPane label="Play">
-                    <GamesScreen
-                      activeGame={activeGame}
-                      onSelect={setActiveGame}
-                      onBack={() => setActiveGame(null)}
-                    />
-                  </TabPane>
-                </div>
-              )}
-              {visited.has('stats') && (
-                <div
-                  className={`tab-page ${tab === 'stats' ? 'is-active' : 'is-hidden'}`}
-                  aria-hidden={tab !== 'stats'}
-                >
-                  <TabPane label="Stats">
-                    <StatsScreen onNavigate={changeTab} />
-                  </TabPane>
-                </div>
-              )}
-              {visited.has('you') && (
-                <div
-                  className={`tab-page ${tab === 'you' ? 'is-active' : 'is-hidden'}`}
-                  aria-hidden={tab !== 'you'}
-                >
-                  <TabPane label="You">
-                    <ProfileScreen onOpenLegal={setLegalDoc} />
-                  </TabPane>
-                </div>
-              )}
-            </div>
-          )}
+      {ready && !state.ageBlocked && state.ageVerified && showGuide && (
+        <FirstRunGuide onChoose={startFromGuide} />
+      )}
+      {ready && !state.ageBlocked && state.ageVerified && showShell && (
+        <motion.div
+          className={`app-shell ${inGame ? 'in-game' : ''}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="tab-route">
+            {visited.has('home') && (
+              <div
+                className={`tab-page ${tab === 'home' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+                aria-hidden={tab !== 'home' || Boolean(legalDoc)}
+              >
+                <TabPane label="Home">
+                  <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
+                </TabPane>
+              </div>
+            )}
+            {visited.has('earn') && (
+              <div
+                className={`tab-page ${tab === 'earn' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+                aria-hidden={tab !== 'earn' || Boolean(legalDoc)}
+              >
+                <TabPane label="Earn">
+                  <EarnScreen />
+                </TabPane>
+              </div>
+            )}
+            {visited.has('play') && (
+              <div
+                className={`tab-page ${tab === 'play' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+                aria-hidden={tab !== 'play' || Boolean(legalDoc)}
+              >
+                <TabPane label="Play">
+                  <GamesScreen
+                    activeGame={activeGame}
+                    onSelect={setActiveGame}
+                    onBack={() => setActiveGame(null)}
+                  />
+                </TabPane>
+              </div>
+            )}
+            {visited.has('stats') && (
+              <div
+                className={`tab-page ${tab === 'stats' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+                aria-hidden={tab !== 'stats' || Boolean(legalDoc)}
+              >
+                <TabPane label="Stats">
+                  <StatsScreen onNavigate={changeTab} />
+                </TabPane>
+              </div>
+            )}
+            {visited.has('you') && (
+              <div
+                className={`tab-page ${tab === 'you' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+                aria-hidden={tab !== 'you' || Boolean(legalDoc)}
+              >
+                <TabPane label="You">
+                  <ProfileScreen onOpenLegal={setLegalDoc} />
+                </TabPane>
+              </div>
+            )}
+          </div>
+
+          <AnimatePresence>
+            {legalDoc ? (
+              <motion.div
+                key={legalDoc}
+                className="legal-overlay"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 18 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <TabPane>
+                  <LegalDocView doc={legalDoc} onBack={() => setLegalDoc(null)} />
+                </TabPane>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {guideTip && guideTip === tab && !inGame && !legalDoc ? (
+            <GuideNudge tab={guideTip} onDismiss={dismissGuideTip} />
+          ) : null}
+
           {showTabs ? (
             <div className="tab-bar-wrap">
               <TabBar active={tab} onChange={changeTab} />
             </div>
           ) : null}
-        </div>
+        </motion.div>
       )}
     </>
   );

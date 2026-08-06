@@ -11,6 +11,7 @@ import {
   WeekBars,
   weekOverWeekUsed,
 } from '../components/stats/UsageCharts';
+import { calendarDayKey } from '../utils/dayPeriod';
 import { connectScreenTimeFlow } from '../native/connectScreenTimeFlow';
 import { reselectTrackedApps } from '../native/reselectTrackedApps';
 
@@ -32,9 +33,25 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
   const [showChallenges, setShowChallenges] = useState(false);
   const [busy, setBusy] = useState<'report' | 'pick' | 'link' | null>(null);
   const usageLog = Array.isArray(state.usageDayLog) ? state.usageDayLog : [];
-  const unused = unusedAllowance(usageLog);
+  const periodOpts = {
+    resetHour: state.resetHour,
+    resetMinute: state.resetMinute,
+    timeZone: state.timeZone,
+  };
+  const liveUsage = {
+    used: state.minutesUsed,
+    bank: state.minutesBank,
+    puzzleEarned: state.puzzleEarnedToday,
+  };
+  const periodToday = calendarDayKey(
+    new Date(),
+    state.resetHour,
+    state.resetMinute,
+    state.timeZone,
+  );
+  const unused = unusedAllowance(usageLog, periodToday);
   const todayUnused = Math.max(0, (state.minutesBank ?? 0) - (state.minutesUsed ?? 0));
-  const wow = weekOverWeekUsed(usageLog);
+  const wow = weekOverWeekUsed(usageLog, periodOpts, liveUsage);
   const isNativeLink = state.connected && state.usageSource === 'screenTime';
 
   const openReport = async () => {
@@ -54,7 +71,7 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
     if (busy) return;
     setBusy('pick');
     const result = await reselectTrackedApps({
-      budgetMinutes: state.minutesBank,
+      budgetMinutes: state.baseLimit,
       resetHour: state.resetHour,
       resetMinute: state.resetMinute,
     });
@@ -76,7 +93,7 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
     if (busy) return;
     setBusy('link');
     const result = await connectScreenTimeFlow({
-      budgetMinutes: state.minutesBank,
+      budgetMinutes: state.baseLimit,
       resetHour: state.resetHour,
       resetMinute: state.resetMinute,
     });
@@ -99,11 +116,11 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
 
   return (
     <div className="screen">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">Usage</div>
         <h1 className="display lg">Stats</h1>
         <p className="lede">
-          Honest numbers from your Screel budget — unused allowance, not invented doomscroll hours.
+          Honest numbers from your Screel budget: unused allowance, not invented doomscroll hours.
         </p>
       </motion.div>
 
@@ -113,7 +130,8 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
             <div className="label">Unused allowance today</div>
             <div className="stats-hero-value pos">+{todayUnused}m</div>
             <p className="lede" style={{ marginTop: 8 }}>
-              {todayUnused}m still in today’s bank · base limit {state.baseLimit}m.
+              {todayUnused}m still in today’s bank · {state.minutesUsed}m used of {state.minutesBank}m ·
+              base {state.baseLimit}m.
             </p>
           </div>
           <div className="stats-hero-side">
@@ -142,14 +160,14 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
         <div className="stat-tile" style={{ marginBottom: 12 }}>
           <div className="label">Tracked selection · week vs last</div>
           <div className="value">
-            {wow.pct == null ? '—' : `${wow.pct > 0 ? '+' : ''}${wow.pct}%`}
+            {wow.pct == null ? '-' : `${wow.pct > 0 ? '+' : ''}${wow.pct}%`}
           </div>
           <p>
             This week {wow.thisWeek}m · last week {wow.lastWeek}m.
             {state.connected
               ? isNativeLink
                 ? ' Screen Time is linked.'
-                : ' Demo mode — link on iPhone to pick real apps.'
+                : ' Demo mode. Link on iPhone to pick real apps.'
               : ' Not linked yet.'}
           </p>
         </div>
@@ -199,7 +217,13 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
             <span className="idx">02</span> Calendar heat
           </h2>
         </div>
-        <UsageHeatmap log={usageLog} />
+        <UsageHeatmap
+          log={usageLog}
+          resetHour={state.resetHour}
+          resetMinute={state.resetMinute}
+          timeZone={state.timeZone}
+          live={liveUsage}
+        />
       </section>
 
       <section className="section">
@@ -208,7 +232,13 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
             <span className="idx">03</span> Last 7 days
           </h2>
         </div>
-        <WeekBars log={usageLog} />
+        <WeekBars
+          log={usageLog}
+          resetHour={state.resetHour}
+          resetMinute={state.resetMinute}
+          timeZone={state.timeZone}
+          live={liveUsage}
+        />
       </section>
 
       <section className="section">
@@ -243,7 +273,7 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
                     </p>
                   </div>
                   <div className={`delta ${h.delta > 0 ? 'up' : h.delta < 0 ? 'down' : ''}`}>
-                    {h.delta > 0 ? `+${h.delta}m` : h.delta < 0 ? `${h.delta}m` : '—'}
+                    {h.delta > 0 ? `+${h.delta}m` : h.delta < 0 ? `${h.delta}m` : '-'}
                   </div>
                 </div>
               );
@@ -251,7 +281,7 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
           )
         ) : (
           <p className="lede" style={{ margin: 0, fontSize: '0.85rem' }}>
-            Stake wins/losses stay available here — usage is the main story now.
+            Stake wins and losses stay available here. Usage is the main story now.
           </p>
         )}
       </section>

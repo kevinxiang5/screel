@@ -124,7 +124,7 @@ export function SetupFlow() {
     toast('Connecting…', { title: 'Screen Time', tone: 'info' });
     try {
       const result = await connectScreenTimeFlow({
-        budgetMinutes: state.minutesBank,
+        budgetMinutes: state.baseLimit,
         resetHour: state.resetHour,
         resetMinute: state.resetMinute,
       });
@@ -136,7 +136,7 @@ export function SetupFlow() {
       toast(
         result.mode === 'screenTime'
           ? `Linked · ${formatMinutes(state.minutesBank)} bank · ${result.applicationCount ?? 0} selection(s).`
-          : 'Demo link for now — you can reconnect later from Bank.',
+          : 'Demo link for now. You can reconnect later from Bank.',
         { title: `You’re set, ${firstName}`, tone: 'success' },
       );
       completeSetup();
@@ -160,12 +160,15 @@ export function SetupFlow() {
             <>
               <img className="setup-mark" src={`${import.meta.env.BASE_URL}logo.png`} alt="Screel" />
               <h1 className="display lg">Let’s take your time back</h1>
-              <p className="lede">A few quick questions so Screel fits how you actually use your phone.</p>
+              <p className="lede">
+                A screen time budget you can earn back. Puzzles pay fixed minutes. Optional Play stakes can win
+                or lose time from today’s allowance.
+              </p>
               <div className="feature-list">
                 {[
                   { icon: Timer, text: 'Set a daily minute budget' },
                   { icon: ShieldCheck, text: 'Chosen apps can lock when time runs out' },
-                  { icon: Brain, text: 'Earn minutes back with skill puzzles' },
+                  { icon: Brain, text: 'Earn minutes with puzzles, or stake them in Play' },
                 ].map(({ icon: Icon, text }) => (
                   <div className="feature-row" key={text}>
                     <span className="feature-icon">
@@ -236,7 +239,7 @@ export function SetupFlow() {
           {step === 'apps' && (
             <>
               <h1 className="display lg">What eats your time?</h1>
-              <p className="lede">Pick everything that applies — you’ll choose the exact apps later.</p>
+              <p className="lede">Pick everything that applies. You’ll choose the exact apps later.</p>
               <div className="chip-grid">
                 {DISTRACTIONS.map(({ id, label, icon: Icon }) => (
                   <button
@@ -269,7 +272,7 @@ export function SetupFlow() {
           {step === 'estimate' && (
             <>
               <h1 className="display lg">How much time do they take?</h1>
-              <p className="lede">Rough guess for an average day — be honest, {firstName}.</p>
+              <p className="lede">Rough guess for an average day. Be honest, {firstName}.</p>
 
               <div className="limit-control panel-box setup-stable" style={{ marginTop: 14 }}>
                 <label>
@@ -374,7 +377,7 @@ export function SetupFlow() {
               <h1 className="display lg">Last step, {firstName}</h1>
               <p className="lede">
                 Link Apple Screen Time so limits actually stick. We’ll start a{' '}
-                <strong>fresh {formatMinutes(state.minutesBank)}</strong> budget — not the hours already in
+                <strong>fresh {formatMinutes(state.minutesBank)}</strong> budget, not the hours already in
                 Settings.
               </p>
               <div className="disclosure-box">

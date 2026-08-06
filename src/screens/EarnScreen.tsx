@@ -209,7 +209,7 @@ const CATALOG: {
   {
     id: 'nback',
     title: 'N-Back',
-    blurb: 'Working memory — same as N ago?',
+    blurb: 'Working memory. Same as N ago?',
     icon: FlipHorizontal2,
     difficulty: 'hard',
     Component: NBackPuzzle,
@@ -271,7 +271,7 @@ export function EarnScreen() {
       toast(
         puzzleRemaining < 1
           ? `Daily puzzle cap reached (${PUZZLE_DAILY_CAP}m).`
-          : 'Short cooldown — wait a moment before the next clear.',
+          : 'Short cooldown. Wait a moment before the next clear.',
         { title: 'No minutes credited', tone: 'info' },
       );
     } else {
@@ -288,11 +288,12 @@ export function EarnScreen() {
     const ActivePuzzle = active.Component;
     return (
       <div className="screen earn-screen">
-        <button type="button" className="back-btn" onClick={() => setActive(null)}>
-          Back to Earn
-        </button>
-        <div className="eyebrow" style={{ marginTop: 12 }}>
-          Skill earn-back · {active.difficulty} · +{PUZZLE_REWARDS[active.difficulty]}m
+        <div className="game-top earn-puzzle-top">
+          <button type="button" className="back-btn" onClick={() => setActive(null)}>
+            Back to Earn
+          </button>
+          <span className="game-title-chip">Earn</span>
+          <span aria-hidden />
         </div>
         <h1 className="display md">{active.title}</h1>
         <p className="lede">No stake. Fixed reward. Cap {PUZZLE_DAILY_CAP}m/day.</p>
@@ -310,11 +311,12 @@ export function EarnScreen() {
 
   return (
     <div className="screen earn-screen">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">Regain minutes</div>
         <h1 className="display lg">Earn</h1>
         <p className="lede">
-          Skill puzzles pay fixed minutes — easy +2m, medium +3m, hard +4m. No stakes.
+          Skill puzzles pay fixed minutes: easy +2m, medium +3m, hard +4m. No stakes. Cap {PUZZLE_DAILY_CAP}m
+          per day. For winning or losing minutes on purpose, use Play.
         </p>
       </motion.div>
 

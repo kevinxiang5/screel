@@ -30,7 +30,7 @@ export async function connectScreenTimeFlow(options: {
     return {
       ok: false,
       title: 'Nothing selected',
-      message: 'Pick only the apps you want Screel to limit — avoid selecting everything.',
+      message: 'Pick only the apps you want Screel to limit. Avoid selecting everything.',
       tone: 'warn',
     };
   }

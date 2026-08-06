@@ -233,9 +233,9 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     }
 
     if (result === 'push') {
-      // Return the escrowed stake — net zero.
+      // Return the escrowed stake . net zero.
       resolveCurrent(stakeRef.current, `${handLabel(pCards)} vs ${handLabel(dCards)} · push`, 'push');
-      setBanner({ text: 'Push — no minutes won or lost.', kind: 'push' });
+      setBanner({ text: 'Push. No minutes won or lost.', kind: 'push' });
       setPhase('result');
       setBusy(false);
       return;
@@ -316,7 +316,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
           <p className="rl-hint">
             {phase === 'playing'
               ? canDouble
-                ? 'Double doubles the payout and draws one card — then you hold.'
+                ? 'Double doubles the payout and draws one card, then you hold.'
                 : 'Draw or hold. Win to bank or go again once.'
               : phase === 'ride'
                 ? ridesLeft > 0
@@ -366,7 +366,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
     >
       <div className="bj-table">
         <div className="bj-hand">
-          <span className="hand-label">House · {dealer.length ? handLabel(dealer) : '—'}</span>
+          <span className="hand-label">House · {dealer.length ? handLabel(dealer) : '-'}</span>
           <div className="bj-cards">
             {dealer.map((c) => (
               <CardView key={c.id} card={c} />
@@ -374,7 +374,7 @@ export function BlackjackTable({ onBack }: { onBack: () => void }) {
           </div>
         </div>
         <div className="bj-hand">
-          <span className="hand-label">You · {player.length ? handLabel(player) : '—'}</span>
+          <span className="hand-label">You · {player.length ? handLabel(player) : '-'}</span>
           <div className="bj-cards">
             {player.map((c) => (
               <CardView key={c.id} card={c} />

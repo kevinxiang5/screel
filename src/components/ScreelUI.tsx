@@ -24,6 +24,8 @@ interface ConfirmOptions {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** When false, clicking the backdrop does not dismiss the dialog. */
+  dismissOnBackdrop?: boolean;
   tone?: 'warn' | 'danger' | 'default';
 }
 
@@ -104,7 +106,10 @@ export function ScreelUIProvider({ children }: { children: ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => closeConfirm(false)}
+            onClick={() => {
+              if (confirmState.dismissOnBackdrop === false) return;
+              closeConfirm(false);
+            }}
           >
             <motion.div
               className={`screel-modal ${confirmState.tone ?? 'default'}`}

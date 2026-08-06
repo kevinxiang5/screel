@@ -230,7 +230,7 @@ export function RouletteTable({ onBack }: { onBack: () => void }) {
       <div className="rl-history">
         <span className="hand-label">Last</span>
         <div className="rl-history-row">
-          {history.length === 0 && <span className="mute">—</span>}
+          {history.length === 0 && <span className="mute">-</span>}
           {history.map((mult, i) => (
             <span key={`${mult}-${i}`} className="rl-hist" style={{ background: colorFor(mult) }}>
               {mult}×

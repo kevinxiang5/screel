@@ -7,7 +7,7 @@ import { BankScreen } from './BankScreen';
 
 const FONT_OPTIONS: { id: FontTheme; label: string; blurb: string }[] = [
   { id: 'felt', label: 'Felt', blurb: 'Bold Syne headlines (default)' },
-  { id: 'editorial', label: 'Editorial', blurb: 'Serif luxury — Playfair + Lora' },
+  { id: 'editorial', label: 'Editorial', blurb: 'Serif luxury. Playfair + Lora' },
   { id: 'soft', label: 'Soft', blurb: 'Round & friendly Fraunces + Nunito' },
   { id: 'clean', label: 'Clean', blurb: 'Sharp geometric DM Sans' },
 ];
@@ -18,7 +18,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
 
   return (
     <div className="screen">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
         <div className="eyebrow">Profile</div>
         <h1 className="display lg">You</h1>
         <p className="lede">
@@ -114,7 +114,7 @@ export function ProfileScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =>
           </div>
           <div className="profile-inline-note">
             Earn puzzles give fixed minutes with no stake. Optional Play challenges may adjust today’s
-            allowance with minute stakes — wins can add a payout, misses subtract the stake. Minutes have no
+            allowance with minute stakes. Wins can add a payout; misses subtract the stake. Minutes have no
             cash value and are not prizes.
           </div>
         </div>

@@ -1,4 +1,4 @@
-/** Sparse haptics — intentionally no native plugin (keeps CapApp-SPM resolvable). */
+/** Sparse haptics. Intentionally no native plugin (keeps CapApp-SPM resolvable). */
 export async function hapticLight(): Promise<void> {
   /* no-op */
 }

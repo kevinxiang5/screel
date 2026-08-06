@@ -4,10 +4,10 @@ import { ArrowLeft } from 'lucide-react';
 import { useScreel } from '../context/ScreelContext';
 
 const pageTransition = {
-  initial: { opacity: 0, x: 28 },
+  initial: { opacity: 0, x: 18 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -20 },
-  transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const },
+  exit: { opacity: 0, x: -14 },
+  transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const },
 };
 
 export function GameChrome({
@@ -23,7 +23,7 @@ export function GameChrome({
   title?: string;
   onBack: () => void;
   backDisabled?: boolean;
-  /** Wager + options — keep mounted to avoid layout jumps. */
+  /** Wager + options. Keep mounted to avoid layout jumps. */
   setup?: ReactNode;
   banner?: { text: string; kind: 'win' | 'lose' | 'push' } | null;
   dock?: ReactNode;
@@ -79,9 +79,9 @@ export function GameListMotion({ children }: { children: ReactNode }) {
   return (
     <motion.div
       className="screen"
-      initial={{ opacity: 0, x: -16 }}
+      initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+      exit={{ opacity: 0, x: 12 }}
       transition={pageTransition.transition}
     >
       {children}

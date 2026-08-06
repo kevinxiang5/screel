@@ -82,11 +82,15 @@ export interface ScreelState {
   /** `screenTime` = Apple Family Controls; `simulated` = local demo (web / fallback). */
   usageSource: UsageSource;
   ageVerified: boolean;
-  /** User said they are under 13 — locked out. */
+  /** User said they are under 13. Locked out. */
   ageBlocked: boolean;
   /** Finished post-age setup (allowance / reset / connect prompt). */
   setupComplete: boolean;
-  /** Why the user is here — picked during onboarding, personalizes copy. */
+  /** Finished the post-setup “where to start?” chooser. */
+  guideComplete: boolean;
+  /** One-shot tip tab after the chooser (cleared when dismissed). */
+  guideTipTab: TabId | null;
+  /** Why the user is here. Picked during onboarding, personalizes copy. */
   focusGoal: string | null;
   /** App categories the user said eat their time. */
   distractions: string[];
@@ -101,7 +105,7 @@ export interface ScreelState {
   resetMinute: number;
   /** IANA timezone used for reset math, e.g. America/Los_Angeles. */
   timeZone: string;
-  /** Last applied period id — when this changes, bank auto-resets. */
+  /** Last applied period id. When this changes, bank auto-resets. */
   activePeriodId: string;
   streak: number;
   /** Current consecutive successful banks (resets on a miss). */
@@ -122,7 +126,7 @@ export interface ScreelState {
   minutesEarnedToday: number;
   /** Minutes earned from skill puzzles in the current period (capped). */
   puzzleEarnedToday: number;
-  /** Last puzzle clear timestamp — short cooldown between clears. */
+  /** Last puzzle clear timestamp. Short cooldown between clears. */
   lastPuzzleAt: number;
   /** Rolling daily usage archive for heatmaps / charts. */
   usageDayLog: UsageDayLog[];
@@ -138,15 +142,29 @@ export interface ScreelState {
 /** Max minutes from skill puzzles per period. */
 export const PUZZLE_DAILY_CAP = 30;
 
+/** Max net minutes from Play stakes per period (wins minus prior losses in the log). */
+export const STAKE_DAILY_NET_CAP = 90;
+
+/** Hard ceiling for a single Play win credit. */
+export const MAX_ROUND_WIN = 60;
+
+/** Max minute stake per challenge. */
+export const MAX_STAKE = 30;
+
 /** Minimum ms between puzzle clears. */
 export const PUZZLE_COOLDOWN_MS = 20_000;
 
-/** Fixed rewards by difficulty — no RNG, no stake. Range 2–4 minutes. */
+/** Fixed rewards by difficulty. No RNG, no stake. Range 2 to 4 minutes. */
 export const PUZZLE_REWARDS = {
   easy: 2,
   medium: 3,
   hard: 4,
 } as const;
+
+/** Bank may not exceed base allowance plus puzzle and stake daily caps. */
+export function bankCeiling(baseLimit: number, allowanceMax: number): number {
+  return Math.min(allowanceMax, Math.max(0, Math.round(baseLimit)) + PUZZLE_DAILY_CAP + STAKE_DAILY_NET_CAP);
+}
 
 /** Base minute pot seeds per stake game (before ladder / multiplier growth). */
 export const GAME_REWARDS: Record<Exclude<GameKind, 'puzzle'>, number> = {

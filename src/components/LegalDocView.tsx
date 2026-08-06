@@ -1,6 +1,12 @@
 import { ArrowLeft } from 'lucide-react';
 import { AGE_FLOOR } from './AgeGate';
-import { PUZZLE_DAILY_CAP, PUZZLE_REWARDS } from '../types';
+import {
+  MAX_ROUND_WIN,
+  MAX_STAKE,
+  PUZZLE_DAILY_CAP,
+  PUZZLE_REWARDS,
+  STAKE_DAILY_NET_CAP,
+} from '../types';
 
 export type LegalDoc = 'privacy' | 'terms' | 'odds' | 'responsible';
 
@@ -76,7 +82,7 @@ function TermsBody() {
       <h3>What Screel is</h3>
       <p>
         Screel is a productivity / screen-time helper. It is entertainment tooling for managing a personal
-        minute allowance — not a bank, not a casino, and not a real-money gaming service.
+        minute allowance. Not a bank, not a casino, and not a real-money gaming service.
       </p>
       <h3>No real money · no prizes</h3>
       <p>
@@ -126,18 +132,22 @@ function OddsBody() {
       <h3>Skill puzzles (Earn)</h3>
       <ul>
         <li>
-          Fixed rewards only: +{PUZZLE_REWARDS.easy}m / +{PUZZLE_REWARDS.medium}m / +{PUZZLE_REWARDS.hard}m —
-          no multipliers or RNG payouts
+          Fixed rewards only: +{PUZZLE_REWARDS.easy}m / +{PUZZLE_REWARDS.medium}m / +{PUZZLE_REWARDS.hard}m.
+          No multipliers or RNG payouts
         </li>
         <li>Daily cap ({PUZZLE_DAILY_CAP} minutes from puzzles) and a short cooldown between clears</li>
         <li>No stake is required to play a puzzle</li>
       </ul>
       <h3>Optional focus challenges (Play)</h3>
       <ul>
-        <li>You may choose a minute stake before a challenge</li>
+        <li>You may choose a minute stake before a challenge (max {MAX_STAKE}m per round)</li>
         <li>A win can add the displayed payout to today’s allowance; a miss subtracts the stake</li>
         <li>
-          Challenges include card, timing, tile, and drop-style formats — outcomes may use device randomness
+          Caps keep lucky runs in check: up to {STAKE_DAILY_NET_CAP}m net from Play per day, {MAX_ROUND_WIN}m
+          max on a single win, and a hard bank ceiling above your base allowance
+        </li>
+        <li>
+          Challenges include card, timing, tile, and drop-style formats. Outcomes may use device randomness
         </li>
       </ul>
       <p>
@@ -158,7 +168,7 @@ function ResponsibleBody() {
       </p>
       <p>
         If Play challenges stop feeling useful and start feeling compulsive, pause them and use Earn puzzles
-        or lower your stake — or step away from the app.
+        or lower your stake, or step away from the app.
       </p>
       <p>
         Screel is not therapy or a crisis service. If you need help with habits or wellbeing, talk to a

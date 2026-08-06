@@ -123,12 +123,12 @@ export function MinesGame({ onBack }: { onBack: () => void }) {
       }
     >
       <p className="lede mines-lede">
-        {hazardCount} hazards in {GRID} tiles — reveal safe spots, bank anytime.
+        {hazardCount} hazards in {GRID} tiles. Reveal safe spots, bank anytime.
       </p>
       <div className="mines-meta">
         <div className="stat-tile">
           <div className="label">Payout now</div>
-          <div className="value">{revealed.size === 0 ? '—' : `+${pot}m`}</div>
+          <div className="value">{revealed.size === 0 ? '-' : `+${pot}m`}</div>
         </div>
         <div className="stat-tile">
           <div className="label">Next tile</div>

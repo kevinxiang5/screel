@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Outfit:wght@400;500;600;700&display=swap');
+
+  :root{
+    --lime:#c8ff2e;
+    --ink:#f4f1e6;
+    --muted:rgba(232,236,224,0.62);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:#000; }
+
+  /* ============ base shot ============ */
+  .shot{
+    position:relative;
+    overflow:hidden;
+    background:#04060400;
+    font-family:Outfit, system-ui, sans-serif;
+    color:var(--ink);
+    isolation:isolate;
+  }
+  /* layered background: deep black + subtle green + warm accents */
+  .bg{
+    position:absolute; inset:0; z-index:-3;
+    background:
+      radial-gradient(120% 70% at 50% -8%, rgba(150,210,60,0.16), rgba(0,0,0,0) 46%),
+      radial-gradient(90% 60% at 84% 6%, rgba(255,150,60,0.10), rgba(0,0,0,0) 48%),
+      radial-gradient(120% 90% at 50% 118%, rgba(120,190,50,0.10), rgba(0,0,0,0) 55%),
+      linear-gradient(180deg, #0a1109 0%, #060906 42%, #030503 100%);
+  }
+  /* faint grid texture */
+  .bg::after{
+    content:""; position:absolute; inset:0; opacity:.05;
+    background-image:
+      linear-gradient(rgba(200,255,46,.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,255,46,.5) 1px, transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(circle at 50% 40%, #000 0%, transparent 70%);
+            mask-image:radial-gradient(circle at 50% 40%, #000 0%, transparent 70%);
+  }
+
+  .brand{
+    position:absolute; left:0; right:0; text-align:center;
+    font-family:Archivo, sans-serif; font-weight:800;
+    letter-spacing:.06em; text-transform:lowercase;
+    color:#f6f4ea;
+  }
+  .brand i{ color:var(--lime); font-style:normal; }
+  .brand .dot{ color:var(--lime); }
+
+  .copy{ position:absolute; left:0; right:0; text-align:center; }
+  .copy h1{
+    font-family:Archivo, sans-serif;
+    font-weight:900;
+    font-variation-settings:'wght' 900, 'wdth' 125;
+    line-height:0.98;
+    letter-spacing:-0.005em;
+    color:#fbfaf4;
+    text-wrap:balance;
+  }
+  .copy h1 em{ color:var(--lime); font-style:normal; }
+  .copy p{
+    font-family:Outfit, sans-serif; font-weight:500;
+    color:var(--muted);
+  }
+
+  .stage{ position:absolute; left:0; right:0; bottom:0; top:0;
+    display:flex; align-items:flex-end; justify-content:center;
+    perspective:2800px; perspective-origin:50% 30%; }
+
+  /* ============ device ============ */
+  .device{
+    position:relative;
+    background:linear-gradient(150deg,#3a3d3a 0%,#161816 30%,#0c0d0c 65%,#202220 100%);
+    box-shadow:
+      0 2px 2px rgba(255,255,255,.12) inset,
+      0 -2px 3px rgba(0,0,0,.6) inset,
+      0 70px 130px rgba(0,0,0,.72),
+      0 24px 60px rgba(0,0,0,.6);
+    transform-style:preserve-3d;
+  }
+  .device::before{ /* rim highlight */
+    content:""; position:absolute; inset:0; border-radius:inherit;
+    box-shadow:0 0 0 2px rgba(255,255,255,.05) inset;
+    pointer-events:none;
+  }
+  .screen{ position:relative; overflow:hidden; background:#080b08; aspect-ratio:1290/2796; }
+  .screen img{ display:block; width:100%; height:100%; object-fit:cover; object-position:center top; }
+  .screen.contain img{ object-fit:contain; object-position:center top; }
+
+  /* ambient colored glow behind a phone */
+  .glow{ position:absolute; z-index:-1; border-radius:50%;
+    filter:blur(90px); opacity:.85; }
+  .glow.g-lime{ background:radial-gradient(circle, rgba(170,230,60,.55), rgba(0,0,0,0) 70%); }
+  .glow.g-warm{ background:radial-gradient(circle, rgba(255,150,60,.42), rgba(0,0,0,0) 70%); }
+  .glow.g-blue{ background:radial-gradient(circle, rgba(70,140,220,.4), rgba(0,0,0,0) 70%); }
+
+  /* ================= iPad 12.9" (2048 x 2732) ================= */
+  .ipad{ width:2048px; height:2732px; }
+  .ipad .brand{ top:96px; font-size:44px; }
+  .ipad .copy{ top:188px; padding:0 150px; }
+  .ipad .copy h1{ font-size:150px; }
+  .ipad .copy.two h1{ font-size:134px; }
+  .ipad .copy p{ font-size:46px; margin-top:40px; }
+  .ipad .device{ border-radius:104px; padding:20px; }
+  .ipad .screen{ border-radius:84px; }
+  .ipad .device.d-single{ width:1060px; }
+  .ipad .device.d-dual{ width:790px; }
+
+  /* ================= iPhone ASC (1284 x 2778) ================= */
+  /* Centered cluster with generous black margins. Fonts unchanged. */
+  .iphone{ width:1284px; height:2778px; }
+  .iphone .brand{ top:280px; font-size:32px; }
+  .iphone .copy{ top:368px; padding:0 110px; }
+  .iphone .copy h1{ font-size:96px; }
+  .iphone .copy.two h1{ font-size:86px; }
+  .iphone .copy p{ font-size:34px; margin-top:24px; }
+  .iphone .device{ border-radius:78px; padding:14px; }
+  .iphone .screen{ border-radius:64px; }
+  .iphone .device.d-single{ width:660px; }
+  .iphone .device.d-dual{ width:430px; }
+  .iphone .stage{ perspective:3400px; perspective-origin:50% 50%; }
+  .iphone .stage.mid{
+    align-items:center;
+    justify-content:center;
+    padding:660px 150px 180px;
+  }
+  .iphone .stage.mid-dual{
+    align-items:center;
+    justify-content:center;
+    padding:680px 120px 160px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== iPad SET ==================== -->
+
+<!-- ipad-01 : HOME focus -->
+<section class="shot ipad" id="p1">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Look up <em>more.</em></h1><p>Your daily minutes at a glance. A budget that sticks.</p></div>
+  <div class="stage" style="align-items:flex-end;">
+    <div class="glow g-lime" style="width:1200px;height:1200px;left:calc(50% - 600px);bottom:120px;"></div>
+    <div class="glow g-warm" style="width:760px;height:760px;left:58%;bottom:520px;"></div>
+    <div class="device d-single" style="transform:translateY(70px) rotateX(6deg) rotateY(-13deg) rotateZ(3deg);">
+      <div class="screen contain"><img src="src/home.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- ipad-02 : gameplay close (twenty-one) -->
+<section class="shot ipad" id="p2">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy two"><h1>Stake minutes.<br/>Win <em>more time.</em></h1><p>Play a round, beat the house, and grow your bank.</p></div>
+  <div class="stage" style="align-items:flex-end;">
+    <div class="glow g-lime" style="width:1100px;height:1100px;left:calc(50% - 550px);bottom:60px;"></div>
+    <div class="glow g-warm" style="width:640px;height:640px;left:20%;bottom:640px;"></div>
+    <div class="device d-single" style="width:1040px;transform:translateY(250px) rotateX(4deg) rotateY(11deg) rotateZ(-4deg);">
+      <div class="screen"><img src="src/twentyone.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- ipad-03 : DUAL play list + home -->
+<section class="shot ipad" id="p3">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy two"><h1>Short challenges.<br/><em>Bonus</em> minutes.</h1><p>Clear a quick round and bank the payout anytime.</p></div>
+  <div class="stage">
+    <div class="glow g-lime" style="width:1000px;height:1000px;left:8%;bottom:220px;"></div>
+    <div class="glow g-warm" style="width:820px;height:820px;left:60%;bottom:360px;"></div>
+    <div class="device d-dual" style="position:absolute;left:150px;bottom:150px;transform:rotateX(5deg) rotateY(16deg) rotateZ(-4deg);z-index:1;">
+      <div class="screen"><img src="src/play.png"/></div>
+    </div>
+    <div class="device d-dual" style="position:absolute;right:150px;bottom:280px;transform:rotateX(5deg) rotateY(-16deg) rotateZ(4deg);z-index:2;">
+      <div class="screen contain"><img src="src/home.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- ipad-04 : DUAL plinko + stats -->
+<section class="shot ipad" id="p4">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy two"><h1>Track the run.<br/>Keep the <em>wins.</em></h1><p>Every minute won and kept, laid out clearly.</p></div>
+  <div class="stage">
+    <div class="glow g-blue" style="width:920px;height:920px;left:6%;bottom:300px;"></div>
+    <div class="glow g-lime" style="width:960px;height:960px;left:56%;bottom:220px;"></div>
+    <div class="device d-dual" style="position:absolute;left:150px;bottom:280px;transform:rotateX(5deg) rotateY(15deg) rotateZ(-4deg);z-index:2;">
+      <div class="screen"><img src="src/plinko.png"/></div>
+    </div>
+    <div class="device d-dual" style="position:absolute;right:150px;bottom:150px;transform:rotateX(5deg) rotateY(-15deg) rotateZ(4deg);z-index:1;">
+      <div class="screen"><img src="src/stats.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== iPhone ASC SET ==================== -->
+
+<!-- asc-01 : home -->
+<section class="shot iphone" id="s1">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Look up <em>more.</em></h1><p>Your daily minutes, at a glance.</p></div>
+  <div class="stage mid">
+    <div class="glow g-lime" style="width:620px;height:620px;left:calc(50% - 310px);top:calc(50% + 100px);"></div>
+    <div class="glow g-warm" style="width:360px;height:360px;left:54%;top:48%;"></div>
+    <div class="device d-single" style="transform:rotateX(2deg) rotateY(-4deg) rotateZ(0.8deg);">
+      <div class="screen contain"><img src="src/home.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- asc-02 : play / twenty-one -->
+<section class="shot iphone" id="s2">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy two"><h1>Stake minutes.<br/>Win <em>time back.</em></h1><p>Beat the house. Bank or double.</p></div>
+  <div class="stage mid">
+    <div class="glow g-lime" style="width:580px;height:580px;left:calc(50% - 290px);top:calc(50% + 120px);"></div>
+    <div class="glow g-warm" style="width:340px;height:340px;left:32%;top:50%;"></div>
+    <div class="device d-single" style="transform:rotateX(1.5deg) rotateY(4deg) rotateZ(-0.8deg);">
+      <div class="screen"><img src="src/twentyone.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- asc-03 : plinko -->
+<section class="shot iphone" id="s3">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Drop the <em>ball.</em></h1><p>Edge bins pay more. Play for extra minutes.</p></div>
+  <div class="stage mid">
+    <div class="glow g-blue" style="width:600px;height:600px;left:calc(50% - 300px);top:calc(50% + 100px);"></div>
+    <div class="glow g-lime" style="width:340px;height:340px;left:54%;top:48%;"></div>
+    <div class="device d-single" style="transform:rotateX(2deg) rotateY(4deg) rotateZ(-0.8deg);">
+      <div class="screen"><img src="src/plinko.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- asc-04 : stats -->
+<section class="shot iphone" id="s4">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy"><h1>Progress you <em>can see.</em></h1><p>Minutes won, win rate, and streaks.</p></div>
+  <div class="stage mid">
+    <div class="glow g-lime" style="width:620px;height:620px;left:calc(50% - 310px);top:calc(50% + 100px);"></div>
+    <div class="glow g-warm" style="width:340px;height:340px;left:32%;top:48%;"></div>
+    <div class="device d-single" style="transform:rotateX(2deg) rotateY(-4deg) rotateZ(0.8deg);">
+      <div class="screen"><img src="src/stats.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- asc-05 : dual home + play -->
+<section class="shot iphone" id="s5">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy two"><h1>Focus first.<br/>Fun <em>second.</em></h1><p>A budget for your apps, with minute stakes for play.</p></div>
+  <div class="stage mid-dual">
+    <div class="glow g-lime" style="width:480px;height:480px;left:calc(50% - 320px);top:calc(50% + 140px);"></div>
+    <div class="glow g-warm" style="width:420px;height:420px;left:calc(50% - 40px);top:calc(50% + 60px);"></div>
+    <div class="device d-dual" style="position:absolute;left:calc(50% - 380px);top:calc(50% + 120px);transform:rotateX(2deg) rotateY(5deg) rotateZ(-1deg);z-index:1;">
+      <div class="screen contain"><img src="src/home.png"/></div>
+    </div>
+    <div class="device d-dual" style="position:absolute;left:calc(50% - 50px);top:calc(50% + 0px);transform:rotateX(2deg) rotateY(-5deg) rotateZ(1deg);z-index:2;">
+      <div class="screen"><img src="src/play.png"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- asc-06 : dual plinko/game + stats -->
+<section class="shot iphone" id="s6">
+  <div class="bg"></div>
+  <div class="brand">scree<i>l</i></div>
+  <div class="copy two"><h1>Play the run.<br/>Keep the <em>wins.</em></h1><p>Stake a game, then watch your progress grow.</p></div>
+  <div class="stage mid-dual">
+    <div class="glow g-blue" style="width:460px;height:460px;left:calc(50% - 320px);top:calc(50% + 80px);"></div>
+    <div class="glow g-lime" style="width:460px;height:460px;left:calc(50% - 60px);top:calc(50% + 160px);"></div>
+    <div class="device d-dual" style="position:absolute;left:calc(50% - 380px);top:calc(50% + 0px);transform:rotateX(2deg) rotateY(5deg) rotateZ(-1deg);z-index:2;">
+      <div class="screen"><img src="src/plinko.png"/></div>
+    </div>
+    <div class="device d-dual" style="position:absolute;left:calc(50% - 50px);top:calc(50% + 120px);transform:rotateX(2deg) rotateY(-5deg) rotateZ(1deg);z-index:1;">
+      <div class="screen"><img src="src/stats.png"/></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

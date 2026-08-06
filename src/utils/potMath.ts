@@ -4,7 +4,7 @@ import { GAME_REWARDS, type GameKind } from '../types';
 /**
  * Target house edge across challenge payouts (~12%).
  * Pot values are always net minutes added on a win.
- * A miss subtracts the stake via settleRound — stake is never escrowed up front.
+ * A miss subtracts the stake via settleRound. Stake is never escrowed up front.
  */
 export const HOUSE_EDGE = 0.12;
 

@@ -13,14 +13,6 @@ const GOAL_LINES: Record<string, string> = {
   present: 'Look up more. Your budget keeps the phone in its place.',
 };
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 5) return 'Up late';
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}
-
 function useCountUp(target: number, duration = 950): number {
   const reduce = useReducedMotion();
   const [value, setValue] = useState(reduce ? target : 0);
@@ -73,24 +65,22 @@ export function HomeScreen({
   const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
   const dateLine = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
-  const ringMax = Math.max(state.minutesBank, remaining, 1);
-  const ringPct = Math.max(0, Math.min(100, (remaining / ringMax) * 100));
+  const bank = Math.max(1, state.minutesBank);
+  const safeRemaining = Math.max(0, Math.min(remaining, bank));
+  const ringPct = Math.max(0, Math.min(100, (safeRemaining / bank) * 100));
   const ringOffset = RING_C * (1 - ringPct / 100);
-  const shownMinutes = useCountUp(remaining);
+  const shownMinutes = useCountUp(safeRemaining);
   const puzzleToday = state.puzzleEarnedToday;
 
   const xpIntoLevel = ((state.xp % 100) + 100) % 100;
   const visibleChallenges = state.challenges;
 
   return (
-    <motion.div className="screen home" variants={container} initial="hidden" animate="show">
+    <motion.div className="screen home" variants={container} initial={false} animate="show">
       <motion.header variants={item}>
         <div className="home-head">
           <div>
-            <div className="eyebrow">
-              {greeting()}
-              {firstName ? `, ${firstName}` : ''}
-            </div>
+            <div className="eyebrow">{firstName || 'Home'}</div>
           </div>
           <div className="home-date">
             {weekday}
@@ -103,13 +93,17 @@ export function HomeScreen({
         </h1>
         <p className="lede">
           {(state.focusGoal && GOAL_LINES[state.focusGoal]) ||
-            'Budget your apps. Earn minutes back with puzzles — Play is optional.'}
+            'Set a daily phone budget. Earn minutes back with puzzles. Optional Play stakes can win or lose time.'}
         </p>
       </motion.header>
 
       <motion.div className="hero-panel" variants={item}>
         <div className="home-hero">
-          <div className="gauge" role="img" aria-label={`${remaining} minutes left of ${state.minutesBank}`}>
+          <div
+            className="gauge"
+            role="img"
+            aria-label={`${safeRemaining} minutes left of ${state.minutesBank} bank, ${state.baseLimit}m daily allowance, ${state.minutesUsed}m used`}
+          >
             <svg viewBox="0 0 120 120">
               <circle className="gauge-track" cx="60" cy="60" r={RING_R} strokeWidth="10" />
               <circle
@@ -132,6 +126,7 @@ export function HomeScreen({
             <div className="gauge-center">
               <div className="gauge-num">{shownMinutes}</div>
               <div className="gauge-label">min left</div>
+              <div className="gauge-sub">of {state.minutesBank}m</div>
             </div>
           </div>
 

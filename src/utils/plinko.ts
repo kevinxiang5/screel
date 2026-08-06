@@ -86,7 +86,7 @@ export function plinkoChance(rows: number, bin: number): number {
   return (binom(rows, bin) / total) * 100;
 }
 
-/** Each row: 50/50 left or right — classic Plinko path. */
+/** Each row: 50/50 left or right. Classic Plinko path. */
 export function dropPlinko(rows: number): { bin: number; path: number[] } {
   const path: number[] = [0];
   let pos = 0;
