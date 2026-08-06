@@ -341,7 +341,7 @@ export function EarnScreen() {
             <div className="section-head">
               <h2>
                 <span className="idx">{String(gi + 1).padStart(2, '0')}</span>{' '}
-                {diff.charAt(0).toUpperCase() + diff.slice(1)} · +{PUZZLE_REWARDS[diff]}m
+                {diff.charAt(0).toUpperCase() + diff.slice(1)} +{PUZZLE_REWARDS[diff]}m
               </h2>
             </div>
             <div className="earn-catalog">

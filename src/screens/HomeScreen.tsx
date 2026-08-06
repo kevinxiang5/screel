@@ -164,7 +164,7 @@ export function HomeScreen({
         </div>
         <div className="home-note">
           <div className="home-note-copy">
-            <strong>Skill puzzles · fixed rewards</strong>
+            <strong>Skill puzzles, fixed rewards</strong>
             <span>No stake. Cap 30m/day. The cleanest way to earn time back.</span>
           </div>
           <button type="button" className="btn btn-primary" onClick={() => onNavigate('earn')}>

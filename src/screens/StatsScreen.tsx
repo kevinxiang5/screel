@@ -130,8 +130,8 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
             <div className="label">Unused allowance today</div>
             <div className="stats-hero-value pos">+{todayUnused}m</div>
             <p className="lede" style={{ marginTop: 8 }}>
-              {todayUnused}m still in today’s bank · {state.minutesUsed}m used of {state.minutesBank}m ·
-              base {state.baseLimit}m.
+              {todayUnused}m still in today’s bank. {state.minutesUsed}m used of {state.minutesBank}m.
+              Base {state.baseLimit}m.
             </p>
           </div>
           <div className="stats-hero-side">
@@ -158,12 +158,12 @@ export function StatsScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void 
           </h2>
         </div>
         <div className="stat-tile" style={{ marginBottom: 12 }}>
-          <div className="label">Tracked selection · week vs last</div>
+          <div className="label">Tracked selection, week vs last</div>
           <div className="value">
-            {wow.pct == null ? '-' : `${wow.pct > 0 ? '+' : ''}${wow.pct}%`}
+            {wow.pct == null ? 'n/a' : `${wow.pct > 0 ? '+' : ''}${wow.pct}%`}
           </div>
           <p>
-            This week {wow.thisWeek}m · last week {wow.lastWeek}m.
+            This week {wow.thisWeek}m, last week {wow.lastWeek}m.
             {state.connected
               ? isNativeLink
                 ? ' Screen Time is linked.'
