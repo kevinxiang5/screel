@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNod
 import { AnimatePresence, motion } from 'framer-motion';
 import { AgeBlocked, AgeGate } from './components/AgeGate';
 import type { LegalDoc } from './components/LegalDocView';
-import { FirstRunGuide, GuideNudge } from './components/FirstRunGuide';
+import { FirstRunGuide } from './components/FirstRunGuide';
 import { LoadingScreen } from './components/LoadingScreen';
 import { ScreelUIProvider, useScreelUI } from './components/ScreelUI';
 import { SetupFlow } from './components/SetupFlow';
@@ -32,13 +32,12 @@ function TabPane({ children, label }: { children: ReactNode; label?: string }) {
 }
 
 function ScreelApp() {
-  const { state, dismissGuideTip } = useScreel();
+  const { state } = useScreel();
   const { confirm, toast } = useScreelUI();
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<TabId>('home');
   const [activeGame, setActiveGame] = useState<GameId>(null);
   const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
-  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set<TabId>(['home']));
   const launchTrackedRef = useRef(false);
 
   const finishLoading = useCallback(() => setReady(true), []);
@@ -46,7 +45,6 @@ function ScreelApp() {
   const showTabs = !inGame && !legalDoc;
   const showGuide = state.setupComplete && !state.guideComplete;
   const showShell = state.setupComplete && state.guideComplete;
-  const guideTip = state.guideTipTab;
 
   useEffect(() => {
     if (!ready || !showShell) return;
@@ -122,12 +120,6 @@ function ScreelApp() {
   }, [ready, showShell, confirm, toast]);
 
   const goPlay = (game: GameId) => {
-    setVisited((prev) => {
-      if (prev.has('play')) return prev;
-      const next = new Set(prev);
-      next.add('play');
-      return next;
-    });
     setActiveGame(game);
     setTab('play');
     setLegalDoc(null);
@@ -135,24 +127,12 @@ function ScreelApp() {
 
   const changeTab = (next: TabId) => {
     if (next === tab && !legalDoc && !(next === 'play' && activeGame)) return;
-    setVisited((prev) => {
-      if (prev.has(next)) return prev;
-      const copy = new Set(prev);
-      copy.add(next);
-      return copy;
-    });
     if (next !== 'play') setActiveGame(null);
     setLegalDoc(null);
     setTab(next);
   };
 
   const startFromGuide = (next: TabId) => {
-    setVisited((prev) => {
-      if (prev.has(next)) return prev;
-      const copy = new Set(prev);
-      copy.add(next);
-      return copy;
-    });
     setActiveGame(null);
     setLegalDoc(null);
     setTab(next);
@@ -175,60 +155,50 @@ function ScreelApp() {
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="tab-route">
-            {visited.has('home') && (
-              <div
-                className={`tab-page ${tab === 'home' && !legalDoc ? 'is-active' : 'is-hidden'}`}
-                aria-hidden={tab !== 'home' || Boolean(legalDoc)}
-              >
-                <TabPane label="Home">
-                  <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
-                </TabPane>
-              </div>
-            )}
-            {visited.has('earn') && (
-              <div
-                className={`tab-page ${tab === 'earn' && !legalDoc ? 'is-active' : 'is-hidden'}`}
-                aria-hidden={tab !== 'earn' || Boolean(legalDoc)}
-              >
-                <TabPane label="Earn">
-                  <EarnScreen />
-                </TabPane>
-              </div>
-            )}
-            {visited.has('play') && (
-              <div
-                className={`tab-page ${tab === 'play' && !legalDoc ? 'is-active' : 'is-hidden'}`}
-                aria-hidden={tab !== 'play' || Boolean(legalDoc)}
-              >
-                <TabPane label="Play">
-                  <GamesScreen
-                    activeGame={activeGame}
-                    onSelect={setActiveGame}
-                    onBack={() => setActiveGame(null)}
-                  />
-                </TabPane>
-              </div>
-            )}
-            {visited.has('stats') && (
-              <div
-                className={`tab-page ${tab === 'stats' && !legalDoc ? 'is-active' : 'is-hidden'}`}
-                aria-hidden={tab !== 'stats' || Boolean(legalDoc)}
-              >
-                <TabPane label="Stats">
-                  <StatsScreen onNavigate={changeTab} />
-                </TabPane>
-              </div>
-            )}
-            {visited.has('you') && (
-              <div
-                className={`tab-page ${tab === 'you' && !legalDoc ? 'is-active' : 'is-hidden'}`}
-                aria-hidden={tab !== 'you' || Boolean(legalDoc)}
-              >
-                <TabPane label="You">
-                  <ProfileScreen onOpenLegal={setLegalDoc} />
-                </TabPane>
-              </div>
-            )}
+            <div
+              className={`tab-page ${tab === 'home' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+              aria-hidden={tab !== 'home' || Boolean(legalDoc)}
+            >
+              <TabPane label="Home">
+                <HomeScreen onNavigate={changeTab} onPlay={goPlay} />
+              </TabPane>
+            </div>
+            <div
+              className={`tab-page ${tab === 'earn' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+              aria-hidden={tab !== 'earn' || Boolean(legalDoc)}
+            >
+              <TabPane label="Earn">
+                <EarnScreen />
+              </TabPane>
+            </div>
+            <div
+              className={`tab-page ${tab === 'play' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+              aria-hidden={tab !== 'play' || Boolean(legalDoc)}
+            >
+              <TabPane label="Play">
+                <GamesScreen
+                  activeGame={activeGame}
+                  onSelect={setActiveGame}
+                  onBack={() => setActiveGame(null)}
+                />
+              </TabPane>
+            </div>
+            <div
+              className={`tab-page ${tab === 'stats' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+              aria-hidden={tab !== 'stats' || Boolean(legalDoc)}
+            >
+              <TabPane label="Stats">
+                <StatsScreen onNavigate={changeTab} />
+              </TabPane>
+            </div>
+            <div
+              className={`tab-page ${tab === 'you' && !legalDoc ? 'is-active' : 'is-hidden'}`}
+              aria-hidden={tab !== 'you' || Boolean(legalDoc)}
+            >
+              <TabPane label="You">
+                <ProfileScreen onOpenLegal={setLegalDoc} />
+              </TabPane>
+            </div>
           </div>
 
           <AnimatePresence>
@@ -247,10 +217,6 @@ function ScreelApp() {
               </motion.div>
             ) : null}
           </AnimatePresence>
-
-          {guideTip && guideTip === tab && !inGame && !legalDoc ? (
-            <GuideNudge tab={guideTip} onDismiss={dismissGuideTip} />
-          ) : null}
 
           {showTabs ? (
             <div className="tab-bar-wrap">

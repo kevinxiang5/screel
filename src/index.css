@@ -397,6 +397,14 @@ button {
     visibility 0s linear 0s;
 }
 
+/* First paint of an active tab should still fade, not pop. */
+@starting-style {
+  .tab-page.is-active {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 .tab-page.is-hidden {
   opacity: 0;
   visibility: hidden;
@@ -4733,7 +4741,7 @@ button {
 .meter-track { height: 6px; border-radius: 2px !important; }
 .meter-fill { background: linear-gradient(90deg, var(--lime), var(--gold)) !important; }
 
-.earn-catalog { display: grid; gap: var(--s3); }
+.earn-catalog { display: grid; gap: var(--s3); padding-top: 2px; }
 .earn-card {
   display: flex; align-items: center; gap: var(--s3); padding: var(--s4);
   text-align: left; border: 1px solid rgba(200, 255, 46, 0.16); border-radius: var(--r-md);
@@ -4883,27 +4891,46 @@ button {
   padding: 0;
 }
 .sudoku-grid .gridlock-cell.wall { color: var(--mute); }
+.heatmap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
 .heatmap-label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); margin-bottom: var(--s3); }
 .heatmap-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(2px, 0.8vw, 4px);
   margin-bottom: 6px;
   font-size: 0.65rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mute);
   text-align: center;
+  width: 100%;
+  min-width: 0;
 }
-.heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(2px, 0.8vw, 4px);
+  width: 100%;
+  min-width: 0;
+}
 .heatmap-cell {
   aspect-ratio: 1;
-  border-radius: 2px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 3px;
   background: rgba(200, 255, 46, 0.07);
   border: 1px solid transparent;
   display: grid;
   place-items: center;
   min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .heatmap-cell.empty { background: transparent; border: none; }
 .heatmap-cell.dated.has-data {
@@ -4913,7 +4940,7 @@ button {
   border-color: rgba(200, 255, 46, 0.55);
 }
 .heatmap-day {
-  font-size: 0.62rem;
+  font-size: clamp(0.5rem, 2.5vw, 0.62rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--snow);
@@ -4934,6 +4961,7 @@ button {
 .stats-actions { display: grid; gap: 8px; }
 .earn-hero {
   margin-top: var(--s5);
+  margin-bottom: 4px;
   padding: var(--s5);
   border-radius: var(--r-md);
   background:
@@ -4944,6 +4972,9 @@ button {
   display: grid;
   gap: var(--s3);
   box-shadow: var(--edge-light);
+}
+.earn-screen .earn-hero + .section {
+  margin-top: calc(var(--s8) + 14px);
 }
 .earn-hero .budget-meter {
   margin-top: 0;

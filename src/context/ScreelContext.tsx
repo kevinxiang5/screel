@@ -915,11 +915,11 @@ export function ScreelProvider({ children }: { children: ReactNode }) {
           usageSource: 'none',
         })),
       completeSetup: () => setState((s) => ({ ...s, setupComplete: true, guideComplete: false })),
-      completeGuide: (tab) =>
+      completeGuide: (_tab) =>
         setState((s) => ({
           ...s,
           guideComplete: true,
-          guideTipTab: tab ?? 'home',
+          guideTipTab: null,
         })),
       dismissGuideTip: () => setState((s) => ({ ...s, guideTipTab: null })),
       setFontTheme: (theme) => {

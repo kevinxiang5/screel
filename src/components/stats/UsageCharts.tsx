@@ -7,16 +7,25 @@ import {
   type LiveUsage,
   type UsagePeriodOpts,
 } from '../../utils/usageStats';
-import { calendarDayKey } from '../../utils/dayPeriod';
+import { calendarDayKey, zonedParts } from '../../utils/dayPeriod';
 
+/** `month` is 1–12. */
 function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function padDay(n: number) {
   return String(n).padStart(2, '0');
+}
+
+/** Weekday of Y-M-D in the user's reset timezone (0 = Sunday). */
+function weekdayInZone(year: number, month: number, day: number, timeZone: string) {
+  const probe = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const weekday = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(probe);
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[weekday] ?? 0;
 }
 
 export type { LiveUsage, UsagePeriodOpts };
@@ -39,12 +48,17 @@ export function UsageHeatmap({
   const byDay = withLive(log, opts, live);
   const rows = [...byDay.values()];
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const parts = zonedParts(now, timeZone);
+  const year = parts.year;
+  const month = parts.month;
   const maxUsed = Math.max(1, ...rows.map((row) => row.used || 0), 1);
   const count = daysInMonth(year, month);
-  const label = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-  const startWeekday = new Date(year, month, 1).getDay();
+  const label = new Intl.DateTimeFormat(undefined, {
+    month: 'long',
+    year: 'numeric',
+    timeZone,
+  }).format(now);
+  const startWeekday = weekdayInZone(year, month, 1, timeZone);
   const periodToday = calendarDayKey(now, resetHour, resetMinute, timeZone);
 
   return (
@@ -61,7 +75,7 @@ export function UsageHeatmap({
         ))}
         {Array.from({ length: count }, (_, i) => {
           const day = i + 1;
-          const key = `${year}-${padDay(month + 1)}-${padDay(day)}`;
+          const key = `${year}-${padDay(month)}-${padDay(day)}`;
           const row = byDay.get(key);
           const intensity = row ? row.used / maxUsed : 0;
           const isToday = key === periodToday;

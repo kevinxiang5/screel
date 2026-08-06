@@ -36,18 +36,6 @@ const CHOICES: StartChoice[] = [
   },
 ];
 
-const TIPS: Record<TabId, string> = {
-  home: 'Home is your dashboard. Minutes left sit in the ring. Earn and Play are one tap away below.',
-  earn: 'Earn is for safe minutes. Clear a puzzle to add time. Cap resets with your daily budget.',
-  play: 'Play is optional. Pick a stake, run a challenge, bank a win or lose the stake.',
-  stats: 'Stats tracks usage against your Screel budget. The calendar follows your reset clock.',
-  you: 'You holds profile, bank, and legal. Change allowance or reset time anytime under Bank.',
-};
-
-export function tipForTab(tab: TabId): string {
-  return TIPS[tab];
-}
-
 /**
  * Second Thought-style post-setup chooser: pick where to land first.
  */
@@ -70,8 +58,7 @@ export function FirstRunGuide({ onChoose }: { onChoose: (tab: TabId) => void }) 
           {firstName ? `Where to first, ${firstName}?` : 'Where do you want to start?'}
         </h1>
         <p className="lede">
-          Screel’s ready. Pick one path and we’ll drop you there with a quick tip. You can always switch
-          tabs later.
+          Screel’s ready. Pick one path and we’ll drop you there. You can always switch tabs later.
         </p>
 
         <div className="start-choice-list">
@@ -92,18 +79,6 @@ export function FirstRunGuide({ onChoose }: { onChoose: (tab: TabId) => void }) 
           Explore on my own
         </button>
       </div>
-    </div>
-  );
-}
-
-/** Soft tip after the chooser lands you on a tab. */
-export function GuideNudge({ tab, onDismiss }: { tab: TabId; onDismiss: () => void }) {
-  return (
-    <div className="guide-nudge" role="status">
-      <p>{tipForTab(tab)}</p>
-      <button type="button" className="guide-nudge-dismiss" onClick={onDismiss}>
-        Got it
-      </button>
     </div>
   );
 }
